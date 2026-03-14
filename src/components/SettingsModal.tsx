@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useStudio } from '@/context/StudioContext';
 import { getAvatarColor } from '@/lib/avatarColors';
 
@@ -25,6 +25,25 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [newWorkerEmail, setNewWorkerEmail] = useState('');
 
   const initials = userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  const profileFileRef = useRef<HTMLInputElement>(null);
+
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+    if (file.size > 1 * 1024 * 1024) { alert('Image must be less than 1MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setPhotoUrl(result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveProfilePhoto = () => {
+    setPhotoUrl('');
+  };
 
   const handleSaveProfile = () => {
     updateUserProfile({ name, email, avatar: photoUrl || null });
@@ -122,15 +141,23 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             {activeTab === 'profile' && (
               <div className="space-y-6 animate-fade-in">
                 <div className="flex items-center gap-6">
-                  {userProfile.avatar ? (
-                    <div className="h-24 w-24 rounded-full bg-cover bg-center shadow-md border-none shadow-sm" style={{ backgroundImage: `url('${userProfile.avatar}')` }} />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full font-display font-bold text-3xl text-white shadow-md border-none shadow-sm" style={{ background: getAvatarColor(userProfile.name) }}>
-                      {initials}
-                    </div>
-                  )}
+                  <input ref={profileFileRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoChange} />
+                  <div className="relative">
+                    {(photoUrl || userProfile.avatar) ? (
+                      <div className="h-24 w-24 rounded-full bg-cover bg-center shadow-md border-none shadow-sm cursor-pointer hover:opacity-80 transition-opacity" style={{ backgroundImage: `url('${photoUrl || userProfile.avatar}')` }} onClick={() => profileFileRef.current?.click()} />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full font-display font-bold text-3xl text-white shadow-md border-none shadow-sm cursor-pointer hover:opacity-80 transition-opacity" style={{ background: getAvatarColor(userProfile.name) }} onClick={() => profileFileRef.current?.click()}>
+                        {initials}
+                      </div>
+                    )}
+                    {(photoUrl || userProfile.avatar) && (
+                      <button onClick={handleRemoveProfilePhoto} className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-white shadow-sm hover:brightness-110 transition-all" title="Remove Photo">
+                        <span className="material-symbols-outlined text-[12px]">close</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-3">
-                    <button className="px-4 py-2 bg-canvas hover:bg-border/50 shadow-sm border-none text-gray text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors">
+                    <button onClick={() => profileFileRef.current?.click()} className="px-4 py-2 bg-canvas hover:bg-border/50 shadow-sm border-none text-gray text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors">
                       Change Picture
                     </button>
                     <p className="text-[10px] uppercase tracking-wider font-bold text-muted">JPG, GIF or PNG. 1MB max.</p>
