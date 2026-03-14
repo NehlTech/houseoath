@@ -32,12 +32,11 @@ export default function LoginPage() {
       <div className="layout-container flex h-full grow flex-col relative z-10">
         <header className="flex items-center justify-between whitespace-nowrap  px-6 md:px-20 py-5 bg-card/80 backdrop-blur-md">
           <div className="flex items-center gap-3 text-charcoal">
-            <div className="size-8 text-primary">
-              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
-              </svg>
+            <div className="flex items-center text-xl italic font-light tracking-tighter" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#1a0f08' }}>
+              <span className="mr-0.5">h</span>
+              <span className="-ml-1">o</span>
             </div>
-            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest uppercase">House of Oath Fashion</h2>
+            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest uppercase ml-1">House of Oath Fashion</h2>
           </div>
         </header>
 
