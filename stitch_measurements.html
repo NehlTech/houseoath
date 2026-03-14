@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af35",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#201d12",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Tailor Pro - Measurements</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="text-primary">
+<span class="material-symbols-outlined text-3xl">straighten</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight">Measurements</h2>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white font-bold text-sm">
+                        Save Changes
+                    </button>
+</div>
+</header>
+<main class="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+<!-- Sidebar & Content Layout -->
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Navigation Sidebar -->
+<aside class="w-full lg:w-64 flex-shrink-0">
+<nav class="flex flex-col gap-1 sticky top-24">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary font-bold" href="#body">
+<span class="material-symbols-outlined">accessibility_new</span>
+<span>Body Basics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400" href="#upper-body">
+<span class="material-symbols-outlined">checkroom</span>
+<span>Upper Body</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400" href="#skirt">
+<span class="material-symbols-outlined">dry_cleaning</span>
+<span>Skirt &amp; Lower</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400" href="#dress">
+<span class="material-symbols-outlined">styler</span>
+<span>Dress Specific</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400" href="#sleeve">
+<span class="material-symbols-outlined">gesture</span>
+<span>Sleeve &amp; Arms</span>
+</a>
+</nav>
+<div class="mt-8 p-4 rounded-xl border border-primary/20 bg-primary/5">
+<h4 class="text-sm font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">info</span>
+                                Measurement Tip
+                            </h4>
+<p class="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                                Always keep the measuring tape level and snug, but not tight. Wear the undergarments you plan to wear with the final garment.
+                            </p>
+</div>
+</aside>
+<!-- Form Content -->
+<div class="flex-1 space-y-12">
+<!-- Body Group -->
+<section id="body">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold">Body Measurements</h3>
+<span class="text-xs font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-wider">Group 1 of 5</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Bust
+                                        <span class="material-symbols-outlined text-slate-400 text-base cursor-help" title="Measure around the fullest part of your chest">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Waist
+                                        <span class="material-symbols-outlined text-slate-400 text-base cursor-help">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Hip
+                                        <span class="material-symbols-outlined text-slate-400 text-base cursor-help">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        High Hip
+                                        <span class="material-symbols-outlined text-slate-400 text-base cursor-help">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Upper Body Group -->
+<section id="upper-body">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold">Upper Body</h3>
+<span class="text-xs font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-wider">Group 2 of 5</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Shoulder to Nipple
+                                        <span class="material-symbols-outlined text-slate-400 text-base">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Shoulder to Waist
+                                        <span class="material-symbols-outlined text-slate-400 text-base">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2 md:col-span-2">
+<label class="text-sm font-semibold flex items-center gap-1.5">
+                                        Back Width (Shoulder to Shoulder)
+                                        <span class="material-symbols-outlined text-slate-400 text-base">info</span>
+</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Sleeve Group -->
+<section id="sleeve">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold">Sleeve &amp; Arm</h3>
+<span class="text-xs font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-wider">Group 5 of 5</span>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+<div class="flex flex-col md:flex-row gap-8">
+<div class="flex-1 space-y-6">
+<div class="space-y-2">
+<label class="text-sm font-semibold">Sleeve Length</label>
+<div class="relative">
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg h-12 px-4" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold">Bicep Circumference</label>
+<div class="relative">
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg h-12 px-4" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
+</div>
+</div>
+</div>
+<div class="w-full md:w-48 flex flex-col items-center justify-center p-4 bg-background-light dark:bg-background-dark rounded-lg">
+<div class="w-32 h-32 mb-3 bg-primary/10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-5xl text-primary">design_services</span>
+</div>
+<span class="text-[10px] text-center uppercase font-bold text-slate-400 tracking-widest">Sleeve Guide View</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Footer -->
+<div class="pt-10 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-2">
+<button class="h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-800 text-sm font-medium">
+                                    Export PDF
+                                </button>
+<button class="h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-800 text-sm font-medium">
+                                    Clear All
+                                </button>
+</div>
+<div class="flex items-center gap-3">
+<p class="text-sm text-slate-500 italic">Last updated: Oct 24, 2023</p>
+<button class="h-12 px-8 rounded-lg bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
+                                    Finalize Measurements
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Illustration/Info Section -->
+<section class="bg-slate-900 text-white py-12 px-6">
+<div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-10">
+<div class="flex-1 space-y-4">
+<h4 class="text-2xl font-bold">Need a professional fitting?</h4>
+<p class="text-slate-400">Our digital measurement guide helps you get the perfect fit at home. If you're unsure, visit one of our partner tailors for a certified measurement profile.</p>
+<button class="text-primary font-bold flex items-center gap-2 group">
+                            Find a professional near you 
+                            <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<div class="w-full md:w-72 h-48 rounded-2xl bg-slate-800 relative overflow-hidden flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"></div>
+<span class="material-symbols-outlined text-6xl text-slate-700">map</span>
+<div class="absolute bottom-4 left-4 right-4 bg-white/10 backdrop-blur-md p-3 rounded-lg border border-white/10">
+<p class="text-[10px] font-bold uppercase tracking-widest text-primary">Interactive Map</p>
+<p class="text-xs">12 Partners in London Area</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</body></html>

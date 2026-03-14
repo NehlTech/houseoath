@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af35",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#201d12",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-white dark:bg-background-dark/50 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-4 text-slate-900 dark:text-slate-100">
+<div class="size-8 flex items-center justify-center rounded-lg bg-primary text-white">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">WealthStream</h2>
+</div>
+<div class="flex flex-1 justify-end gap-4 items-center">
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+<div class="flex items-center gap-3">
+<div class="flex flex-col items-end hidden sm:flex">
+<span class="text-sm font-semibold">Alex Rivera</span>
+<span class="text-xs text-slate-500">Portfolio Manager</span>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary" data-alt="Professional headshot of a male advisor" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDKDZ2_qeY_H_hGU4VU6H-p7a5a0uky5EZStjCd0joPlJQmervLg--16et1j054C4dOiYAxBPnbqhwsoQg_bzYySr8W45uDBhhDu3MwDJgd1sKEudLr5g9DaX3BwX6y-OyOhLgOivBVVse8f1SPQwplRucdUn8zVMjQGw0Ej6kGaG_1E-GEHPJFHahM3JR6aTwnstOVPMhKqx6MNFE3vGCjEVW8ymW0uZy-ZbiNHBllgr6gVz4T7c0Yb8gRvAOcUuRSISh2EpJlNyL3");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-7xl mx-auto w-full px-4 lg:px-10 py-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+<div class="flex items-start gap-4">
+<div class="bg-primary/10 p-3 rounded-xl border border-primary/20">
+<span class="material-symbols-outlined text-primary text-4xl">corporate_fare</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-3xl font-extrabold tracking-tight">Acme Corp Global</h1>
+<span class="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">Premium</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">location_on</span> San Francisco, CA • Client ID: #774920
+                            </p>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined">upload_file</span>
+                            Upload Invoice
+                        </button>
+<button class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white font-bold hover:brightness-110 shadow-lg shadow-primary/20 transition-all">
+<span class="material-symbols-outlined">add</span>
+                            Add Payment
+                        </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Project Cost</p>
+<span class="material-symbols-outlined text-slate-400">payments</span>
+</div>
+<p class="text-slate-900 dark:text-slate-100 tracking-tight text-3xl font-black">$12,500.00</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-primary text-sm">trending_up</span>
+<p class="text-primary text-xs font-bold">Revised May 12</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12"></div>
+<div class="flex items-center justify-between mb-2">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Amount Paid</p>
+<span class="material-symbols-outlined text-green-500">check_circle</span>
+</div>
+<p class="text-slate-900 dark:text-slate-100 tracking-tight text-3xl font-black">$8,250.00</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="text-green-600 dark:text-green-400 text-xs font-bold">66% Complete</span>
+<div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full ml-2">
+<div class="h-full bg-green-500 rounded-full" style="width: 66%"></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Balance Remaining</p>
+<span class="material-symbols-outlined text-primary">pending_actions</span>
+</div>
+<p class="text-slate-900 dark:text-slate-100 tracking-tight text-3xl font-black">$4,250.00</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-amber-500 text-sm">schedule</span>
+<p class="text-amber-500 text-xs font-bold">Due in 14 days</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<h2 class="text-xl font-bold">Payment History</h2>
+<p class="text-slate-500 text-sm">Recent transactions and verification status</p>
+</div>
+<div class="flex gap-2">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_list</span>
+<select class="bg-slate-50 dark:bg-slate-900 border-none rounded-lg pl-9 pr-8 py-2 text-sm font-medium focus:ring-1 focus:ring-primary">
+<option>All Methods</option>
+<option>Bank Transfer</option>
+<option>Credit Card</option>
+<option>PayPal</option>
+</select>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-900/50">
+<th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Transaction ID</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Method</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4 font-medium">Oct 24, 2023</td>
+<td class="px-6 py-4 text-slate-500 font-mono text-sm uppercase">#tr-82910</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">account_balance</span>
+<span class="text-sm">Bank Transfer</span>
+</div>
+</td>
+<td class="px-6 py-4 font-bold">$2,500.00</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600"></span>
+                                            Verified
+                                        </span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4 font-medium">Sep 15, 2023</td>
+<td class="px-6 py-4 text-slate-500 font-mono text-sm uppercase">#tr-77421</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">credit_card</span>
+<span class="text-sm">Credit Card (**** 4242)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-bold">$1,250.00</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600"></span>
+                                            Verified
+                                        </span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4 font-medium">Aug 10, 2023</td>
+<td class="px-6 py-4 text-slate-500 font-mono text-sm uppercase">#tr-66109</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">account_balance</span>
+<span class="text-sm">Bank Transfer</span>
+</div>
+</td>
+<td class="px-6 py-4 font-bold">$4,500.00</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600"></span>
+                                            Verified
+                                        </span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors opacity-60">
+<td class="px-6 py-4 font-medium">Jul 02, 2023</td>
+<td class="px-6 py-4 text-slate-500 font-mono text-sm uppercase">#tr-51200</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">payments</span>
+<span class="text-sm">Check</span>
+</div>
+</td>
+<td class="px-6 py-4 font-bold text-slate-400 strike-through">$500.00</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+<span class="size-1.5 rounded-full bg-slate-400"></span>
+                                            Voided
+                                        </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+<div class="flex items-center justify-center gap-4">
+<button class="size-8 rounded border border-slate-300 dark:border-slate-700 flex items-center justify-center disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<span class="text-sm font-medium">Page 1 of 1</span>
+<button class="size-8 rounded border border-slate-300 dark:border-slate-700 flex items-center justify-center disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary">description</span>
+<h3 class="font-bold">Recent Invoices</h3>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-red-100 text-red-600 rounded flex items-center justify-center">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="text-sm font-bold">INV-2023-004</p>
+<p class="text-xs text-slate-500">Oct 15, 2023 • $2,500.00</p>
+</div>
+</div>
+<button class="text-primary hover:underline text-sm font-bold">Download</button>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-red-100 text-red-600 rounded flex items-center justify-center">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="text-sm font-bold">INV-2023-003</p>
+<p class="text-xs text-slate-500">Sep 01, 2023 • $1,250.00</p>
+</div>
+</div>
+<button class="text-primary hover:underline text-sm font-bold">Download</button>
+</div>
+</div>
+</div>
+<div class="bg-primary/5 p-6 rounded-xl border border-primary/20 flex items-center justify-between">
+<div>
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Need help with billing?</h3>
+<p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Contact our finance department for support.</p>
+<button class="mt-4 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all">
+                                Contact Support
+                            </button>
+</div>
+<div class="hidden sm:block opacity-20 transform -rotate-12">
+<span class="material-symbols-outlined text-primary text-7xl">support_agent</span>
+</div>
+</div>
+</div>
+</main>
+<footer class="border-t border-slate-200 dark:border-slate-800 py-6 px-6 lg:px-10 bg-white dark:bg-background-dark/50">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-sm text-slate-500">© 2023 WealthStream Financial Management Inc. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Privacy Policy</a>
+</div>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

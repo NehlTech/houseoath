@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af35",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#201d12",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>StitchManager - Dashboard</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex h-screen w-full overflow-hidden">
+<!-- Sidebar: Left Panel (Telegram Style) -->
+<aside class="flex h-full w-full max-w-[380px] flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50">
+<!-- Header with Search & New Client -->
+<div class="flex flex-col gap-4 p-4 border-b border-slate-100 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">grid_view</span>
+<h2 class="text-lg font-bold tracking-tight">StitchManager</h2>
+</div>
+<div class="flex gap-1">
+<button class="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">settings</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<label class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg">search</span>
+<input class="h-10 w-full rounded-lg border-none bg-slate-100 dark:bg-slate-800 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50" placeholder="Search clients..." type="text"/>
+</label>
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90">
+<span class="material-symbols-outlined text-lg">add</span>
+                        New Client
+                    </button>
+</div>
+</div>
+<!-- Scrollable Client List -->
+<div class="flex-1 overflow-y-auto">
+<!-- Active Client -->
+<div class="flex cursor-pointer items-center gap-3 bg-primary/10 px-4 py-3 border-l-4 border-primary">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-lg">
+                        AM
+                    </div>
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="flex items-center justify-between">
+<p class="truncate font-semibold text-slate-900 dark:text-slate-100">Ama Mensah</p>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<p class="truncate text-xs text-slate-600 dark:text-slate-400">Event: October Wedding</p>
+</div>
+</div>
+<!-- List Items -->
+<div class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="h-12 w-12 shrink-0 rounded-full bg-cover bg-center" data-alt="Portrait of a female fashion client" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDNktnNbbpTMyyOLfbAdGRbnlGYTJTstdAVovoFpsYwyctwjvkRqm9SXSJAzS7RaWjGnRrdjvytmX3ShwzlnMi64_zllKSe7Pi981hA7_E3NbcWNFjzihmDfJEdD1EUCf4k97jzi77vl3qR-KRziGbPa46BegKfuH6LyFSE0gcogM9o0a7Lc-xMUq3TCUD8tcTK4aXw0ZSVIgso5sUnzRV4ZSRIi3b-NQOoQJZj5oQoiJwLpBqtqLda6hb6LbbilBEsTAxo1_W3MxQY')"></div>
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="flex items-center justify-between">
+<p class="truncate font-semibold text-slate-900 dark:text-slate-100">Kofi Arhin</p>
+<span class="text-[10px] text-slate-500">Yesterday</span>
+</div>
+<p class="truncate text-xs text-slate-600 dark:text-slate-400">Event: Gala Night Dec</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-lg">
+                        SN
+                    </div>
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="flex items-center justify-between">
+<p class="truncate font-semibold text-slate-900 dark:text-slate-100">Sarah Nyame</p>
+<span class="text-[10px] text-slate-500">Tue</span>
+</div>
+<p class="truncate text-xs text-slate-600 dark:text-slate-400">Event: Birthday Soiree</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="h-12 w-12 shrink-0 rounded-full bg-cover bg-center" data-alt="Headshot of a smiling male client" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDULLVuM1qPdzfpHvIlEeb4HrHlHryejkPC85BM4-KqZv_-iELcO28vfOCJe4aYfQO44ifsZZy7NDhqNGB5HjQeJoEMF0UlcqsLLYPhe1rPDN9BrRZGUsu4BQ1y6_KHN4b4y4kAUCYL9UFZQOg8AR9rGZwddRsKlfV6isFa-NtU6aqxILYi-cuX5a7PVZnSvlVtHIurhZKdyQIWo48guUSw9Cl9LJ6e8nGXBk1GFmjNcewez3wtaoZEpPYkK_eQDBX9aEboVN7Vu8li')"></div>
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="flex items-center justify-between">
+<p class="truncate font-semibold text-slate-900 dark:text-slate-100">James Quansah</p>
+<span class="text-[10px] text-slate-500">Oct 12</span>
+</div>
+<p class="truncate text-xs text-slate-600 dark:text-slate-400">Event: Corporate Launch</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-lg">
+                        EA
+                    </div>
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="flex items-center justify-between">
+<p class="truncate font-semibold text-slate-900 dark:text-slate-100">Efua Appiah</p>
+<span class="text-[10px] text-slate-500">Oct 10</span>
+</div>
+<p class="truncate text-xs text-slate-600 dark:text-slate-400">Event: Bridal Shower</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content: Right Panel (Empty State) -->
+<main class="flex flex-1 flex-col items-center justify-center bg-background-light dark:bg-background-dark p-8">
+<div class="flex flex-col items-center text-center max-w-sm">
+<div class="relative mb-8">
+<!-- Custom Fashion Illustration Container -->
+<div class="flex h-48 w-48 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800/50 border-2 border-dashed border-primary/30">
+<div class="relative flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/40 text-[120px]">content_cut</span>
+<span class="material-symbols-outlined absolute text-primary text-[60px] opacity-80" style="transform: translate(20px, 20px);">apparel</span>
+</div>
+</div>
+<!-- Decorative dots -->
+<div class="absolute -top-4 -right-4 h-8 w-8 rounded-full bg-primary/10"></div>
+<div class="absolute -bottom-2 -left-6 h-12 w-12 rounded-full bg-primary/5"></div>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Welcome to your Studio</h3>
+<p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                    Manage your client fittings, measurements, and project timelines all in one place. Select a client from the list to view their project details.
+                </p>
+<div class="flex gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-primary text-sm">check_circle</span>
+<span class="text-xs font-medium">12 Active Projects</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<span class="text-xs font-medium">3 Fittings Today</span>
+</div>
+</div>
+</div>
+<!-- Subtle background pattern -->
+<div class="fixed bottom-0 right-0 p-12 opacity-5 pointer-events-none">
+<svg fill="currentColor" height="400" viewbox="0 0 100 100" width="400">
+<path d="M10,10 L90,10 L90,90 L10,90 Z" fill="none" stroke="currentColor" stroke-dasharray="2,2" stroke-width="0.5"></path>
+<circle cx="50" cy="50" fill="none" r="30" stroke="currentColor" stroke-width="0.5"></circle>
+<path d="M50,10 L50,90 M10,50 L90,50" stroke="currentColor" stroke-width="0.2"></path>
+</svg>
+</div>
+</main>
+</div>
+</body></html>

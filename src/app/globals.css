@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* ── Stitch Design Palette ── */
+  --color-primary: #d4af35;         /* Kente Gold */
+  --color-canvas: #f8f9fa;          /* Soft Canvas Background */
+  --color-card: #ffffff;            /* Pure White — cards, panels */
+  --color-border: #f0f0f0;          /* Very Subtle Border */
+  --color-charcoal: #212529;        /* Primary Text */
+  --color-gray: #495057;            /* Secondary Text */
+  --color-muted: #adb5bd;           /* Placeholders & Disabled */
+  --color-success: #28a745;
+  --color-warning: #ffc107;
+  --color-danger: #dc3545;
+
+  --font-display: "Manrope", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Global Styles */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8f9fa;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4af3560;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af3599;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Print Isolation Styles */
+@media print {
+  @page {
+    margin: 0;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  #receipt-print-area, #receipt-print-area * {
+    visibility: visible;
+  }
+  
+  #receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
 }

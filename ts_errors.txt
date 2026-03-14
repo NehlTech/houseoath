@@ -1,0 +1,25 @@
+src/app/page.tsx(12,28): error TS2339: Property 'activeClient' does not exist on type 'StudioContextType'.
+src/app/page.tsx(12,42): error TS2339: Property 'setActiveClient' does not exist on type 'StudioContextType'.
+src/components/ClientWorkspace.tsx(23,27): error TS2339: Property 'name' does not exist on type 'Client'.
+src/components/ClientWorkspace.tsx(23,47): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/components/ClientWorkspace.tsx(66,93): error TS2339: Property 'name' does not exist on type 'Client'.
+src/components/ClientWorkspace.tsx(70,23): error TS2339: Property 'phone' does not exist on type 'Client'.
+src/components/ClientWorkspace.tsx(73,65): error TS2339: Property 'phone' does not exist on type 'Client'.
+src/components/NewClientModal.tsx(27,7): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type 'Omit<Client, "id" | "createdAt" | "lastActivity" | "timeline" | "payments" | "measurements" | "fittings" | "totalCost" | "startDate" | "nextFittingDate" | "deliveryDate">'.
+src/components/Sidebar.tsx(11,20): error TS2339: Property 'activeClient' does not exist on type 'StudioContextType'.
+src/components/Sidebar.tsx(14,7): error TS2339: Property 'name' does not exist on type 'Client'.
+src/components/Sidebar.tsx(15,7): error TS2339: Property 'eventName' does not exist on type 'Client'.
+src/components/Sidebar.tsx(58,35): error TS2339: Property 'name' does not exist on type 'Client'.
+src/components/Sidebar.tsx(58,55): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/components/Sidebar.tsx(81,80): error TS2339: Property 'name' does not exist on type 'Client'.
+src/components/Sidebar.tsx(87,34): error TS2339: Property 'eventName' does not exist on type 'Client'.
+src/components/tabs/FabricTab.tsx(13,45): error TS2339: Property 'fabricNotes' does not exist on type 'Client'.
+src/components/tabs/FabricTab.tsx(81,51): error TS2353: Object literal may only specify known properties, and 'fabricNotes' does not exist in type 'Partial<Client>'.
+src/components/tabs/MeasurementsTab.tsx(17,21): error TS2345: Argument of type '(prev: Record<string, string>) => { [x: string]: string; }' is not assignable to parameter of type 'SetStateAction<{ bust: string; waist: string; hip: string; shoulderToNipple: string; shoulderUnderBust: string; shoulderToWaist: string; nippleToNipple: string; blouseLength: string; acrossBack: string; ... 10 more ...; unit: "cm" | "inches"; }>'.
+  Type '(prev: Record<string, string>) => { [x: string]: string; }' is not assignable to type '(prevState: { bust: string; waist: string; hip: string; shoulderToNipple: string; shoulderUnderBust: string; shoulderToWaist: string; nippleToNipple: string; blouseLength: string; acrossBack: string; ... 10 more ...; unit: "cm" | "inches"; }) => { ...; }'.
+    Type '{ [x: string]: string; }' is missing the following properties from type '{ bust: string; waist: string; hip: string; shoulderToNipple: string; shoulderUnderBust: string; shoulderToWaist: string; nippleToNipple: string; blouseLength: string; acrossBack: string; skirtShortMidi: string; ... 9 more ...; unit: "cm" | "inches"; }': bust, waist, hip, shoulderToNipple, and 16 more.
+src/components/tabs/OverviewTab.tsx(82,47): error TS2339: Property 'phone' does not exist on type 'Client'.
+src/components/tabs/OverviewTab.tsx(86,57): error TS2339: Property 'referralSource' does not exist on type 'Client'.
+src/components/tabs/OverviewTab.tsx(98,15): error TS2339: Property 'notes' does not exist on type 'Client'.
+src/components/tabs/OverviewTab.tsx(101,73): error TS2339: Property 'notes' does not exist on type 'Client'.
+src/components/tabs/PaymentsTab.tsx(46,23): error TS2339: Property 'name' does not exist on type 'Client'.

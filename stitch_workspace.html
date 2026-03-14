@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af35",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#201d12",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Client Workspace - Ama Mensah</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 bg-background-light dark:bg-background-dark px-6 md:px-10 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_330)">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_330"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">Client Workspace</h2>
+</div>
+<div class="flex flex-1 justify-end gap-4 items-center">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary" data-alt="User profile picture of a designer" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAYzyLfZgDfaPo5ReMDk7hVaYU4vk29fXFaYXRtzUNiQAVEATwga8wMLnUyu58QU6NTxAzH5kTd3_ReXohEiUcR-OcEKP1FR_fQwHB3HRNesqV3DKLtdYMtNWP7WELInVO2wbyTShL685witdTeMeMrYIzHVK4PcQBnL8o-FpBitSfjNwLK74qZvNI9yJ2W-pykkCHa0a_Pz7rJPHEK8dKWlgKtt626ivg2FgXR17XFs0gM-9bS-RKgzGr9Q2LaQpSrVApcYMbcSmZN");'></div>
+</div>
+</header>
+<main class="flex-1 flex flex-col max-w-[1200px] mx-auto w-full px-4 md:px-10 py-8">
+<div class="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8 bg-white dark:bg-slate-800/50 p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-2xl size-32 md:size-40 border-4 border-white dark:border-slate-800 shadow-md" data-alt="Portrait of client Ama Mensah" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBhKMYMa804OiKxGF6mAn6hh05vwIQBzFrGGyZaXdyDq8IZXKDNEH5dvApinCkanOfN3OAufqsYDWZELCvv8Rgr_5bHML71nmCp5DOls-53etl1-6BzI8s7mEW3wB4zNwzARl10G0osgZH_Qn9QBFcpU2C3Ix2GWC2kkfduER8k8X97lU9mqw0MhC94Ru7OkqhfGLZwQK8MGBXOHsTHDnEzH84kBKfPKN9RRZIZdnsakIBHypIhyplRmxwOuwpbiuA1lX7eCWKhn3sM");'></div>
+<div class="absolute -bottom-2 -right-2 bg-primary text-white p-1.5 rounded-lg shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">verified</span>
+</div>
+</div>
+<div class="flex flex-col justify-center text-center md:text-left flex-1">
+<div class="flex flex-col md:flex-row md:items-center gap-2 mb-2">
+<h1 class="text-slate-900 dark:text-slate-100 text-3xl font-extrabold tracking-tight">Ama Mensah</h1>
+<span class="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-fit mx-auto md:mx-0">Premium Client</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6">
+<div class="flex items-center justify-center md:justify-start gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-primary text-lg">call</span>
+<span class="text-sm font-medium">+233 24 123 4567</span>
+</div>
+<div class="flex items-center justify-center md:justify-start gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-primary text-lg">mail</span>
+<span class="text-sm font-medium">ama.mensah@email.com</span>
+</div>
+<div class="flex items-center justify-center md:justify-start gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-primary text-lg">event</span>
+<span class="text-sm font-medium">Event: Dec 2026</span>
+</div>
+<div class="flex items-center justify-center md:justify-start gap-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-primary text-lg">location_on</span>
+<span class="text-sm font-medium" data-location="Accra, Ghana">Accra, Ghana</span>
+</div>
+</div>
+</div>
+<div class="flex flex-row md:flex-col gap-3">
+<button class="bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">edit</span>
+                            Edit Profile
+                        </button>
+<button class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">share</span>
+                            Share
+                        </button>
+</div>
+</div>
+<div class="mb-8 overflow-x-auto no-scrollbar">
+<nav class="flex border-b border-primary/10 min-w-max">
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-primary font-bold transition-all" href="#">
+<span class="text-sm">Overview</span>
+<div class="absolute bottom-0 left-0 w-full h-[3px] bg-primary rounded-t-full"></div>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Measurements</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Fabric</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Illustration</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Client Photos</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Fittings</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Payments</span>
+</a>
+<a class="group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 text-slate-500 dark:text-slate-400 font-medium hover:text-primary transition-all" href="#">
+<span class="text-sm">Timeline</span>
+</a>
+</nav>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-800 border border-primary/10 shadow-sm">
+<div class="flex items-center gap-3 mb-1">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">schedule</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-semibold uppercase tracking-wider">Days to Event</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-3xl font-extrabold">720</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-800 border border-primary/10 shadow-sm">
+<div class="flex items-center gap-3 mb-1">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">payments</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-semibold uppercase tracking-wider">Total Payments</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-3xl font-extrabold">GHS 5,000</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-800 border border-primary/10 shadow-sm">
+<div class="flex items-center gap-3 mb-1">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-semibold uppercase tracking-wider">Fittings Done</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-3xl font-extrabold">2 / 4</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">Project Summary</h3>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 rounded-lg bg-background-light dark:bg-background-dark/50">
+<span class="text-slate-600 dark:text-slate-400 text-sm">Main Gown Status</span>
+<span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-bold rounded">In Progress</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-background-light dark:bg-background-dark/50">
+<span class="text-slate-600 dark:text-slate-400 text-sm">Fabric Sourced</span>
+<span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded">Completed</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-background-light dark:bg-background-dark/50">
+<span class="text-slate-600 dark:text-slate-400 text-sm">Illustration Approval</span>
+<span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded">Approved</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-primary/10 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">Upcoming Milestones</h3>
+<button class="text-primary text-sm font-bold hover:underline">Full Timeline</button>
+</div>
+<div class="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-primary/20">
+<div class="flex gap-4 relative">
+<div class="size-6 rounded-full bg-primary flex items-center justify-center z-10 shrink-0">
+<span class="material-symbols-outlined text-white text-[14px]">event_note</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">Second Fitting Session</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Scheduled for Oct 12, 2024</p>
+</div>
+</div>
+<div class="flex gap-4 relative">
+<div class="size-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center z-10 shrink-0">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[14px]">shopping_bag</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-bold text-slate-400 dark:text-slate-500">Lace Embroidery Completion</p>
+<p class="text-xs text-slate-400">Target: Nov 05, 2024</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>
