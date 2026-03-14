@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useStudio } from '@/context/StudioContext';
 
 interface NewClientModalProps {
@@ -9,6 +9,7 @@ interface NewClientModalProps {
 
 export default function NewClientModal({ onClose }: NewClientModalProps) {
   const { addClient } = useStudio();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     name: '', phone: '', email: '', gender: 'Female', profession: '',
     address: '', state: '', country: 'Ghana',
@@ -20,12 +21,39 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
   });
 
   const handlePhotoClick = () => {
-    const samplePhotos = [
-      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1506863530036-1efefa118685?w=400&h=400&fit=crop'
-    ];
-    handleChange('clientPhoto', samplePhotos[Math.floor(Math.random() * samplePhotos.length)]);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      handleChange('clientPhoto', result);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset the input so the same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleRemovePhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleChange('clientPhoto', '');
   };
 
   const handleChange = (key: string, value: string) => {
@@ -62,6 +90,15 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
         <div className="p-6 space-y-8">
           {/* Photo */}
           <div className="flex flex-col items-center justify-center pt-2 pb-4">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <div 
               onClick={handlePhotoClick}
               className={`relative flex h-32 w-32 cursor-pointer items-center justify-center rounded-full border-4 transition-all hover:border-primary/50 hover:bg-primary/5 ${form.clientPhoto ? 'shadow-md border-primary' : 'border-dashed border-none bg-canvas'}`}
@@ -73,9 +110,18 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
                 </div>
               )}
               {form.clientPhoto && (
-                <div className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-full border-4 border-card bg-primary text-white shadow-sm hover:brightness-110">
-                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                </div>
+                <>
+                  <div className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-full border-4 border-card bg-primary text-white shadow-sm hover:brightness-110">
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                  </div>
+                  <button
+                    onClick={handleRemovePhoto}
+                    className="absolute -top-1 -left-1 flex h-7 w-7 items-center justify-center rounded-full bg-danger text-white shadow-sm hover:brightness-110 transition-all"
+                    title="Remove Photo"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </>
               )}
             </div>
             <p className="mt-4 text-sm font-semibold text-muted uppercase tracking-widest text-[10px]">
