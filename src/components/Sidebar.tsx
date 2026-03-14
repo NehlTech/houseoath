@@ -196,7 +196,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }: SidebarProps) {
-  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout } = useStudio();
+  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients } = useStudio();
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'completed' | 'archived'>('all');
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -232,7 +232,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
     return checkDate(client.deliveryDate) || checkDate(client.eventDate) || checkDate(client.nextFittingDate);
   };
 
-  const searchedClients = clients.filter(c =>
+  const searchedClients = filteredClients.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.eventName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
