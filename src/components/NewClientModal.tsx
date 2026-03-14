@@ -95,7 +95,6 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handleFileChange}
             />
