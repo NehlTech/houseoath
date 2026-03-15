@@ -32,7 +32,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
-    if (file.size > 1 * 1024 * 1024) { alert('Image must be less than 1MB.'); return; }
+    if (file.size > 10 * 1024 * 1024) { alert('Image must be less than 10MB.'); return; }
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = event.target?.result as string;
@@ -167,7 +167,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     <button onClick={() => profileFileRef.current?.click()} className="px-4 py-2 bg-canvas hover:bg-border/50 shadow-sm border-none text-gray text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors">
                       Change Picture
                     </button>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted">JPG, GIF or PNG. 1MB max.</p>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-muted">JPG, GIF or PNG. 10MB max.</p>
                   </div>
                 </div>
 
