@@ -26,12 +26,34 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     };
   }, []);
 
+  const [watermarkDataUrl, setWatermarkDataUrl] = useState<string>('');
+
   // Find the selected or approved illustration to use as watermark
   const approvedIllustration = 
     client.illustrations?.find(ill => ill.status === 'Approved') || 
     client.illustrations?.find(ill => ill.status === 'Current') || 
     client.illustrations?.[0];
   const watermarkUrl = approvedIllustration?.image || '';
+
+  useEffect(() => {
+    if (!watermarkUrl) return;
+    const fetchImageAsBase64 = async () => {
+      try {
+        // Fetch through our own domain if possible or rely on CORS headers
+        const res = await fetch(watermarkUrl);
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setWatermarkDataUrl(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.warn('Failed to convert watermark to base64, using fallback URL', err);
+        setWatermarkDataUrl(watermarkUrl); // Fallback to raw URL
+      }
+    };
+    fetchImageAsBase64();
+  }, [watermarkUrl]);
 
   // Calculate payment status
   const totalCost = client.totalCost;
@@ -191,7 +213,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={watermarkUrl} 
+              watermarkUrl={watermarkDataUrl || watermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 
@@ -252,7 +274,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={watermarkUrl} 
+              watermarkUrl={watermarkDataUrl || watermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 
@@ -291,6 +313,7 @@ function ReceiptContent({
       {watermarkUrl && (
         <img 
           src={watermarkUrl}
+          crossOrigin="anonymous"
           className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.14] mix-blend-multiply transition-opacity duration-300"
           alt="Watermark Illustration"
           style={{ 

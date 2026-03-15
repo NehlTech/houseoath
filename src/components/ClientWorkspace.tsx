@@ -18,7 +18,7 @@ interface ClientWorkspaceProps {
   onBack: () => void;
 }
 
-const tabs = ['Overview', 'Progress', 'Measurements', 'Fabric', 'Illustration', 'Client Photos', 'Fittings', 'Payments', 'Timeline'];
+const tabs = ['Overview', 'Progress', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
   const [activeTab, setActiveTab] = useState('Overview');
@@ -87,7 +87,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       case 'Measurements': return <MeasurementsTab client={client} />;
       case 'Fabric': return <FabricTab client={client} />;
       case 'Illustration': return <IllustrationTab client={client} setActiveTab={setActiveTab} />;
-      case 'Client Photos': return <ClientPhotosTab client={client} />;
+      case 'Photos': return <ClientPhotosTab client={client} />;
       case 'Fittings': return <FittingsTab client={client} />;
       case 'Payments': return <PaymentsTab client={client} />;
       case 'Timeline': return <TimelineTab client={client} />;
@@ -222,11 +222,11 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card  z-50 flex items-center justify-between px-2 pb-safe">
-          {['Fabric', 'Illustration', 'Client Photos', 'Payments', 'Timeline'].map(tab => {
+          {['Fabric', 'Illustration', 'Photos', 'Payments', 'Timeline'].map(tab => {
             const icons: Record<string, string> = {
               'Fabric': 'texture',
               'Illustration': 'draw',
-              'Client Photos': 'photo_library',
+              'Photos': 'photo_library',
               'Payments': 'payments',
               'Timeline': 'history'
             };
