@@ -163,7 +163,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`group relative flex flex-col items-center justify-center px-6 pb-4 pt-2 font-medium transition-all ${
+              className={`group relative flex flex-col items-center justify-center px-3 md:px-4 pb-4 pt-2 font-medium transition-all ${
                 activeTab === tab
                   ? 'text-primary font-bold'
                   : 'text-gray hover:text-charcoal'
@@ -185,7 +185,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`group relative flex items-center justify-center p-3 px-5 font-medium transition-all ${
+              className={`group relative flex items-center justify-center p-3 px-3 font-medium transition-all ${
                 activeTab === tab
                   ? 'text-primary font-bold'
                   : 'text-gray hover:text-charcoal'

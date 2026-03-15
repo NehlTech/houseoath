@@ -39,8 +39,8 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     if (!watermarkUrl) return;
     const fetchImageAsBase64 = async () => {
       try {
-        // Fetch through our own domain if possible or rely on CORS headers
-        const res = await fetch(watermarkUrl);
+        // Fetch through our own Next.js API proxy to completely bypass Safari CORS restrictions
+        const res = await fetch('/api/proxy-image?url=' + encodeURIComponent(watermarkUrl));
         const blob = await res.blob();
         const reader = new FileReader();
         reader.onloadend = () => {
