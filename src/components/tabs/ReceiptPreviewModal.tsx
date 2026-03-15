@@ -51,12 +51,9 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
       // Ensure the element is fully visible for capture
       const element = receiptRef.current;
       
-      // Calculate true dimensions
-      // We force a temporary style to get accurate measurements if it's currently shrunk or scrollable
-      const originalStyle = element.style.cssText;
-      
       // Give fonts and images a moment to be absolutely sure they are ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // This is especially important on iOS Safari
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const dataUrl = await toPng(element, {
         quality: 1.0,
@@ -69,8 +66,7 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left',
-          margin: '0',
-          padding: '0',
+          // Remove margin/padding overrides so internal padding is preserved
           borderRadius: '0',
           boxShadow: 'none',
         },
@@ -291,17 +287,15 @@ function ReceiptContent({
         printColorAdjust: 'exact'
       }}
     >
-      {/* Watermark Image Layer (Extremely subtle) */}
+      {/* Watermark Image Layer - Using <img> tag for more reliable capture than backgroundImage */}
       {watermarkUrl && (
-        <div 
-          className="absolute inset-0 z-0 pointer-events-none" 
-          style={{
-            backgroundImage: `url('${watermarkUrl}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: 0.1, // Increased slightly for better capture visibility
-            filter: 'grayscale(100%) contrast(120%)'
+        <img 
+          src={watermarkUrl}
+          className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.14] mix-blend-multiply transition-opacity duration-300"
+          alt="Watermark Illustration"
+          style={{ 
+            filter: 'grayscale(100%) contrast(120%) brightness(1.05)',
+            // Ensure fonts/layout stay above
           }}
         />
       )}
