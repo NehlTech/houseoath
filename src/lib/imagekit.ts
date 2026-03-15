@@ -7,12 +7,11 @@ let imagekit: ImageKit | null = null;
 
 if (typeof window !== "undefined" && urlEndpoint && publicKey) {
   try {
-    // @ts-ignore - authenticationEndpoint IS valid for imagekit-javascript but types might be outdated
     imagekit = new ImageKit({
       urlEndpoint,
       publicKey,
       authenticationEndpoint: "/api/imagekit/auth",
-    });
+    } as any);
   } catch (e) {
     console.error("Failed to initialize ImageKit SDK:", e);
   }
@@ -46,8 +45,8 @@ export async function uploadToImageKit(
         fileName: fileName || file.name.replace(/\s+/g, '-'), // Basic sanitization
         // The SDK handles authentication internally if authenticationEndpoint is provided
         folder: "/house-of-oath", 
-      },
-      (err, result) => {
+      } as any,
+      (err: Error | null, result: any) => {
         if (err) {
           console.error("ImageKit Upload Error:", err);
           reject(err);
