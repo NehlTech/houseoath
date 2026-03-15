@@ -186,7 +186,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }: SidebarProps) {
-  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients } = useStudio();
+  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients, userProfile } = useStudio();
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'completed' | 'archived'>('all');
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -428,9 +428,11 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
           ))}
           
           {categorizedClients.length === 0 && (
-            <div className="flex flex-col items-center justify-center p-8 text-center h-40">
-              <span className="material-symbols-outlined text-4xl text-border mb-2">search_off</span>
-              <p className="text-muted text-sm font-medium">No clients found</p>
+            <div className="flex flex-col items-center justify-center p-8 text-center h-48">
+              <span className="material-symbols-outlined text-4xl text-border mb-3">search_off</span>
+              <p className="text-muted text-sm font-medium leading-relaxed">
+                {userProfile.role === 'Worker' && !searchQuery ? 'Assigned customer will appear here' : 'No clients found'}
+              </p>
             </div>
           )}
         </div>
