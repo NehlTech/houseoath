@@ -34,9 +34,9 @@ export default function ProductionNotesTab({ client }: ProductionNotesTabProps) 
   );
 
   return (
-    <div className="animate-fade-in flex flex-col h-full max-w-3xl mx-auto relative">
+    <div className="flex flex-col h-full max-w-3xl mx-auto relative min-h-[500px]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 px-2">
+      <div className="flex items-center justify-between mb-8 px-2 animate-fade-in">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-xl">engineering</span>
@@ -50,8 +50,8 @@ export default function ProductionNotesTab({ client }: ProductionNotesTabProps) 
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 space-y-4 mb-24 px-2">
+      {/* Messages Area - Increased bottom padding to accommodate the sticky input */}
+      <div className="flex-1 space-y-4 pb-32 px-2 animate-fade-in">
         {sortedNotes.length > 0 ? (
           sortedNotes.map((note) => {
             const isMe = note.author === userProfile.name;
@@ -87,8 +87,8 @@ export default function ProductionNotesTab({ client }: ProductionNotesTabProps) 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Telegram-style Sticky Bottom Input */}
-      <div className="fixed sm:absolute bottom-[72px] sm:bottom-0 left-0 right-0 p-3 sm:p-4 bg-canvas/80 backdrop-blur-xl border-t border-charcoal/5 z-40">
+      {/* Telegram-style Sticky Bottom Input - Using sticky instead of fixed/absolute */}
+      <div className="sticky bottom-[-1px] left-0 right-0 p-3 sm:p-4 bg-canvas/90 backdrop-blur-xl border-t border-charcoal/5 z-40 -mx-4 sm:mx-0">
         <form onSubmit={handleAddNote} className="max-w-3xl mx-auto flex gap-2 items-center">
           <div className="flex-1 relative group">
             <input
@@ -101,7 +101,7 @@ export default function ProductionNotesTab({ client }: ProductionNotesTabProps) 
             <button
               type="submit"
               disabled={!newNote.trim()}
-              className="absolute right-1.5 top-1.5 size-9 md:size-11 bg-primary text-white rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:hover:scale-100 shadow-lg shadow-primary/20"
+              className="absolute right-1.5 top-1.5 size-9 md:size-11 bg-primary text-white rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:hover:scale-100 shadow-lg shadow-primary/20 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px] md:text-[22px] leading-none">send</span>
             </button>
