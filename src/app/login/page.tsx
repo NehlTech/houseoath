@@ -51,7 +51,7 @@ export default function LoginPage() {
                 <span className="material-symbols-outlined text-primary text-3xl">lock_open</span>
               </div>
               <h1 className="text-charcoal text-3xl font-display font-bold tracking-wide mb-2">Welcome Back</h1>
-              <p className="text-gray text-sm font-medium">Sign in to your luxury tailoring account</p>
+              <p className="text-gray text-sm font-medium">Sign in to your account</p>
             </div>
 
             {error && (
@@ -112,9 +112,8 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 text-center text-xs font-medium text-muted relative z-10 space-y-1">
-              <p>Admin Demo: admin@houseofoath.com</p>
-              <p>Worker Demo: worker@houseofoath.com</p>
-              <p className="pt-2 italic">Use any password to sign in</p>
+              <p>Admin: admin@houseofoath.com / admin123</p>
+              <p>Worker: worker@houseofoath.com / 123</p>
             </div>
           </div>
         </main>
