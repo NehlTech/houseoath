@@ -12,6 +12,7 @@ interface ReceiptPreviewModalProps {
 export default function ReceiptPreviewModal({ client, payment, onClose }: ReceiptPreviewModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   // Find the selected or approved illustration to use as watermark (Priority: Approved -> Current -> First)
   const approvedIllustration = 
@@ -63,12 +64,15 @@ Thank you for choosing House of Oath.`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000] bg-opacity-80 p-4 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
-      <div className="flex flex-col items-center w-full max-w-4xl max-h-full print:max-h-none print:w-[210mm] print:h-[297mm]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000] bg-opacity-90 p-2 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
+      <div className={`flex flex-col items-center w-full max-w-4xl transition-all duration-300 ${isZoomed ? 'scale-100 max-h-none h-fit my-8' : 'max-h-full'} print:max-h-none print:w-[210mm] print:h-[297mm]`}>
         
         {/* Modal Controls */}
         <div className="flex flex-col sm:flex-row sm:justify-between items-center w-full max-w-[800px] mb-4 sm:mb-6 gap-3 sm:gap-4 print:hidden">
-          <h2 className="text-white text-xs sm:text-2xl font-light tracking-widest uppercase" style={{ fontFamily: '"Inter", sans-serif' }}>Receipt Preview</h2>
+          <div className="flex flex-col items-center sm:items-start">
+            <h2 className="text-white text-[10px] sm:text-2xl font-light tracking-[0.3em] uppercase" style={{ fontFamily: '"Inter", sans-serif' }}>Receipt Preview</h2>
+            <p className="text-white/40 text-[9px] uppercase tracking-widest mt-1 sm:hidden">Tap the receipt to {isZoomed ? 'shrink' : 'zoom in'}</p>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <button 
               onClick={onClose}
@@ -90,22 +94,37 @@ Thank you for choosing House of Oath.`;
 
             <button 
               onClick={generatePDF}
-              className="flex items-center justify-center gap-2 px-5 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer"
+              className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer"
               title="Download or Print PDF"
             >
               <span className="material-symbols-outlined text-[16px] sm:text-[18px] group-hover:scale-110 transition-transform">download</span>
-              <span className="font-bold tracking-wider text-[10px] sm:text-xs uppercase">Save PDF</span>
+              <span className="font-bold tracking-wider text-[10px] sm:text-xs uppercase">PDF</span>
             </button>
           </div>
         </div>
 
         {/* The Actual Receipt Document */}
-        {/* The Actual Receipt Document */}
-        <div id="receipt-print-area" className="w-full max-w-[800px] min-h-[600px] sm:min-h-[calc(800px*1.414)] overflow-hidden rounded-xl shadow-2xl relative bg-white shrink-0 print:shadow-none print:w-full print:h-full print:rounded-none transition-all">
+        <div 
+          id="receipt-print-area" 
+          onClick={() => setIsZoomed(!isZoomed)}
+          className={`transition-all duration-300 cursor-pointer sm:cursor-default bg-white print:shadow-none print:w-full print:h-full print:rounded-none
+            ${isZoomed 
+              ? 'fixed inset-0 z-[60] overflow-y-auto rounded-none shadow-none flex flex-col items-center' 
+              : 'w-full max-w-[800px] overflow-hidden rounded-xl shadow-2xl relative shrink-0 min-h-[400px] sm:min-h-[calc(800px*1.414)]'
+            }`}
+        >
+          {isZoomed && (
+            <button 
+              className="fixed top-6 right-6 z-[70] bg-[#1a0f08] text-white rounded-full size-12 shadow-2xl flex items-center justify-center sm:hidden animate-fade-in"
+              onClick={(e) => { e.stopPropagation(); setIsZoomed(false); }}
+            >
+              <span className="material-symbols-outlined text-[24px]">close_fullscreen</span>
+            </button>
+          )}
           
           <div 
             ref={receiptRef}
-            className="w-full h-full min-h-full flex-grow relative flex flex-col"
+            className={`w-full min-h-full relative flex flex-col ${isZoomed ? 'max-w-[800px] shadow-2xl my-0 sm:my-8' : ''}`}
             style={{ 
               background: '#fdfcfb', // Ultra-faint warm paper tint
               WebkitPrintColorAdjust: 'exact',
@@ -128,7 +147,7 @@ Thank you for choosing House of Oath.`;
             )}
             
             {/* Content Layer */}
-            <div className="relative z-10 w-full h-auto min-h-full p-12 md:p-16 flex flex-col sm:justify-between text-[#1a0f08]">
+            <div className="relative z-10 w-full h-auto min-h-full p-8 sm:p-12 md:p-16 flex flex-col sm:justify-between text-[#1a0f08]">
               
               {/* --- HEADER --- */}
               <div className="w-full flex flex-col items-center border-b-[1px] border-[#1a0f0815] pb-8 pt-6 relative">
