@@ -1,5 +1,4 @@
-import ImageKit from "imagekit"; // The nodejs SDK is still called 'imagekit' but upgraded to latest, or used via @imagekit/nodejs
-// Actually, let's use the new recommended import if it changed
+import ImageKit from "@imagekit/nodejs";
 import { NextResponse } from "next/server";
 
 export async function GET() {

@@ -3,25 +3,28 @@ import ImageKit from "@imagekit/javascript";
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || "";
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "";
 
-let imagekit: ImageKit | null = null;
-let initError: string | null = null;
+let imagekitInstance: ImageKit | null = null;
 
-// Initialize only on client-side and only if keys are present
-if (typeof window !== "undefined") {
+/**
+ * Lazy-initializer for ImageKit.
+ * This ensures the SDK is never touched during initial site load/boot.
+ */
+function getIKInstance(): ImageKit {
+  if (imagekitInstance) return imagekitInstance;
+
   if (!urlEndpoint || !publicKey) {
-    initError = "ImageKit configuration is missing (URL or Public Key).";
-    console.warn(initError);
-  } else {
-    try {
-      imagekit = new ImageKit({
-        urlEndpoint,
-        publicKey,
-        authenticationEndpoint: "/api/imagekit/auth",
-      });
-    } catch (e: any) {
-      initError = `Failed to initialize ImageKit: ${e.message}`;
-      console.error(initError);
-    }
+    throw new Error("ImageKit configuration is missing (URL or Public Key).");
+  }
+
+  try {
+    imagekitInstance = new ImageKit({
+      urlEndpoint,
+      publicKey,
+      authenticationEndpoint: "/api/imagekit/auth",
+    });
+    return imagekitInstance;
+  } catch (e: any) {
+    throw new Error(`Failed to initialize ImageKit: ${e.message}`);
   }
 }
 
@@ -41,19 +44,21 @@ export async function uploadToImageKit(
   file: File, 
   fileName?: string
 ): Promise<ImageKitUploadResponse> {
-  // If we don't have an instance, we reject with the specific initialization error
-  if (!imagekit) {
-    return Promise.reject(new Error(initError || "ImageKit not initialized. Ensure environment variables are set in Vercel."));
+  // If we're on the server, we can't upload via this client utility
+  if (typeof window === "undefined") {
+    throw new Error("uploadToImageKit can only be called from the browser.");
   }
 
   return new Promise((resolve, reject) => {
     try {
+      const ik = getIKInstance();
+
       // Basic sanitization for the filename
       const safeName = (fileName || file.name)
         .replace(/\s+/g, '-')
         .replace(/[^a-zA-Z0-9.\-_]/g, '');
 
-      imagekit!.upload(
+      ik.upload(
         {
           file,
           fileName: safeName,
@@ -73,9 +78,10 @@ export async function uploadToImageKit(
         }
       );
     } catch (e: any) {
-      reject(new Error(`Unexpected upload error: ${e.message}`));
+      reject(new Error(`ImageKit Setup Error: ${e.message}`));
     }
   });
 }
 
-export default imagekit;
+// Export something safe for potential top-level imports
+export const isConfigured = !!(urlEndpoint && publicKey);
