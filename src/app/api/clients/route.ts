@@ -12,7 +12,7 @@ export async function GET() {
     const clients = await db.collection(COLLECTION).find({}).sort({ lastActivity: -1 }).toArray();
     
     // Convert _id to string id for frontend compatibility
-    const formatted = clients.map(c => ({
+    const formatted = clients.map((c: any) => ({
       ...c,
       id: c.id || c._id.toString(),
       _id: undefined,

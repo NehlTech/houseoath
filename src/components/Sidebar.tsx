@@ -23,7 +23,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArch
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const rowSwipeStart = useRef<number | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<any>(null);
   const didSwipe = useRef(false);
 
   const initials = (client.name || 'U C').split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -153,7 +153,12 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArch
           <div className="flex items-center justify-between mb-0.5">
             <p className="truncate font-bold font-display text-charcoal text-[17px] tracking-wide">{client.name}</p>
             <span className="text-[11px] text-muted font-medium shrink-0 ml-2">
-              {new Date((client as any).updatedAt || client.lastActivity || client.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {(() => {
+                const dateStr = (client as any).updatedAt || client.lastActivity || client.createdAt;
+                if (!dateStr) return 'Recent';
+                const d = new Date(dateStr);
+                return isNaN(d.getTime()) ? 'Recent' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              })()}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -216,6 +221,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
     const checkDate = (d: string) => {
       if (!d) return false;
       const parsed = new Date(d);
+      if (isNaN(parsed.getTime())) return false; // Safari safety
       return parsed >= today && parsed <= nextWeek;
     };
     

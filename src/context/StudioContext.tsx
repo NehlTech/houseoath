@@ -334,6 +334,17 @@ const sampleClients: Client[] = [
 
 let isFetchingClients = false;
 
+// Safe localStorage wrappers — iOS private browsing throws on access
+function safeGetItem(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function safeSetItem(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
+}
+function safeRemoveItem(key: string): void {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+}
+
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [activeClientId, setActiveClientId] = useState<string | null>(null);
@@ -359,10 +370,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     isFetchingClients = true;
 
     const loadData = async () => {
-      const savedAuth = localStorage.getItem('studio_auth');
-      if (savedAuth === 'true') setIsAuthenticated(true);
-      const savedUser = localStorage.getItem('studio_user');
-      if (savedUser) setUserProfile(JSON.parse(savedUser));
+      try {
+        const savedAuth = safeGetItem('studio_auth');
+        if (savedAuth === 'true') setIsAuthenticated(true);
+        const savedUser = safeGetItem('studio_user');
+        if (savedUser) {
+          try { setUserProfile(JSON.parse(savedUser)); } catch { /* corrupt data, use defaults */ }
+        }
+      } catch { /* ignore auth restore errors */ }
 
       try {
         // Load clients
@@ -370,37 +385,44 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
-          if (data.length > 0) setClients(data);
+          if (Array.isArray(data) && data.length > 0) setClients(data);
           else {
             for (const sc of sampleClients) {
               await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc) });
             }
             setClients(sampleClients);
           }
+        } else {
+          throw new Error('Client API returned non-ok');
         }
 
         // Load workers
         const workerRes = await fetch('/api/workers');
         if (workerRes.ok) {
           const data = await workerRes.json();
-          if (data.length > 0) setWorkers(data);
+          if (Array.isArray(data) && data.length > 0) setWorkers(data);
           else {
             const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' };
             await fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
             setWorkers([defaultWorker as UserProfile]);
           }
         }
-        
-        setIsLoaded(true);
       } catch (err) {
-        console.error('API Error:', err);
+        console.error('API Error, falling back to local data:', err);
         // Fallback: localStorage
-        const savedClients = localStorage.getItem('studio_clients');
-        const savedWorkers = localStorage.getItem('studio_workers');
-        if (savedClients) setClients(JSON.parse(savedClients));
-        else setClients(sampleClients);
-        if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
-        setIsLoaded(true);
+        try {
+          const savedClients = safeGetItem('studio_clients');
+          const savedWorkers = safeGetItem('studio_workers');
+          if (savedClients) setClients(JSON.parse(savedClients));
+          else setClients(sampleClients);
+          if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
+        } catch {
+          // Even localStorage fallback failed — use hardcoded samples
+          setClients(sampleClients);
+        }
+      } finally {
+        // ALWAYS mark as loaded — never leave the app stuck on a blank screen
+        setTimeout(() => setIsLoaded(true), 100);
       }
     };
     loadData();
@@ -409,8 +431,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // Save to localStorage as backup (always)
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('studio_clients', JSON.stringify(clients));
-      localStorage.setItem('studio_workers', JSON.stringify(workers));
+      safeSetItem('studio_clients', JSON.stringify(clients));
+      safeSetItem('studio_workers', JSON.stringify(workers));
     }
   }, [clients, workers, isLoaded]);
 
@@ -432,8 +454,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const adminProfile: UserProfile = { name: 'Admin', email, avatar: null, role: 'Admin', password: 'admin123' };
         setIsAuthenticated(true);
         setUserProfile(adminProfile);
-        localStorage.setItem('studio_auth', 'true');
-        localStorage.setItem('studio_user', JSON.stringify(adminProfile));
+        safeSetItem('studio_auth', 'true');
+        safeSetItem('studio_user', JSON.stringify(adminProfile));
         addAuditLog('Login', `Admin logged in successfully.`);
         return true;
       }
@@ -445,8 +467,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (matchedWorker && matchedWorker.password === password) {
       setIsAuthenticated(true);
       setUserProfile(matchedWorker);
-      localStorage.setItem('studio_auth', 'true');
-      localStorage.setItem('studio_user', JSON.stringify(matchedWorker));
+      safeSetItem('studio_auth', 'true');
+      safeSetItem('studio_user', JSON.stringify(matchedWorker));
       addAuditLog('Login', `Worker ${matchedWorker.name} logged in successfully.`);
       return true;
     }
@@ -457,8 +479,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     addAuditLog('Logout', 'User logged out.');
     setIsAuthenticated(false);
-    localStorage.removeItem('studio_auth');
-    localStorage.removeItem('studio_user');
+    safeRemoveItem('studio_auth');
+    safeRemoveItem('studio_user');
   }, [addAuditLog]);
 
   const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
@@ -480,7 +502,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      localStorage.setItem('studio_user', JSON.stringify(newProfile));
+      safeSetItem('studio_user', JSON.stringify(newProfile));
       addAuditLog('Profile Updated', 'User profile details were modified.');
       return newProfile;
     });

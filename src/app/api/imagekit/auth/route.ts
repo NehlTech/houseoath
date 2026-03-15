@@ -24,13 +24,12 @@ export async function GET() {
 
   try {
     // Initialize inside the handler to be sure it gets the latest process.env on Vercel
+    // Note: ImageKit Node.js SDK 7.x only requires privateKey in options
     const imagekit = new ImageKit({
-      publicKey,
       privateKey,
-      urlEndpoint,
     });
 
-    const authenticationParameters = imagekit.getAuthenticationParameters();
+    const authenticationParameters = imagekit.helper.getAuthenticationParameters();
     return NextResponse.json(authenticationParameters);
   } catch (error: any) {
     console.error("ImageKit Auth Error:", error);
