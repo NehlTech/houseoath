@@ -1,4 +1,4 @@
-import ImageKit from "imagekit-javascript";
+import ImageKit from "@imagekit/javascript";
 
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || "";
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "";
@@ -17,7 +17,7 @@ if (typeof window !== "undefined") {
         urlEndpoint,
         publicKey,
         authenticationEndpoint: "/api/imagekit/auth",
-      } as any);
+      });
     } catch (e: any) {
       initError = `Failed to initialize ImageKit: ${e.message}`;
       console.error(initError);
@@ -58,7 +58,7 @@ export async function uploadToImageKit(
           file,
           fileName: safeName,
           folder: "/house-of-oath", 
-        } as any,
+        },
         (err: Error | null, result: any) => {
           if (err) {
             console.error("ImageKit Upload Error:", err);
