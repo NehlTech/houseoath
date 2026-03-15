@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { toPng } from 'html-to-image';
 import { Client, Payment } from '@/context/StudioContext';
 
 interface ReceiptPreviewModalProps {
@@ -14,6 +15,7 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -41,41 +43,104 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
   const balanceRemaining = Math.max(0, totalCost - totalPaidToDate);
   const isPaidInFull = balanceRemaining === 0;
 
-  const generatePDF = () => {
-    window.print();
+  const captureReceipt = useCallback(async () => {
+    if (!receiptRef.current) return null;
+    
+    setIsGenerating(true);
+    try {
+      // Small delay to ensure any layout changes or font rendering is stable
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const dataUrl = await toPng(receiptRef.current, {
+        quality: 1.0,
+        pixelRatio: 3, // High quality for printing
+        backgroundColor: '#fdfcfb',
+        cacheBust: true,
+      });
+      
+      return dataUrl;
+    } catch (error) {
+      console.error('Error generating receipt image:', error);
+      alert('Failed to generate receipt image. Please try again.');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const dataUrl = await captureReceipt();
+    if (dataUrl) {
+      const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
+      const link = document.createElement('a');
+      link.download = `HOA-Receipt-${receiptNo}.png`;
+      link.href = dataUrl;
+      link.click();
+    }
   };
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    const dataUrl = await captureReceipt();
+    if (!dataUrl) return;
+
     const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
     const shareText = `*House of Oath - Official Receipt*
 Receipt No: ${receiptNo}
 Billed To: ${client.name}
 
-Total Commission: GHS ${totalCost.toLocaleString()}
-Payment This Receipt: GHS ${payment.amount.toLocaleString()}
-Outstanding Balance: ${balanceRemaining === 0 ? 'CLEARED' : `GHS ${balanceRemaining.toLocaleString()}`}
-
 Thank you for choosing House of Oath.`;
 
-    if (navigator.share) {
-      try {
+    try {
+      // Convert DataURL to Blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `HOA-Receipt-${receiptNo}.png`, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Receipt ${receiptNo} - House of Oath`,
+          text: shareText,
+        });
+      } else if (navigator.share) {
+        // Fallback to text sharing if files aren't supported
         await navigator.share({
           title: `Receipt ${receiptNo} - House of Oath`,
           text: shareText,
         });
-      } catch (error) {
-        console.error('Error sharing', error);
+      } else {
+        // Fallback for desktop/unsupported browsers
+        navigator.clipboard.writeText(shareText);
+        alert('Receipt summary copied to clipboard! The image has also been downloaded automatically.');
+        // Auto-download as fallback
+        const link = document.createElement('a');
+        link.download = `HOA-Receipt-${receiptNo}.png`;
+        link.href = dataUrl;
+        link.click();
       }
-    } else {
-      navigator.clipboard.writeText(shareText);
-      alert('Receipt summary copied to clipboard! You can now paste it into WhatsApp.');
+    } catch (error) {
+      console.error('Error sharing', error);
+      // Even if sharing fails, download the image as fallback
+      const link = document.createElement('a');
+      link.download = `HOA-Receipt-${receiptNo}.png`;
+      link.href = dataUrl;
+      link.click();
     }
   };
 
   const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000000] bg-opacity-95 p-0 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
       
+      {/* Loading Overlay */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] animate-pulse">Generating Receipt...</p>
+        </div>
+      )}
+
       {/* Zoomed / Full-Screen Mode for Mobile */}
       {isZoomed ? (
         <div className="fixed inset-0 z-[110] bg-white flex flex-col items-center overflow-y-auto animate-fade-in no-scrollbar">
@@ -91,13 +156,15 @@ Thank you for choosing House of Oath.`;
             <div className="flex gap-2">
               <button 
                 onClick={handleShare}
-                className="flex items-center justify-center size-9 rounded-full bg-white/10 border border-white/20 text-white active:scale-95 transition-all"
+                disabled={isGenerating}
+                className="flex items-center justify-center size-9 rounded-full bg-white/10 border border-white/20 text-white active:scale-95 transition-all disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">share</span>
               </button>
               <button 
-                onClick={(e) => { e.stopPropagation(); generatePDF(); }}
-                className="flex items-center justify-center size-9 rounded-full bg-white text-[#1a0f08] active:scale-95 transition-all"
+                onClick={handleDownload}
+                disabled={isGenerating}
+                className="flex items-center justify-center size-9 rounded-full bg-white text-[#1a0f08] active:scale-95 transition-all disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
               </button>
@@ -143,20 +210,22 @@ Thank you for choosing House of Oath.`;
               
               <button 
                 onClick={handleShare}
-                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all backdrop-blur-md shadow-lg shadow-black/20 group cursor-pointer"
-                title="Share Receipt"
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all backdrop-blur-md shadow-lg shadow-black/20 group cursor-pointer disabled:opacity-50"
+                title="Share Receipt Image"
               >
                 <span className="material-symbols-outlined text-[16px] sm:text-[18px] group-hover:-translate-y-0.5 transition-transform">share</span>
                 <span className="font-semibold tracking-wider text-[10px] sm:text-xs uppercase">Share</span>
               </button>
 
               <button 
-                onClick={(e) => { e.stopPropagation(); generatePDF(); }}
-                className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer"
-                title="Download or Print PDF"
+                onClick={handleDownload}
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer disabled:opacity-50"
+                title="Download Receipt Image"
               >
                 <span className="material-symbols-outlined text-[16px] sm:text-[18px] group-hover:scale-110 transition-transform">download</span>
-                <span className="font-bold tracking-wider text-[10px] sm:text-xs uppercase">PDF</span>
+                <span className="font-bold tracking-wider text-[10px] sm:text-xs uppercase">Save</span>
               </button>
             </div>
           </div>
