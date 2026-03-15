@@ -18,62 +18,54 @@ interface ClientRowProps {
 }
 
 function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArchive, onRestore }: ClientRowProps) {
-  const [showAction, setShowAction] = useState(false);
-  const [rowSwipeStart, setRowSwipeStart] = useState<number | null>(null);
-  const [rowSwipeEnd, setRowSwipeEnd] = useState<number | null>(null);
-  const [rowIsSwiping, setRowIsSwiping] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const rowSwipeStart = useRef<number | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const swipeThreshold = 50;
+  const didSwipe = useRef(false);
 
   const initials = (client.name || 'U C').split(' ').map(n => n[0]).join('').slice(0, 2);
 
-  // Clean up long press timer
   useEffect(() => {
     return () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); };
   }, []);
 
-  const handleAction = useCallback((e: ReactMouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (isArchived) {
-      onRestore();
-    } else {
-      onArchive();
-    }
-    setShowAction(false);
-  }, [isArchived, onArchive, onRestore]);
-
   const handlePointerDown = useCallback((e: ReactPointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (isAnimatingOut) return;
     e.stopPropagation();
-
-    if (showAction) {
-      setShowAction(false);
-      return;
-    }
-
-    setRowSwipeEnd(null);
-    setRowSwipeStart(e.clientX);
-    setRowIsSwiping(false);
+    rowSwipeStart.current = e.clientX;
+    setIsDragging(false);
+    didSwipe.current = false;
 
     longPressTimer.current = setTimeout(() => {
-      setShowAction(true);
+      // Long press fallback: execute action directly
+      if (!didSwipe.current) {
+        if (isArchived) onRestore(); else onArchive();
+      }
     }, 600);
-  }, [showAction]);
+  }, [isAnimatingOut, isArchived, onArchive, onRestore]);
 
   const handlePointerMove = useCallback((e: ReactPointerEvent) => {
+    if (rowSwipeStart.current === null || isAnimatingOut) return;
     e.stopPropagation();
-    if (rowSwipeStart !== null) {
-      setRowSwipeEnd(e.clientX);
-      if (Math.abs(e.clientX - rowSwipeStart) > 15) {
-        setRowIsSwiping(true);
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
+    const diff = e.clientX - rowSwipeStart.current;
+    // Only allow swiping left (negative offset)
+    const offset = Math.min(0, diff);
+
+    if (Math.abs(diff) > 10) {
+      didSwipe.current = true;
+      setIsDragging(true);
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
       }
     }
-  }, [rowSwipeStart]);
+
+    setDragOffset(offset);
+  }, [isAnimatingOut]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimer.current) {
@@ -81,59 +73,53 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArch
       longPressTimer.current = null;
     }
 
-    if (rowSwipeStart === null || rowSwipeEnd === null) {
-      setRowSwipeStart(null);
-      setRowSwipeEnd(null);
-      setTimeout(() => setRowIsSwiping(false), 0);
-      return;
+    if (isAnimatingOut) return;
+
+    const rowWidth = rowRef.current?.offsetWidth || 300;
+    const threshold = rowWidth * 0.4;
+
+    if (Math.abs(dragOffset) > threshold) {
+      // Full swipe: animate off-screen, then execute action
+      setIsAnimatingOut(true);
+      setDragOffset(-rowWidth);
+      setTimeout(() => {
+        if (isArchived) onRestore(); else onArchive();
+        setDragOffset(0);
+        setIsAnimatingOut(false);
+        setIsDragging(false);
+      }, 300);
+    } else {
+      // Snap back
+      setDragOffset(0);
+      setIsDragging(false);
     }
 
-    const distance = rowSwipeStart - rowSwipeEnd;
-    setRowSwipeStart(null);
-    setRowSwipeEnd(null);
-
-    if (distance > swipeThreshold) {
-      setShowAction(true);
-    } else if (distance < -swipeThreshold) {
-      setShowAction(false);
-    }
-
-    setTimeout(() => setRowIsSwiping(false), 0);
-  }, [rowSwipeStart, rowSwipeEnd]);
+    rowSwipeStart.current = null;
+  }, [dragOffset, isAnimatingOut, isArchived, onArchive, onRestore]);
 
   const handleContextMenu = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
-    setShowAction(true);
-  }, []);
+    if (isArchived) onRestore(); else onArchive();
+  }, [isArchived, onArchive, onRestore]);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (rowIsSwiping) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    if (!showAction) {
-      onSelect();
-    } else {
-      setShowAction(false);
-    }
-  }, [rowIsSwiping, showAction, onSelect]);
+  const handleClick = useCallback(() => {
+    if (didSwipe.current || isAnimatingOut) return;
+    onSelect();
+  }, [isAnimatingOut, onSelect]);
+
+  const swipeProgress = rowRef.current ? Math.min(1, Math.abs(dragOffset) / (rowRef.current.offsetWidth * 0.4)) : 0;
 
   return (
-    <div className="relative overflow-hidden">
-      {/* Action Button revealed behind the row */}
-      <div className={`absolute top-0 bottom-0 right-0 flex items-center justify-end ${isArchived ? 'bg-success' : 'bg-danger'} transition-opacity duration-300 w-full z-0`}>
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={handleAction}
-          className="text-white font-bold text-sm tracking-wide flex items-center justify-center gap-2 h-full px-6 min-w-[100px] z-50"
-        >
-          {isArchived ? (
-            <><span className="material-symbols-outlined text-[18px]">restore</span> Restore</>
-          ) : (
-            <><span className="material-symbols-outlined text-[18px]">archive</span> Archive</>
-          )}
-        </button>
+    <div ref={rowRef} className="relative overflow-hidden">
+      {/* Action Background revealed behind the row */}
+      <div
+        className={`absolute inset-0 flex items-center justify-end px-6 z-0 transition-opacity ${isArchived ? 'bg-success' : 'bg-danger'}`}
+        style={{ opacity: isDragging || isAnimatingOut ? Math.max(0.5, swipeProgress) : 0 }}
+      >
+        <div className="text-white font-bold text-sm tracking-wide flex items-center gap-2">
+          <span className="material-symbols-outlined text-[20px]">{isArchived ? 'restore' : 'archive'}</span>
+          {isArchived ? 'Restore' : 'Archive'}
+        </div>
       </div>
 
       {/* Main Item Row */}
@@ -145,9 +131,13 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArch
         onPointerCancel={handlePointerUp}
         onContextMenu={handleContextMenu}
         onClick={handleClick}
-        style={{ transform: showAction ? 'translateX(-100px)' : 'translateX(0px)', touchAction: 'pan-y' }}
-        className={`relative z-10 flex cursor-pointer items-center gap-3 px-4 py-3 transition-all duration-300 select-none ${
-          isActive && !showAction
+        style={{
+          transform: `translateX(${dragOffset}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          touchAction: 'pan-y',
+        }}
+        className={`relative z-10 flex cursor-pointer items-center gap-3 px-4 py-3 select-none ${
+          isActive
             ? 'bg-[#FAF7ED] border-l-4 border-l-primary'
             : 'bg-card hover:bg-canvas'
         }`}
