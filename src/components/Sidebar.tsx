@@ -159,7 +159,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, onSelect, onArch
             {initials}
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col justify-center  pb-3 -mb-3 h-full">
+        <div className="flex min-w-0 flex-1 flex-col justify-center pb-3 -mb-3 h-full border-b border-border/40">
           <div className="flex items-center justify-between mb-0.5">
             <p className="truncate font-bold font-display text-charcoal text-[17px] tracking-wide">{client.name}</p>
             <span className="text-[11px] text-muted font-medium shrink-0 ml-2">
@@ -336,8 +336,11 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
           </div>
 
           {/* Header Title for Mobile */}
-          <div className="md:hidden flex items-center gap-2 mr-2">
-            <span className="material-symbols-outlined text-primary text-2xl">grid_view</span>
+          <div className="md:hidden flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 mr-2">
+            <div className="flex items-center text-[15px] italic font-light tracking-tighter -mr-0.5" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#1a0f08' }}>
+              <span>h</span>
+              <span className="-ml-[3px]">o</span>
+            </div>
           </div>
 
           {/* Search Bar */}
