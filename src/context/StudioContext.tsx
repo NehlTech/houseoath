@@ -61,6 +61,7 @@ export interface UserProfile {
   id?: string;
   name: string;
   email: string;
+  password?: string;
   avatar: string | null;
   role: 'Admin' | 'Worker';
 }
@@ -176,7 +177,7 @@ interface StudioContextType {
   getActiveClient: () => Client | undefined;
   filteredClients: Client[];
   addProductionNote: (clientId: string, noteText: string) => void;
-  addWorker: (name: string, email: string) => void;
+  addWorker: (name: string, email: string, password?: string) => void;
   removeWorker: (id: string) => void;
 }
 
@@ -338,10 +339,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [activeClientId, setActiveClientId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [userProfile, setUserProfile] = useState<UserProfile>({ name: 'Admin', email: 'admin@houseofoath.com', avatar: null, role: 'Admin' });
-  const [workers, setWorkers] = useState<UserProfile[]>([
-    { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', avatar: null, role: 'Worker' }
-  ]);
+  const [userProfile, setUserProfile] = useState<UserProfile>({ 
+    name: 'Admin', 
+    email: 'admin@houseofoath.com', 
+    password: 'admin123',
+    avatar: null, 
+    role: 'Admin' 
+  });
+  const [workers, setWorkers] = useState<UserProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
     { id: 'log-1', action: 'System Init', description: 'Application loaded successfully.', timestamp: new Date().toISOString() }
   ]);
@@ -353,42 +358,52 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (isFetchingClients) return;
     isFetchingClients = true;
 
-    const loadClients = async () => {
+    const loadData = async () => {
       const savedAuth = localStorage.getItem('studio_auth');
       if (savedAuth === 'true') setIsAuthenticated(true);
+      const savedUser = localStorage.getItem('studio_user');
+      if (savedUser) setUserProfile(JSON.parse(savedUser));
 
       try {
-        const res = await fetch('/api/clients');
-        if (res.ok) {
-          const data = await res.json();
+        // Load clients
+        const clientRes = await fetch('/api/clients');
+        if (clientRes.ok) {
+          const data = await clientRes.json();
           setUseApi(true);
-          if (data.length > 0) {
-            setClients(data);
-          } else {
-            // Seed sample data to MongoDB on first run
+          if (data.length > 0) setClients(data);
+          else {
             for (const sc of sampleClients) {
               await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc) });
             }
             setClients(sampleClients);
           }
-          setIsLoaded(true);
-          return;
         }
-      } catch {
-        // API unavailable, fall back to localStorage
-        console.warn('MongoDB API unavailable, using localStorage fallback');
-      }
 
-      // Fallback: localStorage
-      const savedClients = localStorage.getItem('studio_clients');
-      if (savedClients) {
-        setClients(JSON.parse(savedClients));
-      } else {
-        setClients(sampleClients);
+        // Load workers
+        const workerRes = await fetch('/api/workers');
+        if (workerRes.ok) {
+          const data = await workerRes.json();
+          if (data.length > 0) setWorkers(data);
+          else {
+            const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' };
+            await fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
+            setWorkers([defaultWorker as UserProfile]);
+          }
+        }
+        
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('API Error:', err);
+        // Fallback: localStorage
+        const savedClients = localStorage.getItem('studio_clients');
+        const savedWorkers = localStorage.getItem('studio_workers');
+        if (savedClients) setClients(JSON.parse(savedClients));
+        else setClients(sampleClients);
+        if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
+        setIsLoaded(true);
       }
-      setIsLoaded(true);
     };
-    loadClients();
+    loadData();
   }, []);
 
   // Save to localStorage as backup (always)
@@ -413,19 +428,25 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     // Admin login
     if (email.toLowerCase() === 'admin@houseofoath.com') {
-      setIsAuthenticated(true);
-      setUserProfile({ name: 'Admin', email, avatar: null, role: 'Admin' });
-      localStorage.setItem('studio_auth', 'true');
-      addAuditLog('Login', `Admin logged in successfully.`);
-      return true;
+      if (password === 'admin123') {
+        const adminProfile: UserProfile = { name: 'Admin', email, avatar: null, role: 'Admin', password: 'admin123' };
+        setIsAuthenticated(true);
+        setUserProfile(adminProfile);
+        localStorage.setItem('studio_auth', 'true');
+        localStorage.setItem('studio_user', JSON.stringify(adminProfile));
+        addAuditLog('Login', `Admin logged in successfully.`);
+        return true;
+      }
+      return false;
     }
 
     // Worker login check
     const matchedWorker = workers.find(w => w.email.toLowerCase() === email.toLowerCase());
-    if (matchedWorker) {
+    if (matchedWorker && matchedWorker.password === password) {
       setIsAuthenticated(true);
       setUserProfile(matchedWorker);
       localStorage.setItem('studio_auth', 'true');
+      localStorage.setItem('studio_user', JSON.stringify(matchedWorker));
       addAuditLog('Login', `Worker ${matchedWorker.name} logged in successfully.`);
       return true;
     }
@@ -437,6 +458,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     addAuditLog('Logout', 'User logged out.');
     setIsAuthenticated(false);
     localStorage.removeItem('studio_auth');
+    localStorage.removeItem('studio_user');
   }, [addAuditLog]);
 
   const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
@@ -448,29 +470,49 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setWorkers(workersList => workersList.map(w => 
           w.id === newProfile.id ? { ...w, ...updates } : w
         ));
+
+        if (useApi) {
+          fetch(`/api/workers/${newProfile.id}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(updates) 
+          }).catch(console.error);
+        }
       }
 
+      localStorage.setItem('studio_user', JSON.stringify(newProfile));
       addAuditLog('Profile Updated', 'User profile details were modified.');
       return newProfile;
     });
-  }, [addAuditLog]);
+  }, [useApi, addAuditLog]);
 
-  const addWorker = useCallback((name: string, email: string) => {
+  const addWorker = useCallback((name: string, email: string, password?: string) => {
     const newWorker: UserProfile = {
       id: `w-${Date.now()}`,
       name,
       email,
+      password: password || '123',
       avatar: null,
       role: 'Worker'
     };
     setWorkers(prev => [...prev, newWorker]);
+    if (useApi) {
+      fetch('/api/workers', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(newWorker) 
+      }).catch(console.error);
+    }
     addAuditLog('Team Member Added', `Worker ${name} (${email}) was added to the team.`);
-  }, [addAuditLog]);
+  }, [useApi, addAuditLog]);
 
   const removeWorker = useCallback((id: string) => {
     setWorkers(prev => prev.filter(w => w.id !== id));
+    if (useApi) {
+      fetch(`/api/workers/${id}`, { method: 'DELETE' }).catch(console.error);
+    }
     addAuditLog('Team Member Removed', `A worker was removed from the team.`);
-  }, [addAuditLog]);
+  }, [useApi, addAuditLog]);
 
   const addClient = useCallback((clientData: Omit<Client, 'id' | 'createdAt' | 'lastActivity' | 'timeline' | 'payments' | 'measurements' | 'fittings' | 'totalCost' | 'startDate' | 'nextFittingDate' | 'deliveryDate' | 'fabricPhotos' | 'illustrations' | 'clientPhotos' | 'productionNotes' | 'howDidYouHear' | 'comments' | 'dateOfBirth'>) => {
     const now = new Date().toISOString();

@@ -23,6 +23,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   const [newWorkerName, setNewWorkerName] = useState('');
   const [newWorkerEmail, setNewWorkerEmail] = useState('');
+  const [newWorkerPassword, setNewWorkerPassword] = useState('');
 
   const initials = userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2);
   const profileFileRef = useRef<HTMLInputElement>(null);
@@ -52,22 +53,28 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword === confirmPassword && newPassword.length > 0) {
+    if (newPassword === confirmPassword && newPassword.length >= 4) {
+      updateUserProfile({ password: newPassword });
       alert('Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    } else if (newPassword.length < 4) {
+      alert('Password must be at least 4 characters long.');
     } else {
-      alert('Passwords do not match or are empty.');
+      alert('Passwords do not match.');
     }
   };
 
   const handleAddWorker = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newWorkerName.trim() && newWorkerEmail.trim()) {
-      addWorker(newWorkerName.trim(), newWorkerEmail.trim());
+    if (newWorkerName.trim() && newWorkerEmail.trim() && newWorkerPassword.trim()) {
+      addWorker(newWorkerName.trim(), newWorkerEmail.trim(), newWorkerPassword.trim());
       setNewWorkerName('');
       setNewWorkerEmail('');
+      setNewWorkerPassword('');
+    } else {
+      alert('Please fill in all worker details, including a password.');
     }
   };
 
@@ -267,6 +274,17 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                       value={newWorkerEmail}
                       onChange={e => setNewWorkerEmail(e.target.value)}
                       placeholder="kwame@houseofoath.com"
+                      className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none placeholder-muted"
+                    />
+                  </div>
+                  <div className="w-full space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">Initial Password</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newWorkerPassword}
+                      onChange={e => setNewWorkerPassword(e.target.value)}
+                      placeholder="e.g. tailor2026"
                       className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none placeholder-muted"
                     />
                   </div>
