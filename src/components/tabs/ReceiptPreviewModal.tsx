@@ -48,14 +48,36 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     
     setIsGenerating(true);
     try {
-      // Small delay to ensure any layout changes or font rendering is stable
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Ensure the element is fully visible for capture
+      const element = receiptRef.current;
       
-      const dataUrl = await toPng(receiptRef.current, {
+      // Calculate true dimensions
+      // We force a temporary style to get accurate measurements if it's currently shrunk or scrollable
+      const originalStyle = element.style.cssText;
+      
+      // Give fonts and images a moment to be absolutely sure they are ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const dataUrl = await toPng(element, {
         quality: 1.0,
-        pixelRatio: 3, // High quality for printing
+        pixelRatio: 3,
         backgroundColor: '#fdfcfb',
         cacheBust: true,
+        // Calculate dimensions to ensure no cropping
+        width: element.offsetWidth,
+        height: element.scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          margin: '0',
+          padding: '0',
+          borderRadius: '0',
+          boxShadow: 'none',
+        },
+        filter: (node) => {
+          // Ensure we don't accidentally skip the watermark or any layers
+          return true;
+        },
       });
       
       return dataUrl;
@@ -105,16 +127,13 @@ Thank you for choosing House of Oath.`;
           text: shareText,
         });
       } else if (navigator.share) {
-        // Fallback to text sharing if files aren't supported
         await navigator.share({
           title: `Receipt ${receiptNo} - House of Oath`,
           text: shareText,
         });
       } else {
-        // Fallback for desktop/unsupported browsers
         navigator.clipboard.writeText(shareText);
         alert('Receipt summary copied to clipboard! The image has also been downloaded automatically.');
-        // Auto-download as fallback
         const link = document.createElement('a');
         link.download = `HOA-Receipt-${receiptNo}.png`;
         link.href = dataUrl;
@@ -122,7 +141,6 @@ Thank you for choosing House of Oath.`;
       }
     } catch (error) {
       console.error('Error sharing', error);
-      // Even if sharing fails, download the image as fallback
       const link = document.createElement('a');
       link.download = `HOA-Receipt-${receiptNo}.png`;
       link.href = dataUrl;
@@ -137,7 +155,7 @@ Thank you for choosing House of Oath.`;
       {isGenerating && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
           <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] animate-pulse">Generating Receipt...</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] animate-pulse px-6 text-center">Preparing High-Quality Receipt...</p>
         </div>
       )}
 
@@ -282,7 +300,7 @@ function ReceiptContent({
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            opacity: 0.04,
+            opacity: 0.1, // Increased slightly for better capture visibility
             filter: 'grayscale(100%) contrast(120%)'
           }}
         />
