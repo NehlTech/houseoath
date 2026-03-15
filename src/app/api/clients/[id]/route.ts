@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'clients';
@@ -18,8 +19,15 @@ export async function PUT(
     // Remove id and _id from updates to avoid conflicts
     const { id: _id, _id: __id, ...updates } = body;
     
+    const filter: any = { 
+      $or: [
+        { id: id },
+        ...(ObjectId.isValid(id) ? [{ _id: new ObjectId(id) }] : [])
+      ] 
+    };
+
     const result = await db.collection(COLLECTION).updateOne(
-      { id },
+      filter,
       { $set: updates }
     );
     
@@ -44,7 +52,14 @@ export async function DELETE(
     const client = await clientPromise;
     const db = client.db(DB_NAME);
     
-    const result = await db.collection(COLLECTION).deleteOne({ id });
+    const filter: any = { 
+      $or: [
+        { id: id },
+        ...(ObjectId.isValid(id) ? [{ _id: new ObjectId(id) }] : [])
+      ] 
+    };
+    
+    const result = await db.collection(COLLECTION).deleteOne(filter);
     
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });

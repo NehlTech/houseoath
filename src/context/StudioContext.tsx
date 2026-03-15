@@ -510,13 +510,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [useApi, addAuditLog]);
 
   const updateClient = useCallback((id: string, updates: Partial<Client>) => {
+    const now = new Date().toISOString();
     setClients(prev => prev.map(c =>
-      c.id === id ? { ...c, ...updates, lastActivity: new Date().toISOString() } : c
+      c.id === id ? { ...c, ...updates, lastActivity: now } : c
     ));
 
     // Sync to MongoDB
     if (useApi) {
-      fetch(`/api/clients/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).catch(console.error);
+      fetch(`/api/clients/${id}`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ ...updates, lastActivity: now }) 
+      }).catch(console.error);
     }
     const updatedClientName = clients.find(c => c.id === id)?.name || 'a client';
     addAuditLog('Client Updated', `Modified record for ${updatedClientName}.`);
@@ -528,11 +533,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const receiptNumber = `HOF-${randomHash}`;
     
     const paymentWithId: Payment = { ...payment, id: `pay-${Date.now()}`, receiptNumber };
+    const now = new Date().toISOString();
+
     setClients(prev => prev.map(c => {
       if (c.id === clientId) {
         const newTimelineEvent: TimelineEvent = {
           id: `t-${Date.now()}`,
-          date: new Date().toISOString(),
+          date: now,
           action: 'Payment Recorded',
           description: `Payment of GH₵${payment.amount.toLocaleString()} via ${payment.method}.`,
         };
@@ -543,95 +550,144 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (newTotalPaid >= c.totalCost && (newTotalPaid - payment.amount) < c.totalCost) {
             updatedTimeline.push({
                 id: `t-${Date.now()}-cleared`,
-                date: new Date().toISOString(),
+                date: now,
                 action: 'Paid in Full',
                 description: 'Client balance cleared. Garment ready for final delivery.',
             });
         }
 
-        return {
-          ...c,
+        const updates = {
           payments: [...c.payments, paymentWithId],
           timeline: updatedTimeline,
-          lastActivity: new Date().toISOString(),
+          lastActivity: now,
         };
+
+        if (useApi) {
+          fetch(`/api/clients/${clientId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(updates) 
+          }).catch(console.error);
+        }
+
+        return { ...c, ...updates };
       }
       return c;
     }));
-  }, []);
+    addAuditLog('Payment Added', `Recorded payment of GH₵${payment.amount} for a client.`);
+  }, [useApi, addAuditLog]);
 
   const addTimelineEvent = useCallback((clientId: string, action: string, description: string) => {
+    const now = new Date().toISOString();
     const event: TimelineEvent = {
       id: `t-${Date.now()}`,
-      date: new Date().toISOString(),
+      date: now,
       action,
       description,
     };
-    setClients(prev => prev.map(c =>
-      c.id === clientId
-        ? { ...c, timeline: [...c.timeline, event], lastActivity: new Date().toISOString() }
-        : c
-    ));
-  }, []);
-
-  const updateMeasurements = useCallback((clientId: string, measurements: Measurements) => {
     setClients(prev => prev.map(c => {
       if (c.id === clientId) {
-        const newTimeline: TimelineEvent = {
+        const updatedTimeline = [...c.timeline, event];
+        if (useApi) {
+          fetch(`/api/clients/${clientId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }) 
+          }).catch(console.error);
+        }
+        return { ...c, timeline: updatedTimeline, lastActivity: now };
+      }
+      return c;
+    }));
+  }, [useApi]);
+
+  const updateMeasurements = useCallback((clientId: string, measurements: Measurements) => {
+    const now = new Date().toISOString();
+    setClients(prev => prev.map(c => {
+      if (c.id === clientId) {
+        const newTimelineEvent: TimelineEvent = {
           id: `t-${Date.now()}`,
-          date: new Date().toISOString(),
+          date: now,
           action: 'Measurements Updated',
           description: 'Client measurements were updated.',
         };
+        const updatedTimeline = [...c.timeline, newTimelineEvent];
+        if (useApi) {
+          fetch(`/api/clients/${clientId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ measurements, timeline: updatedTimeline, lastActivity: now }) 
+          }).catch(console.error);
+        }
         return {
           ...c,
           measurements,
-          timeline: [...c.timeline, newTimeline],
-          lastActivity: new Date().toISOString(),
+          timeline: updatedTimeline,
+          lastActivity: now,
         };
       }
       return c;
     }));
-  }, []);
+    addAuditLog('Measurements Updated', `Updated measurements for a client.`);
+  }, [useApi, addAuditLog]);
 
   const updateFittings = useCallback((clientId: string, fittings: Fitting) => {
+    const now = new Date().toISOString();
     setClients(prev => prev.map(c => {
       if (c.id === clientId) {
-        const newTimeline: TimelineEvent = {
+        const newTimelineEvent: TimelineEvent = {
           id: `t-${Date.now()}`,
-          date: new Date().toISOString(),
+          date: now,
           action: 'Fitting Scheduled',
           description: 'Fitting schedule was updated.',
         };
+        const updatedTimeline = [...c.timeline, newTimelineEvent];
+        if (useApi) {
+          fetch(`/api/clients/${clientId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }) 
+          }).catch(console.error);
+        }
         return {
           ...c,
           fittings,
-          timeline: [...c.timeline, newTimeline],
-          lastActivity: new Date().toISOString(),
+          timeline: updatedTimeline,
+          lastActivity: now,
         };
       }
       return c;
     }));
-  }, []);
+    addAuditLog('Fitting Updated', `Updated fitting schedule for a client.`);
+  }, [useApi, addAuditLog]);
 
   const addProductionNote = useCallback((clientId: string, noteText: string) => {
+    const now = new Date().toISOString();
     setClients(prev => prev.map(c => {
       if (c.id === clientId) {
         const newNote: ProductionNote = {
           id: `n-${Date.now()}`,
           author: userProfile.name,
           text: noteText,
-          timestamp: new Date().toISOString()
+          timestamp: now
         };
+        const updatedNotes = [...(c.productionNotes || []), newNote];
+        if (useApi) {
+          fetch(`/api/clients/${clientId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }) 
+          }).catch(console.error);
+        }
         return {
           ...c,
-          productionNotes: [...(c.productionNotes || []), newNote],
-          lastActivity: new Date().toISOString()
+          productionNotes: updatedNotes,
+          lastActivity: now
         };
       }
       return c;
     }));
-  }, [userProfile.name]);
+  }, [useApi, userProfile.name]);
 
   const getActiveClient = useCallback(() => {
     return clients.find(c => c.id === activeClientId);
