@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Client, useStudio } from '@/context/StudioContext';
+import { uploadToImageKit } from '@/lib/imagekit';
 
 interface FabricTabProps {
   client: Client;
@@ -27,17 +28,20 @@ export default function FabricTab({ client }: FabricTabProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const photos = [...(client.fabricPhotos || []), reader.result as string];
+    
+    for (const file of Array.from(files)) {
+      try {
+        const result = await uploadToImageKit(file, `fabric-${client.name}-${Date.now()}`);
+        const photos = [...(client.fabricPhotos || []), result.url];
         updateClient(client.id, { fabricPhotos: photos });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (error) {
+        console.error("Fabric upload failed:", error);
+        alert("Failed to upload fabric image. Please check your connection.");
+      }
+    }
   };
 
   // Combine sample fabrics with uploaded ones

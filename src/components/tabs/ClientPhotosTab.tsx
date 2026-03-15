@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Client, useStudio } from '@/context/StudioContext';
+import { uploadToImageKit } from '@/lib/imagekit';
 
 interface ClientPhotosTabProps {
   client: Client;
@@ -25,17 +26,20 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
   const [activeCategory, setActiveCategory] = useState('All Photos');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const photos = [...(client.clientPhotos || []), reader.result as string];
+    
+    for (const file of Array.from(files)) {
+      try {
+        const result = await uploadToImageKit(file, `ref-${client.name}-${Date.now()}`);
+        const photos = [...(client.clientPhotos || []), result.url];
         updateClient(client.id, { clientPhotos: photos });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (error) {
+        console.error("Client photo upload failed:", error);
+        alert("Failed to upload reference photo. Please check your connection.");
+      }
+    }
   };
 
   // Determine format of clientPhotos (Array vs Seeded Object)

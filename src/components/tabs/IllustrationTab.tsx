@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Client, useStudio, DesignIllustration, FeedbackComment } from '@/context/StudioContext';
+import { uploadToImageKit } from '@/lib/imagekit';
 
 interface IllustrationTabProps {
   client: Client;
@@ -70,30 +71,41 @@ export default function IllustrationTab({ client, setActiveTab }: IllustrationTa
     updateClient(client.id, { illustrations: updatedIllustrations });
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
+    
+    // Show a small toast or status here if we had one, 
+    // but for now we'll just process them.
+    for (const [index, file] of Array.from(files).entries()) {
+      try {
+        const result = await uploadToImageKit(file, `ill-${client.name}-${Date.now()}`);
+        
         const newIllustration: DesignIllustration = {
           id: `ill-${Date.now()}-${index}`,
           name: `Custom Design Concept`,
           version: `v1.0`,
           type: 'Upload',
-          image: reader.result as string,
+          image: result.url, // Cloud URL instead of Base64
           status: 'Draft',
           notes: '',
           colors: [],
-          timeline: { start: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), lastRevised: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), revisions: 0 },
+          timeline: { 
+            start: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
+            lastRevised: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
+            revisions: 0 
+          },
           comments: []
         };
-        handleUpdateCurrent({ status: 'Draft' }); // In case we want to auto-select it later.
-        updateClient(client.id, { illustrations: [...illustrations, newIllustration] });
-        setSelectedIndex(illustrations.length); // Switch to newly uploaded
-      };
-      reader.readAsDataURL(file);
-    });
+        
+        updateClient(client.id, { illustrations: [...(client.illustrations || []), newIllustration] });
+        // Auto-select the latest one
+        setSelectedIndex((client.illustrations || []).length);
+      } catch (error) {
+        console.error("Upload failed:", error);
+        alert("Failed to upload image to Cloud. Please check your connection.");
+      }
+    }
   };
 
   const handleAddComment = () => {
