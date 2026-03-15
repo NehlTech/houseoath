@@ -96,6 +96,49 @@ function EditableNumberField({ label, value, fieldKey, clientId, prefix }: { lab
   );
 }
 
+function WorkerSelectField({ label, value, clientId }: { label: string; value: string; clientId: string }) {
+  const { updateClient, workers } = useStudio();
+  const [editing, setEditing] = useState(false);
+
+  const handleSave = (workerName: string) => {
+    setEditing(false);
+    updateClient(clientId, { assignedWorker: workerName });
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 ring-1 ring-primary/50 transition-all">
+        <span className="text-gray text-sm flex-shrink-0 mr-3">{label}</span>
+        <select
+          autoFocus
+          className="text-sm font-medium text-charcoal text-right bg-transparent border-none outline-none flex-1 min-w-0 appearance-none"
+          value={value}
+          onChange={(e) => handleSave(e.target.value)}
+          onBlur={() => setEditing(false)}
+        >
+          <option value="">Unassigned</option>
+          {workers.map(w => (
+            <option key={w.id} value={w.name}>{w.name}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      className="flex items-center justify-between p-3 rounded-lg bg-canvas shadow-sm border-none cursor-pointer hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 transition-all group"
+    >
+      <span className="text-gray text-sm flex-shrink-0 mr-2">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-charcoal text-right">{value || 'Unassigned'}</span>
+        <span className="material-symbols-outlined text-primary/40 text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
+      </div>
+    </div>
+  );
+}
+
 function EditableTextArea({ label, value, fieldKey, clientId }: { label: string; value: string; fieldKey: string; clientId: string }) {
   const { updateClient } = useStudio();
   const [editing, setEditing] = useState(false);
@@ -188,8 +231,8 @@ export default function OverviewTab({ client }: OverviewTabProps) {
           <div className="space-y-3">
             <EditableField label="Event Name" value={client.eventName} fieldKey="eventName" clientId={client.id} />
             <EditableField label="Event Date" value={client.eventDate} fieldKey="eventDate" clientId={client.id} />
-            <EditableField label="Event Location" value={client.eventLocation} fieldKey="eventLocation" clientId={client.id} />
-            <EditableField label="Assigned To" value={client.assignedWorker || ''} fieldKey="assignedWorker" clientId={client.id} />
+             <EditableField label="Event Location" value={client.eventLocation} fieldKey="eventLocation" clientId={client.id} />
+            <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} clientId={client.id} />
             <EditableNumberField label="Total Cost" value={client.totalCost} fieldKey="totalCost" clientId={client.id} prefix="GHS " />
             <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10 mt-4">
               <span className="text-charcoal text-sm font-medium">Balance</span>
