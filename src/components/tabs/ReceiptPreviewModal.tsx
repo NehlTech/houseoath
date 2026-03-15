@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Client, Payment } from '@/context/StudioContext';
 
 interface ReceiptPreviewModalProps {
@@ -12,6 +13,16 @@ interface ReceiptPreviewModalProps {
 export default function ReceiptPreviewModal({ client, payment, onClose }: ReceiptPreviewModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   // Find the selected or approved illustration to use as watermark
   const approvedIllustration = 
@@ -34,7 +45,8 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     window.print();
   };
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
     const shareText = `*House of Oath - Official Receipt*
 Receipt No: ${receiptNo}
@@ -61,15 +73,18 @@ Thank you for choosing House of Oath.`;
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000] bg-opacity-95 p-0 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000000] bg-opacity-95 p-0 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
       
       {/* Zoomed / Full-Screen Mode for Mobile */}
       {isZoomed ? (
-        <div className="fixed inset-0 z-[70] bg-white flex flex-col items-center overflow-y-auto animate-fade-in no-scrollbar">
+        <div className="fixed inset-0 z-[110] bg-white flex flex-col items-center overflow-y-auto animate-fade-in no-scrollbar">
           {/* Zoom Controls Overlay */}
-          <div className="sticky top-0 left-0 right-0 z-[80] flex items-center justify-between p-4 bg-[#1a0f08] text-white shadow-xl sm:hidden">
-            <button onClick={() => setIsZoomed(false)} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all">
+          <div className="sticky top-0 left-0 right-0 z-[120] flex items-center justify-between p-4 bg-[#1a0f08] text-white shadow-xl sm:hidden">
+            <button 
+                onClick={() => setIsZoomed(false)} 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+            >
               <span className="material-symbols-outlined text-[20px]">close_fullscreen</span>
               <span className="text-[10px] font-bold uppercase tracking-wider">Close</span>
             </button>
@@ -81,7 +96,7 @@ Thank you for choosing House of Oath.`;
                 <span className="material-symbols-outlined text-[18px]">share</span>
               </button>
               <button 
-                onClick={generatePDF}
+                onClick={(e) => { e.stopPropagation(); generatePDF(); }}
                 className="flex items-center justify-center size-9 rounded-full bg-white text-[#1a0f08] active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
@@ -111,8 +126,8 @@ Thank you for choosing House of Oath.`;
         <div className="flex flex-col items-center w-full max-w-4xl max-h-full print:max-h-none print:w-[210mm] print:h-[297mm]">
           
           {/* Modal Controls */}
-          <div className="flex flex-col sm:flex-row sm:justify-between items-center w-full max-w-[800px] mb-4 sm:mb-6 gap-3 sm:gap-4 print:hidden">
-            <div className="flex flex-col items-center sm:items-start px-4 sm:px-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between items-center w-full max-w-[800px] mb-4 sm:mb-6 gap-3 sm:gap-4 print:hidden px-4">
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
               <h2 className="text-white text-[11px] sm:text-2xl font-light tracking-[0.3em] uppercase" style={{ fontFamily: '"Inter", sans-serif' }}>Receipt Preview</h2>
               <p className="text-white/40 text-[9px] uppercase tracking-widest mt-1 sm:hidden italic">Tap the receipt to fill screen</p>
             </div>
@@ -136,7 +151,7 @@ Thank you for choosing House of Oath.`;
               </button>
 
               <button 
-                onClick={generatePDF}
+                onClick={(e) => { e.stopPropagation(); generatePDF(); }}
                 className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer"
                 title="Download or Print PDF"
               >
@@ -169,6 +184,9 @@ Thank you for choosing House of Oath.`;
       )}
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }
 
 // ─── Sub-component for Receipt Content ───────────────────────────
