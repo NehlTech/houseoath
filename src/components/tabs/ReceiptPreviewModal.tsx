@@ -56,14 +56,14 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     try {
       const element = receiptRef.current;
       
-      // Give fonts and images time to fully load (longer on mobile)
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Give fonts and images time to fully load
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: '#fdfcfb',
         useCORS: true,
-        allowTaint: true, // Allow ALL images to be drawn, including local B&W sketches
+        allowTaint: false,
         logging: false,
         width: element.offsetWidth,
         height: element.scrollHeight,
@@ -79,42 +79,16 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     }
   }, []);
 
-  // Helper: convert data URL to File object
-  const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    return new File([blob], filename, { type: 'image/png' });
-  };
-
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const dataUrl = await captureReceipt();
-    if (!dataUrl) return;
-
-    const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
-    const filename = `HOA-Receipt-${receiptNo}.png`;
-    
-    try {
-      const file = await dataUrlToFile(dataUrl, filename);
-      
-      // On mobile (iOS/Android), use native share sheet — it's the only reliable 
-      // way to save images. The share sheet lets users "Save Image" directly.
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        return;
-      }
-    } catch (err) {
-      // User cancelled share — that's fine, don't show error
-      if (err instanceof Error && err.name === 'AbortError') return;
+    if (dataUrl) {
+      const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
+      const link = document.createElement('a');
+      link.download = `HOA-Receipt-${receiptNo}.png`;
+      link.href = dataUrl;
+      link.click();
     }
-
-    // Desktop fallback: standard download link
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = dataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -123,11 +97,17 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     if (!dataUrl) return;
 
     const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
-    const filename = `HOA-Receipt-${receiptNo}.png`;
-    const shareText = `*House of Oath - Official Receipt*\nReceipt No: ${receiptNo}\nBilled To: ${client.name}\n\nThank you for choosing House of Oath.`;
+    const shareText = `*House of Oath - Official Receipt*
+Receipt No: ${receiptNo}
+Billed To: ${client.name}
+
+Thank you for choosing House of Oath.`;
 
     try {
-      const file = await dataUrlToFile(dataUrl, filename);
+      // Convert DataURL to Blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `HOA-Receipt-${receiptNo}.png`, { type: 'image/png' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -141,19 +121,19 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
           text: shareText,
         });
       } else {
-        // No share API at all — copy text and download image
-        await navigator.clipboard.writeText(shareText);
-        alert('Receipt text copied to clipboard!');
+        navigator.clipboard.writeText(shareText);
+        alert('Receipt summary copied to clipboard! The image has also been downloaded automatically.');
         const link = document.createElement('a');
-        link.download = filename;
+        link.download = `HOA-Receipt-${receiptNo}.png`;
         link.href = dataUrl;
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      console.error('Share failed:', err);
+    } catch (error) {
+      console.error('Error sharing', error);
+      const link = document.createElement('a');
+      link.download = `HOA-Receipt-${receiptNo}.png`;
+      link.href = dataUrl;
+      link.click();
     }
   };
 
