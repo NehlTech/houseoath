@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Client } from '@/context/StudioContext';
+import { Client, useStudio } from '@/context/StudioContext';
 import { getAvatarColor } from '@/lib/avatarColors';
+import { uploadToImageKit } from '@/lib/imagekit';
 import OverviewTab from './tabs/OverviewTab';
 import MeasurementsTab from './tabs/MeasurementsTab';
 import FabricTab from './tabs/FabricTab';
@@ -21,14 +22,41 @@ interface ClientWorkspaceProps {
 const tabs = ['Overview', 'Progress', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
+  const { updateClient } = useStudio();
   const [activeTab, setActiveTab] = useState('Overview');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const initials = client.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const minSwipeDistance = 50;
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      // Use the standard ImageKit upload helper
+      const result = await uploadToImageKit(file, `avatar-${client.name}-${Date.now()}`);
+
+      // Update the client directly via context
+      updateClient(client.id, {
+        clientPhoto: result.url
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset input value so the same file can be selected again if needed
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -106,16 +134,42 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </button>
 
-          {/* Avatar */}
-          <div className="relative">
-            {client.clientPhoto ? (
-              <div className="bg-center bg-no-repeat bg-cover rounded-full size-20 shadow-md border-none shadow-sm" style={{ backgroundImage: `url('${client.clientPhoto}')` }} />
-            ) : (
-              <div className="flex items-center justify-center rounded-full size-20 text-white font-bold text-2xl shadow-md border-none shadow-sm" style={{ background: getAvatarColor(client.name) }}>
-                {initials}
-              </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-md flex items-center justify-center">
+          {/* Avatar Area - Now clickable for upload */}
+          <div className="relative group shrink-0">
+            <label className="cursor-pointer block relative rounded-full overflow-hidden size-20 shadow-md border-none shadow-sm transition-transform hover:scale-[1.02]">
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment" // Suggests camera on mobile but allows gallery
+                className="hidden" 
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
+              />
+              
+              {client.clientPhoto ? (
+                <div className="w-full h-full bg-center bg-no-repeat bg-cover" style={{ backgroundImage: `url('${client.clientPhoto}')` }} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl" style={{ background: getAvatarColor(client.name) }}>
+                  {initials}
+                </div>
+              )}
+
+              {/* Uploading Overlay */}
+              {isUploadingAvatar && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              )}
+              
+              {/* Hover Overlay */}
+              {!isUploadingAvatar && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="material-symbols-outlined text-white">photo_camera</span>
+                </div>
+              )}
+            </label>
+            
+            <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-md flex items-center justify-center pointer-events-none z-10">
               <span className="material-symbols-outlined text-xs">verified</span>
             </div>
           </div>
