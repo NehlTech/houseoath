@@ -26,8 +26,6 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     };
   }, []);
 
-  const [watermarkDataUrl, setWatermarkDataUrl] = useState<string>('');
-
   // Find the selected or approved illustration to use as watermark
   const approvedIllustration = 
     client.illustrations?.find(ill => ill.status === 'Approved') || 
@@ -35,25 +33,11 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     client.illustrations?.[0];
   const watermarkUrl = approvedIllustration?.image || '';
 
-  useEffect(() => {
-    if (!watermarkUrl) return;
-    const fetchImageAsBase64 = async () => {
-      try {
-        // Fetch through our own Next.js API proxy to completely bypass Safari CORS restrictions
-        const res = await fetch('/api/proxy-image?url=' + encodeURIComponent(watermarkUrl));
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setWatermarkDataUrl(reader.result as string);
-        };
-        reader.readAsDataURL(blob);
-      } catch (err) {
-        console.warn('Failed to convert watermark to base64, using fallback URL', err);
-        setWatermarkDataUrl(watermarkUrl); // Fallback to raw URL
-      }
-    };
-    fetchImageAsBase64();
-  }, [watermarkUrl]);
+  // Simplifed: Use the proxy URL directly as the source for the watermark layer.
+  // This avoids flickering caused by Base64 conversion while still bypassing CORS for capture.
+  const proxiedWatermarkUrl = watermarkUrl 
+    ? `/api/proxy-image?url=${encodeURIComponent(watermarkUrl)}`
+    : '';
 
   // Calculate payment status
   const totalCost = client.totalCost;
@@ -213,7 +197,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={watermarkDataUrl || watermarkUrl} 
+              watermarkUrl={proxiedWatermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 
@@ -274,7 +258,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={watermarkDataUrl || watermarkUrl} 
+              watermarkUrl={proxiedWatermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 
