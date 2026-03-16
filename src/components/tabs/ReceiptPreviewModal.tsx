@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { toPng } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import { Client, Payment } from '@/context/StudioContext';
 
 interface ReceiptPreviewModalProps {
@@ -53,48 +53,28 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     if (!receiptRef.current) return null;
     
     setIsGenerating(true);
-    
-    // Identify restricted stylesheets that might cause SecurityError
-    const restrictedSheets: CSSStyleSheet[] = [];
-    Array.from(document.styleSheets).forEach(sheet => {
-      try {
-        // Test access to cssRules
-        const test = sheet.cssRules;
-      } catch (e) {
-        restrictedSheets.push(sheet);
-        sheet.disabled = true; // Temporarily disable to let html-to-image skip it
-      }
-    });
-
     try {
       const element = receiptRef.current;
       
-      // Give the UI time to react to any style changes/loading
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Give fonts and images time to fully load
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      const dataUrl = await toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2, // Slightly lower for better mobile stability but still crisp
+      const canvas = await html2canvas(element, {
+        scale: 2,
         backgroundColor: '#fdfcfb',
-        cacheBust: true,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
         width: element.offsetWidth,
         height: element.scrollHeight,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-          borderRadius: '0',
-          boxShadow: 'none',
-        }
       });
       
-      return dataUrl;
+      return canvas.toDataURL('image/png', 1.0);
     } catch (error) {
       console.error('Error generating receipt image:', error);
-      alert('Failed to generate receipt image. This is often caused by a restricted font or style. Please try one more time.');
+      alert('Failed to generate receipt image. Please try again.');
       return null;
     } finally {
-      // Re-enable restricted sheets
-      restrictedSheets.forEach(sheet => sheet.disabled = false);
       setIsGenerating(false);
     }
   }, []);
@@ -300,13 +280,12 @@ function ReceiptContent({
         printColorAdjust: 'exact'
       }}
     >
-      {/* Watermark Image Layer - Using <img> tag with PROXY URL for reliable capture */}
+      {/* Watermark Image Layer */}
       {watermarkUrl && (
         <img 
           src={watermarkUrl}
-          crossOrigin="anonymous"
-          className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.14] mix-blend-multiply transition-opacity duration-300"
-          alt="Watermark Illustration"
+          className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.14] mix-blend-multiply"
+          alt=""
           style={{ 
             filter: 'grayscale(100%) contrast(120%) brightness(1.05)',
           }}
