@@ -33,11 +33,11 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     client.illustrations?.[0];
   const watermarkUrl = approvedIllustration?.image || '';
 
-  // Simplifed: Use the proxy URL directly as the source for the watermark layer.
-  // This avoids flickering caused by Base64 conversion while still bypassing CORS for capture.
-  const proxiedWatermarkUrl = watermarkUrl 
+  // Only proxy external (http/https) images to bypass CORS.
+  // Local images (e.g. /samples/gown_sketch.png) don't need proxying.
+  const resolvedWatermarkUrl = watermarkUrl.startsWith('http')
     ? `/api/proxy-image?url=${encodeURIComponent(watermarkUrl)}`
-    : '';
+    : watermarkUrl;
 
   // Calculate payment status
   const totalCost = client.totalCost;
@@ -184,7 +184,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={proxiedWatermarkUrl} 
+              watermarkUrl={resolvedWatermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 
@@ -245,7 +245,7 @@ Thank you for choosing House of Oath.`;
           >
             <ReceiptContent 
               receiptRef={receiptRef} 
-              watermarkUrl={proxiedWatermarkUrl} 
+              watermarkUrl={resolvedWatermarkUrl} 
               client={client} 
               payment={payment} 
               approvedIllustration={approvedIllustration} 

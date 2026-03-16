@@ -7,6 +7,11 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Missing url parameter", { status: 400 });
   }
 
+  // Only proxy absolute URLs (http/https). Reject relative paths.
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return new NextResponse("Only absolute URLs are supported", { status: 400 });
+  }
+
   try {
     const response = await fetch(url);
     if (!response.ok) {
