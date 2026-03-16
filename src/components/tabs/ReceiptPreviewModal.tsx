@@ -56,14 +56,14 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     try {
       const element = receiptRef.current;
       
-      // Give fonts and images time to fully load
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Give fonts and images time to fully load (longer on mobile)
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: '#fdfcfb',
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true, // Allow ALL images to be drawn, including local B&W sketches
         logging: false,
         width: element.offsetWidth,
         height: element.scrollHeight,
@@ -84,10 +84,37 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     const dataUrl = await captureReceipt();
     if (dataUrl) {
       const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
-      const link = document.createElement('a');
-      link.download = `HOA-Receipt-${receiptNo}.png`;
-      link.href = dataUrl;
-      link.click();
+      
+      // Convert to blob for better iOS compatibility
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // iOS Safari doesn't support programmatic <a> downloads.
+      // Use Web Share API if available, otherwise open in new tab.
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOS && navigator.canShare) {
+        try {
+          const file = new File([blob], `HOA-Receipt-${receiptNo}.png`, { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file] });
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+        } catch (shareErr) {
+          // User cancelled or share failed, fall through to open in new tab
+        }
+        // Fallback: open in new tab so user can long-press to save
+        window.open(blobUrl, '_blank');
+      } else {
+        // Desktop: normal download link
+        const link = document.createElement('a');
+        link.download = `HOA-Receipt-${receiptNo}.png`;
+        link.href = blobUrl;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      }
     }
   };
 
