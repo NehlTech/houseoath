@@ -53,41 +53,48 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
     if (!receiptRef.current) return null;
     
     setIsGenerating(true);
+    
+    // Identify restricted stylesheets that might cause SecurityError
+    const restrictedSheets: CSSStyleSheet[] = [];
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        // Test access to cssRules
+        const test = sheet.cssRules;
+      } catch (e) {
+        restrictedSheets.push(sheet);
+        sheet.disabled = true; // Temporarily disable to let html-to-image skip it
+      }
+    });
+
     try {
-      // Ensure the element is fully visible for capture
       const element = receiptRef.current;
       
-      // Give fonts and images a moment to be absolutely sure they are ready
-      // This is especially important on iOS Safari
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Give the UI time to react to any style changes/loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const dataUrl = await toPng(element, {
         quality: 1.0,
-        pixelRatio: 3,
+        pixelRatio: 2, // Slightly lower for better mobile stability but still crisp
         backgroundColor: '#fdfcfb',
         cacheBust: true,
-        // Calculate dimensions to ensure no cropping
         width: element.offsetWidth,
         height: element.scrollHeight,
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left',
-          // Remove margin/padding overrides so internal padding is preserved
           borderRadius: '0',
           boxShadow: 'none',
-        },
-        filter: (node) => {
-          // Ensure we don't accidentally skip the watermark or any layers
-          return true;
-        },
+        }
       });
       
       return dataUrl;
     } catch (error) {
       console.error('Error generating receipt image:', error);
-      alert('Failed to generate receipt image. Please try again.');
+      alert('Failed to generate receipt image. This is often caused by a restricted font or style. Please try one more time.');
       return null;
     } finally {
+      // Re-enable restricted sheets
+      restrictedSheets.forEach(sheet => sheet.disabled = false);
       setIsGenerating(false);
     }
   }, []);
@@ -293,7 +300,7 @@ function ReceiptContent({
         printColorAdjust: 'exact'
       }}
     >
-      {/* Watermark Image Layer - Using <img> tag for more reliable capture than backgroundImage */}
+      {/* Watermark Image Layer - Using <img> tag with PROXY URL for reliable capture */}
       {watermarkUrl && (
         <img 
           src={watermarkUrl}
@@ -302,7 +309,6 @@ function ReceiptContent({
           alt="Watermark Illustration"
           style={{ 
             filter: 'grayscale(100%) contrast(120%) brightness(1.05)',
-            // Ensure fonts/layout stay above
           }}
         />
       )}
