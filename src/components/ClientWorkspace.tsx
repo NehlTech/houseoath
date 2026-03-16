@@ -185,7 +185,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`group relative flex items-center justify-center p-2.5 px-1.5 sm:px-2 font-medium transition-all ${
+              className={`group relative flex items-center justify-center p-2 px-1 sm:px-1.5 font-medium transition-all ${
                 activeTab === tab
                   ? 'text-primary font-bold'
                   : 'text-gray hover:text-charcoal'
