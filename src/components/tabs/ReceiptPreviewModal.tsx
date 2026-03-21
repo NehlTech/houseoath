@@ -303,11 +303,11 @@ function ReceiptContent({
             <div className="flex items-center gap-6">
               <div className="w-16 h-[1px] bg-[#1a0f0830]"></div>
               
-              <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] rounded-full overflow-hidden flex items-center justify-center bg-white border border-[#1a0f0820] shadow-sm shrink-0 p-1">
+              <div className="w-[100px] sm:w-[120px] flex items-center justify-center shrink-0">
                 <img 
-                  src="/ho-logo.png" 
-                  alt="ho logo" 
-                  className="w-full h-full object-contain"
+                  src="/ho_logo.png" 
+                  alt="House of Oath Logo" 
+                  className="w-full h-auto object-contain"
                 />
               </div>
 
@@ -317,7 +317,7 @@ function ReceiptContent({
               House of Oath
             </h1>
             <p className="mt-2 text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-[#1a0f08]/60" style={{ fontFamily: '"Inter", sans-serif' }}>
-              Bespoke Tailoring Studio
+              Tailoring Studio
             </p>
           </div>
         </div>
@@ -339,7 +339,7 @@ function ReceiptContent({
               {payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`}
             </p>
             <p className="text-[11px] sm:text-[12px] tracking-wider text-[#1a0f08]/70 font-display italic mt-1">
-              Date: {new Date(payment.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Date Issued: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
@@ -357,11 +357,13 @@ function ReceiptContent({
           <div className="grid grid-cols-12 gap-4 py-6 text-[12px] sm:text-[14px] font-display leading-relaxed" style={{ color: '#1a0f08' }}>
             <div className="col-span-12 sm:col-span-8 pr-0 sm:pr-8">
               <p className="font-sans font-medium uppercase tracking-wider text-[11px] sm:text-[13px] mb-2">
-                {client.eventName ? `Bespoke ${client.eventName} Attire` : 'Bespoke Private Commission'}
+                {client.eventName ? client.eventName : 'Tailoring Services'}
               </p>
-              <p className="text-[#1a0f08]/80 text-justify italic opacity-90 leading-loose">
-                {approvedIllustration?.notes || client.notes || 'Full custom garment construction tailored to exact specifications. Includes pattern drafting, fabric cutting, detailed stitching, fittings, and final hand-finishing.'}
-              </p>
+              {client.notes && (
+                <p className="text-[#1a0f08]/80 text-justify italic opacity-90 leading-loose">
+                  {client.notes}
+                </p>
+              )}
               {client.fabricVendor && (
                 <p className="mt-4 text-[11px] font-sans tracking-widest text-[#1a0f08]/60 uppercase">
                   Material: {client.fabricVendor}
@@ -399,16 +401,22 @@ function ReceiptContent({
 
           <div className="w-full sm:w-[320px] flex flex-col gap-4 font-sans tracking-widest text-[11px] sm:text-[12px] relative z-10 text-[#1a0f08]">
             <div className="flex justify-between items-center text-[#1a0f08]/70">
-              <span className="uppercase text-[9px] font-semibold">Total Commission</span>
+              <span className="uppercase text-[9px] font-semibold">Total Payments</span>
               <span>GHS {totalCost.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center text-[#1a0f08]/70">
               <span className="uppercase text-[9px] font-semibold">Previous Payments</span>
               <span>GHS {totalPaidToDate.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center bg-[#1a0f08]/5 -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 mt-2 border-y border-[#1a0f0815]">
-              <span className="uppercase text-[10px] font-bold">Payment This Receipt</span>
-              <span className="font-bold">GHS {payment.amount.toLocaleString()}</span>
+            <div className="flex flex-col bg-[#1a0f08]/5 -mx-4 py-3 sm:-mx-6 px-4 sm:px-6 mt-2 border-y border-[#1a0f0815]">
+              <div className="flex justify-between items-center">
+                <span className="uppercase text-[10px] font-bold">Payment This Receipt</span>
+                <span className="font-bold">GHS {payment.amount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <span className="uppercase text-[8px] font-medium text-[#1a0f08]/60">Payment Date & Time</span>
+                <span className="text-[9px] text-[#1a0f08]/70 italic">{new Date(payment.date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
             </div>
             <div className="flex justify-between items-center mt-2 pb-2">
               <span className="uppercase text-[10px] font-bold">Outstanding Balance</span>

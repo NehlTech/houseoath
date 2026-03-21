@@ -32,11 +32,8 @@ export default function LoginPage() {
       <div className="layout-container flex h-full grow flex-col relative z-10">
         <header className="flex items-center justify-between whitespace-nowrap  px-6 md:px-20 py-5 bg-card/80 backdrop-blur-md">
           <div className="flex items-center gap-3 text-charcoal">
-            <div className="flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80">
-              <div className="flex items-center text-[15px] italic font-light tracking-tighter -mr-0.5" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#1a0f08' }}>
-                <span>h</span>
-                <span className="-ml-[3px]">o</span>
-              </div>
+            <div className="flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 overflow-hidden bg-white">
+              <img src="/hoo_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
             </div>
             <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest uppercase ml-1">House of Oath Fashion</h2>
           </div>
