@@ -229,7 +229,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
   };
 
   const searchedClients = filteredClients.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.eventName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 

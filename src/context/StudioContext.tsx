@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 
 // Types
 export interface Payment {
@@ -332,7 +332,7 @@ const sampleClients: Client[] = [
   },
 ];
 
-let isFetchingClients = false;
+
 
 // Safe localStorage wrappers — iOS private browsing throws on access
 function safeGetItem(key: string): string | null {
@@ -364,10 +364,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [useApi, setUseApi] = useState(false);
 
+  const hasFetched = useRef(false);
+
   // Load clients: try API first, fallback to localStorage
   useEffect(() => {
-    if (isFetchingClients) return;
-    isFetchingClients = true;
+    if (hasFetched.current) return;
+    hasFetched.current = true;
 
     const loadData = async () => {
       try {
@@ -380,15 +382,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       } catch { /* ignore auth restore errors */ }
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
         // Load clients
-        const clientRes = await fetch('/api/clients');
+        const clientRes = await fetch('/api/clients', { signal: controller.signal });
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
           if (Array.isArray(data) && data.length > 0) setClients(data);
           else {
             for (const sc of sampleClients) {
-              await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc) });
+              await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc), signal: controller.signal });
             }
             setClients(sampleClients);
           }
@@ -397,18 +402,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
 
         // Load workers
-        const workerRes = await fetch('/api/workers');
+        const workerRes = await fetch('/api/workers', { signal: controller.signal });
         if (workerRes.ok) {
           const data = await workerRes.json();
           if (Array.isArray(data) && data.length > 0) setWorkers(data);
           else {
             const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' };
-            await fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
+            await fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker), signal: controller.signal });
             setWorkers([defaultWorker as UserProfile]);
           }
         }
+        clearTimeout(timeoutId);
       } catch (err) {
-        console.error('API Error, falling back to local data:', err);
+        console.warn('API Error, falling back to local data:', err);
         // Fallback: localStorage
         try {
           const savedClients = safeGetItem('studio_clients');
@@ -498,7 +504,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(updates) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
       }
 
@@ -523,7 +529,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(newWorker) 
-      }).catch(console.error);
+      }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Team Member Added', `Worker ${name} (${email}) was added to the team.`);
   }, [useApi, addAuditLog]);
@@ -531,7 +537,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const removeWorker = useCallback((id: string) => {
     setWorkers(prev => prev.filter(w => w.id !== id));
     if (useApi) {
-      fetch(`/api/workers/${id}`, { method: 'DELETE' }).catch(console.error);
+      fetch(`/api/workers/${id}`, { method: 'DELETE' }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Team Member Removed', `A worker was removed from the team.`);
   }, [useApi, addAuditLog]);
@@ -568,7 +574,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     // Sync to MongoDB
     if (useApi) {
-      fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newClient) }).catch(console.error);
+      fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newClient) }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
   }, [useApi, addAuditLog]);
@@ -585,7 +591,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ ...updates, lastActivity: now }) 
-      }).catch(console.error);
+      }).catch(e => console.warn('API Error:', e));
     }
     const updatedClientName = clients.find(c => c.id === id)?.name || 'a client';
     addAuditLog('Client Updated', `Modified record for ${updatedClientName}.`);
@@ -631,7 +637,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(updates) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
 
         return { ...c, ...updates };
@@ -657,7 +663,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
         return { ...c, timeline: updatedTimeline, lastActivity: now };
       }
@@ -681,7 +687,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ measurements, timeline: updatedTimeline, lastActivity: now }) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
         return {
           ...c,
@@ -711,7 +717,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
         return {
           ...c,
@@ -741,7 +747,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }) 
-          }).catch(console.error);
+          }).catch(e => console.warn('API Error:', e));
         }
         return {
           ...c,
@@ -774,7 +780,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   });
 
   if (!isLoaded) {
-    return null;
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-canvas">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-charcoal/20 border-t-primary" />
+          <p className="text-gray text-sm font-medium tracking-widest uppercase animate-pulse">Loading Studio...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

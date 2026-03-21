@@ -302,10 +302,15 @@ function ReceiptContent({
           <div className="flex flex-col items-center z-10">
             <div className="flex items-center gap-6">
               <div className="w-16 h-[1px] bg-[#1a0f0830]"></div>
-              <div className="text-6xl sm:text-8xl italic font-light tracking-tighter" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#1a0f08' }}>
-                <span className="mr-1">h</span>
-                <span className="-ml-4 sm:-ml-6">o</span>
+              
+              <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] rounded-full overflow-hidden flex items-center justify-center bg-white border border-[#1a0f0820] shadow-sm shrink-0 p-1">
+                <img 
+                  src="/ho-logo.png" 
+                  alt="ho logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
+
               <div className="w-16 h-[1px] bg-[#1a0f0830]"></div>
             </div>
             <h1 className="mt-6 text-[11px] sm:text-[13px] uppercase tracking-[0.4em] font-medium text-[#1a0f08]" style={{ fontFamily: '"Inter", sans-serif' }}>

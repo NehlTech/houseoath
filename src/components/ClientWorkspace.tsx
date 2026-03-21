@@ -28,7 +28,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const initials = client.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  const initials = (client.name || 'U C').split(' ').map(n => n[0] || '').join('').slice(0, 2);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const minSwipeDistance = 50;

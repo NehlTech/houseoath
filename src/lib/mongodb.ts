@@ -11,6 +11,7 @@ const options = {
     strict: true,
     deprecationErrors: true,
   },
+  serverSelectionTimeoutMS: 5000,
 };
 
 let client: MongoClient;

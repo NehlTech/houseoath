@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 
+export const dynamic = 'force-dynamic';
+
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'clients';
 

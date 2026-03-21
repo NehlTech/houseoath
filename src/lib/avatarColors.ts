@@ -17,9 +17,10 @@ const AVATAR_COLORS = [
  * Same name always produces the same color.
  */
 function hashName(name: string): number {
+  const safeName = name || 'Unknown';
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < safeName.length; i++) {
+    hash = safeName.charCodeAt(i) + ((hash << 5) - hash);
     hash |= 0; // Convert to 32-bit int
   }
   return Math.abs(hash);
