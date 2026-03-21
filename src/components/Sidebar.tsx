@@ -331,12 +331,8 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings }:
             )}
           </div>
 
-          {/* Header Title for Mobile */}
-          <div className="md:hidden flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 mr-2">
-            <div className="flex items-center text-[15px] italic font-light tracking-tighter -mr-0.5" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: '#1a0f08' }}>
-              <span>h</span>
-              <span className="-ml-[3px]">o</span>
-            </div>
+          <div className="md:hidden flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 mr-2 overflow-hidden bg-white">
+            <img src="/ho_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
           </div>
 
           {/* Search Bar */}
