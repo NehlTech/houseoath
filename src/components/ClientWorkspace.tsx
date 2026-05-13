@@ -139,9 +139,9 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 p-6 bg-card shadow-sm relative">
-        {/* Delete button — top right of header */}
-        <div className="absolute top-4 right-4 z-10">
+      <div className="px-4 py-3 md:px-6 md:py-4 bg-card shadow-sm relative">
+        {/* Delete button — top right */}
+        <div className="absolute top-3 right-3 z-10">
           {showDeleteConfirm ? (
             <div className="flex items-center gap-2 bg-card border border-danger/30 rounded-xl px-3 py-2 shadow-lg">
               <span className="text-xs text-danger font-semibold">Delete client?</span>
@@ -157,64 +157,61 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
           ) : (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
               title="Delete client"
             >
               <span className="material-symbols-outlined text-[16px]">delete</span>
-              Delete
+              <span className="hidden sm:inline">Delete</span>
             </button>
           )}
         </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
+
+        {/* Layout: flex-row on desktop, stacked on mobile */}
+        <div className="flex items-start gap-4 pr-20 md:pr-28">
           {/* Back button (mobile) */}
-          <button onClick={onBack} className="md:hidden flex items-center justify-center p-2 -ml-2 text-muted hover:text-charcoal shrink-0 transition-colors">
+          <button onClick={onBack} className="md:hidden flex items-center justify-center p-1 -ml-1 mt-0.5 text-muted hover:text-charcoal shrink-0 transition-colors">
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </button>
 
-          {/* Avatar Area - Now clickable for upload */}
+          {/* Avatar */}
           <div className="relative group shrink-0">
-            <label className="cursor-pointer block relative rounded-full overflow-hidden size-20 shadow-md border-none shadow-sm transition-transform hover:scale-[1.02]">
-              <input 
-                type="file" 
-                accept="image/*" 
-                capture="environment" // Suggests camera on mobile but allows gallery
-                className="hidden" 
+            <label className="cursor-pointer block relative rounded-full overflow-hidden size-14 md:size-16 shadow-md transition-transform hover:scale-[1.02]">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
                 onChange={handleAvatarUpload}
                 disabled={isUploadingAvatar}
               />
-              
               {client.clientPhoto ? (
                 <div className="w-full h-full bg-center bg-no-repeat bg-cover" style={{ backgroundImage: `url('${client.clientPhoto}')` }} />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl" style={{ background: getAvatarColor(client.name) }}>
+                <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl" style={{ background: getAvatarColor(client.name) }}>
                   {initials}
                 </div>
               )}
-
-              {/* Uploading Overlay */}
               {isUploadingAvatar && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </div>
               )}
-              
-              {/* Hover Overlay */}
               {!isUploadingAvatar && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="material-symbols-outlined text-white">photo_camera</span>
+                  <span className="material-symbols-outlined text-white text-sm">photo_camera</span>
                 </div>
               )}
             </label>
-            
-            <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-md flex items-center justify-center pointer-events-none z-10">
-              <span className="material-symbols-outlined text-xs">verified</span>
+            <div className="absolute -bottom-1 -right-1 bg-primary text-white p-0.5 rounded-md shadow-md flex items-center justify-center pointer-events-none z-10">
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }}>verified</span>
             </div>
           </div>
 
-          {/* Info */}
-          <div className="flex flex-col justify-center flex-1">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1">
-              <h1 className="text-charcoal text-2xl font-display font-bold tracking-wide">{client.name}</h1>
+          {/* All info — flows naturally next to avatar on both mobile and desktop */}
+          <div className="flex-1 min-w-0 space-y-1.5">
+            {/* Name + package badge */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-charcoal text-lg md:text-xl font-display font-bold tracking-wide">{client.name}</h1>
               {client.clientPackage && (() => {
                 const pkgStyles: Record<string, string> = {
                   Lux:      'bg-primary/10 text-primary',
@@ -224,15 +221,18 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                 };
                 const cls = pkgStyles[client.clientPackage] ?? 'bg-primary/10 text-primary';
                 return (
-                  <span className={`${cls} px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit`}>
+                  <span className={`${cls} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider`}>
                     {client.clientPackage} Client
                   </span>
                 );
               })()}
-              {/* Consultation status button — blinks until consultation is done */}
+            </div>
+
+            {/* Status pills */}
+            <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setShowConsultation(true)}
-                className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                   client.consultationDone
                     ? 'bg-success/10 text-success'
                     : 'bg-danger/10 text-danger animate-pulse'
@@ -240,78 +240,83 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               >
                 <span
                   className="material-symbols-outlined leading-none"
-                  style={{ fontSize: 13, fontVariationSettings: client.consultationDone ? "'FILL' 1, 'wght' 600" : "'FILL' 0, 'wght' 400" }}
+                  style={{ fontSize: 12, fontVariationSettings: client.consultationDone ? "'FILL' 1, 'wght' 600" : "'FILL' 0, 'wght' 400" }}
                 >
                   {client.consultationDone ? 'mark_chat_read' : 'pending'}
                 </span>
                 {client.consultationDone ? 'Consulted' : 'Consultation'}
               </button>
-              {/* Fitting status pill */}
+
               {client.fittingDone ? (
-                <span className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-blue-500/10 text-blue-600">
-                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>checkroom</span>
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600">
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>checkroom</span>
                   Fitted
                 </span>
               ) : client.noFitting ? (
-                <span className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-gray-100 text-gray-500">
-                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13 }}>event_busy</span>
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>event_busy</span>
                   No Fitting
                 </span>
               ) : (client.nextFittingDate || client.fittings?.firstFitting) ? (
                 <button
                   onClick={handleMarkFittingDone}
                   title="Tap to mark fitting as done"
-                  className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse"
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse"
                 >
-                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13 }}>checkroom</span>
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>checkroom</span>
                   Fitting: {new Date(client.nextFittingDate || client.fittings?.firstFitting || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </button>
               ) : null}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-6 mt-1">
+
+            {/* Contact / event info — 2-col grid */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-0.5">
               {client.phone && (
-                <div className="flex items-center gap-2 text-gray">
-                  <span className="material-symbols-outlined text-primary text-lg">call</span>
-                  <span className="text-sm font-medium">{client.phone}</span>
+                <div className="flex items-center gap-1.5 text-gray min-w-0">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>call</span>
+                  <span className="text-xs font-medium truncate">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center gap-2 text-gray">
-                  <span className="material-symbols-outlined text-primary text-lg">mail</span>
-                  <span className="text-sm font-medium">{client.email}</span>
+                <div className="flex items-center gap-1.5 text-gray min-w-0">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>mail</span>
+                  <span className="text-xs font-medium truncate">{client.email}</span>
                 </div>
               )}
               {client.eventDate && (
-                <div className="flex items-center gap-2 text-gray">
-                  <span className="material-symbols-outlined text-primary text-lg">event</span>
-                  <span className="text-sm font-medium">Event: {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <div className="flex items-center gap-1.5 text-gray min-w-0">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>event</span>
+                  <span className="text-xs font-medium truncate">
+                    {new Date(client.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
                 </div>
               )}
               {client.eventLocation && (
-                <div className="flex items-center gap-2 text-gray">
-                  <span className="material-symbols-outlined text-primary text-lg">location_on</span>
-                  <span className="text-sm font-medium">{client.eventLocation}</span>
+                <div className="flex items-center gap-1.5 text-gray min-w-0">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>location_on</span>
+                  <span className="text-xs font-medium truncate">{client.eventLocation}</span>
                 </div>
               )}
-              {/* Delivery status */}
-              {client.delivered ? (
-                <div className="flex items-center gap-2 col-span-2">
-                  <span className="material-symbols-outlined text-success text-lg">task_alt</span>
-                  <span className="text-sm font-semibold text-success">
-                    Delivered{client.deliveryDate ? `: ${new Date(client.deliveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 col-span-2">
+
+              {/* Delivery — full row */}
+              <div className="col-span-2 pt-0.5">
+                {client.delivered ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-success shrink-0" style={{ fontSize: 16 }}>task_alt</span>
+                    <span className="text-xs font-semibold text-success">
+                      Delivered{client.deliveryDate ? `: ${new Date(client.deliveryDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                    </span>
+                  </div>
+                ) : (
                   <button
                     onClick={handleMarkDelivered}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                   >
-                    <span className="material-symbols-outlined text-sm">local_shipping</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>local_shipping</span>
                     Mark Delivered
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
