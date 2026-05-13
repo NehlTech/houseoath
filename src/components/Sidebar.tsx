@@ -382,8 +382,9 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="shrink-0 flex flex-col bg-card">
+    <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+      {/* ── STATIC TOP: always visible ── */}
+      <div className="bg-card" style={{ minHeight: 0 }}>
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">
           {/* Hamburger — toggles sidebar drawer (desktop only) */}
@@ -495,12 +496,11 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
         </div>
       </div>
 
-      {/* Client List Area */}
-      <div className="flex-1 relative flex flex-col overflow-hidden min-h-0 group/list bg-card">
-        {/* Client List */}
+      {/* ── SCROLLABLE MIDDLE: grows to fill all remaining space ── */}
+      <div className="relative overflow-hidden bg-card group/list">
         <div
           ref={listScrollRef}
-          className="flex-1 overflow-y-auto relative select-none"
+          className="h-full overflow-y-auto relative select-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -580,8 +580,8 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="shrink-0 md:hidden flex items-center justify-between bg-card p-2 z-20">
+      {/* ── STATIC BOTTOM: always visible on mobile ── */}
+      <div className="md:hidden flex items-center justify-between bg-card p-2 z-20">
         <button onClick={onOpenSettings} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary w-16 transition-colors">
           <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
             <span className="material-symbols-outlined text-[22px]">settings</span>
