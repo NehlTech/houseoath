@@ -382,7 +382,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="shrink-0 flex flex-col bg-card">
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">

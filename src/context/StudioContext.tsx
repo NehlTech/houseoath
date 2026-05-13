@@ -486,7 +486,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     { id: 'log-1', action: 'System Init', description: 'Application loaded successfully.', timestamp: new Date().toISOString() }
   ]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [useApi, setUseApi] = useState(false);
+  const [useApi, setUseApi] = useState(true); // always attempt API writes; GET sync confirms availability
   const [apiError, setApiError] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
