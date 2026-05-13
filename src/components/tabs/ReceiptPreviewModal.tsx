@@ -427,7 +427,7 @@ function ReceiptContent({
           </div>
         </div>
 
-        {/* --- FOOTER: BANK DETAILS --- */}
+        {/* --- FOOTER: PAYMENT DETAILS --- */}
         <div className="w-full mt-16 pt-8 border-t-[1px] border-[#1a0f08] flex flex-col sm:flex-row justify-between gap-6 sm:gap-0 font-sans tracking-[0.15em] text-[8px] sm:text-[9px] uppercase text-[#1a0f08]/60">
           <div className="flex flex-col gap-1.5">
             <p className="font-bold text-[#1a0f08]">Bank Transfer Details</p>
@@ -435,11 +435,17 @@ function ReceiptContent({
             <p>Fidelity Bank Ghana</p>
             <p>Account Name: House of Oath</p>
           </div>
-          
+
+          <div className="flex flex-col gap-1.5">
+            <p className="font-bold text-[#1a0f08]">MoMo Pay</p>
+            <p>0545124346</p>
+            <p>House of Oath</p>
+          </div>
+
           <div className="flex flex-col sm:items-end gap-1.5 text-left sm:text-right max-w-xs">
             <p className="font-bold text-[#1a0f08]">Payment Terms</p>
-            <p>Bank payments only.</p>
-            <p>Other options available subject to</p>
+            <p>Bank or MoMo payments only.</p>
+            <p>Other options subject to</p>
             <p>international/state requirements.</p>
           </div>
         </div>

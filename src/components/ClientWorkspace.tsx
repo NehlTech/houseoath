@@ -12,17 +12,17 @@ import ClientPhotosTab from './tabs/ClientPhotosTab';
 import FittingsTab from './tabs/FittingsTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import TimelineTab from './tabs/TimelineTab';
-import ProductionNotesTab from './tabs/ProductionNotesTab';
+import ConsultationModal from './ConsultationModal';
 
 interface ClientWorkspaceProps {
   client: Client;
   onBack: () => void;
 }
 
-const tabs = ['Overview', 'Progress', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
+const tabs = ['Overview', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
-  const { updateClient } = useStudio();
+  const { updateClient, deleteClient, addTimelineEvent } = useStudio();
   const [activeTab, setActiveTab] = useState('Overview');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -30,6 +30,19 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   const scrollRef = useRef<HTMLDivElement>(null);
   const initials = (client.name || 'U C').split(' ').map(n => n[0] || '').join('').slice(0, 2);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showConsultation, setShowConsultation] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleMarkDelivered = () => {
+    const today = new Date().toISOString().split('T')[0];
+    updateClient(client.id, { delivered: true, deliveryDate: today, status: 'Completed' });
+    addTimelineEvent(client.id, 'Order Delivered', `Order completed and delivered to ${client.name}.`);
+  };
+
+  const handleMarkFittingDone = () => {
+    updateClient(client.id, { fittingDone: true });
+    addTimelineEvent(client.id, 'Fitting Completed', 'Client fitting session completed successfully.');
+  };
 
   const minSwipeDistance = 50;
 
@@ -119,7 +132,6 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       case 'Fittings': return <FittingsTab client={client} />;
       case 'Payments': return <PaymentsTab client={client} />;
       case 'Timeline': return <TimelineTab client={client} />;
-      case 'Progress': return <ProductionNotesTab client={client} />;
       default: return null;
     }
   };
@@ -127,7 +139,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 p-6 bg-card  shadow-sm">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 p-6 bg-card shadow-sm relative">
+        {/* Delete button — top right of header */}
+        <div className="absolute top-4 right-4 z-10">
+          {showDeleteConfirm ? (
+            <div className="flex items-center gap-2 bg-card border border-danger/30 rounded-xl px-3 py-2 shadow-lg">
+              <span className="text-xs text-danger font-semibold">Delete client?</span>
+              <button
+                onClick={() => { deleteClient(client.id); onBack(); }}
+                className="px-3 py-1 rounded-lg bg-danger text-white text-xs font-bold hover:brightness-110 transition-all"
+              >Yes</button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1 rounded-lg bg-canvas text-gray text-xs font-bold hover:bg-border transition-all"
+              >No</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
+              title="Delete client"
+            >
+              <span className="material-symbols-outlined text-[16px]">delete</span>
+              Delete
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
           {/* Back button (mobile) */}
           <button onClick={onBack} className="md:hidden flex items-center justify-center p-2 -ml-2 text-muted hover:text-charcoal shrink-0 transition-colors">
@@ -178,7 +215,58 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
           <div className="flex flex-col justify-center flex-1">
             <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1">
               <h1 className="text-charcoal text-2xl font-display font-bold tracking-wide">{client.name}</h1>
-              <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit">Premium Client</span>
+              {client.clientPackage && (() => {
+                const pkgStyles: Record<string, string> = {
+                  Lux:      'bg-primary/10 text-primary',
+                  Classic:  'bg-blue-500/10 text-blue-600',
+                  Essential:'bg-success/10 text-success',
+                  Delux:    'bg-purple-500/10 text-purple-600',
+                };
+                const cls = pkgStyles[client.clientPackage] ?? 'bg-primary/10 text-primary';
+                return (
+                  <span className={`${cls} px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit`}>
+                    {client.clientPackage} Client
+                  </span>
+                );
+              })()}
+              {/* Consultation status button — blinks until consultation is done */}
+              <button
+                onClick={() => setShowConsultation(true)}
+                className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit transition-all ${
+                  client.consultationDone
+                    ? 'bg-success/10 text-success'
+                    : 'bg-danger/10 text-danger animate-pulse'
+                }`}
+              >
+                <span
+                  className="material-symbols-outlined leading-none"
+                  style={{ fontSize: 13, fontVariationSettings: client.consultationDone ? "'FILL' 1, 'wght' 600" : "'FILL' 0, 'wght' 400" }}
+                >
+                  {client.consultationDone ? 'mark_chat_read' : 'pending'}
+                </span>
+                {client.consultationDone ? 'Consulted' : 'Consultation'}
+              </button>
+              {/* Fitting status pill */}
+              {client.fittingDone ? (
+                <span className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-blue-500/10 text-blue-600">
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>checkroom</span>
+                  Fitted
+                </span>
+              ) : client.noFitting ? (
+                <span className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-gray-100 text-gray-500">
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13 }}>event_busy</span>
+                  No Fitting
+                </span>
+              ) : (client.nextFittingDate || client.fittings?.firstFitting) ? (
+                <button
+                  onClick={handleMarkFittingDone}
+                  title="Tap to mark fitting as done"
+                  className="flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse"
+                >
+                  <span className="material-symbols-outlined leading-none" style={{ fontSize: 13 }}>checkroom</span>
+                  Fitting: {new Date(client.nextFittingDate || client.fittings?.firstFitting || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </button>
+              ) : null}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-6 mt-1">
               {client.phone && (
@@ -196,13 +284,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               {client.eventDate && (
                 <div className="flex items-center gap-2 text-gray">
                   <span className="material-symbols-outlined text-primary text-lg">event</span>
-                  <span className="text-sm font-medium">Event: {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                  <span className="text-sm font-medium">Event: {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
               )}
               {client.eventLocation && (
                 <div className="flex items-center gap-2 text-gray">
                   <span className="material-symbols-outlined text-primary text-lg">location_on</span>
                   <span className="text-sm font-medium">{client.eventLocation}</span>
+                </div>
+              )}
+              {/* Delivery status */}
+              {client.delivered ? (
+                <div className="flex items-center gap-2 col-span-2">
+                  <span className="material-symbols-outlined text-success text-lg">task_alt</span>
+                  <span className="text-sm font-semibold text-success">
+                    Delivered{client.deliveryDate ? `: ${new Date(client.deliveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 col-span-2">
+                  <button
+                    onClick={handleMarkDelivered}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">local_shipping</span>
+                    Mark Delivered
+                  </button>
                 </div>
               )}
             </div>
@@ -235,7 +342,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       {/* Mobile Tabs */}
       <div className="md:hidden w-full bg-card  overflow-x-auto no-scrollbar">
         <nav className="flex px-2 min-w-max">
-          {['Overview', 'Progress', 'Measurements', 'Fittings'].map(tab => (
+          {['Overview', 'Measurements', 'Fittings', 'Fabric'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -273,6 +380,10 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       >
         {renderTab()}
       </div>
+
+      {showConsultation && (
+        <ConsultationModal client={client} onClose={() => setShowConsultation(false)} />
+      )}
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card  z-50 flex items-center justify-between px-2 pb-safe">

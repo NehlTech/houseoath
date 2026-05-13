@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, ReactNode, useRef } from 'react';
 
 // Types
 export interface Payment {
@@ -29,32 +29,36 @@ export interface TimelineEvent {
 }
 
 export interface Measurements {
-  // Body
   bust: string;
+  shoulder: string;
+  shoulderToNipple: string;
+  shoulderToWaist: string;
+  blouseLength: string;
   waist: string;
   hip: string;
-  // Upper Body
-  shoulderToNipple: string;
-  shoulderUnderBust: string;
-  shoulderToWaist: string;
-  nippleToNipple: string;
-  blouseLength: string;
-  acrossBack: string;
-  // Skirt
-  skirtShortMidi: string;
-  skirtLong: string;
-  // Dress
-  dressShort: string;
-  dressMidi: string;
-  dressLong: string;
-  // Sleeve
-  sleeve: string;
+  thigh: string;
+  knee: string;
+  trouser: string;
+  bass: string;
+  dressLength: string;
+  slitLength: string;
   sleeveLength: string;
   aroundArm: string;
-  aroundElbow: string;
-  aroundWrist: string;
-  // Unit
-  unit: 'cm' | 'inches';
+  waistToHip: string;
+  kabaLength: string;
+  waistToKnee: string;
+  underbust: string;
+}
+
+export interface FabricItem {
+  id: string;
+  name: string;
+  vendor: string;
+  type: string;
+  description: string;
+  image: string;
+  addedAt: string;
+  receivedDate?: string;
 }
 
 export interface UserProfile {
@@ -150,6 +154,22 @@ export interface Client {
   deliveryDate: string;
   assignedWorker?: string;
   productionNotes: ProductionNote[];
+  // Consultation
+  consultationDone?: boolean;
+  consultationNotes?: string;
+  // Package tier
+  clientPackage?: string;
+  // Progress tracking
+  measurementsTaken?: boolean;
+  fabricReceived?: boolean;
+  // Fabric items (replaces plain fabricPhotos URLs)
+  fabrics?: FabricItem[];
+  // Fitting tracking
+  fittingDone?: boolean;
+  noFitting?: boolean;
+  fittingRescheduleHistory?: { id: string; date: string; note: string; newDate: string }[];
+  // Delivery tracking
+  delivered?: boolean;
 }
 
 interface StudioContextType {
@@ -166,6 +186,7 @@ interface StudioContextType {
   setActiveClientId: (id: string | null) => void;
   addClient: (client: Omit<Client, 'id' | 'createdAt' | 'lastActivity' | 'timeline' | 'payments' | 'measurements' | 'fittings' | 'totalCost' | 'startDate' | 'nextFittingDate' | 'deliveryDate' | 'fabricPhotos' | 'illustrations' | 'clientPhotos' | 'productionNotes' | 'howDidYouHear' | 'comments' | 'dateOfBirth'>) => void;
   updateClient: (id: string, updates: Partial<Client>) => void;
+  deleteClient: (id: string) => void;
   addPayment: (clientId: string, payment: Omit<Payment, 'id'>) => void;
   addTimelineEvent: (clientId: string, action: string, description: string) => void;
   updateMeasurements: (clientId: string, measurements: Measurements) => void;
@@ -179,18 +200,18 @@ interface StudioContextType {
   addProductionNote: (clientId: string, noteText: string) => void;
   addWorker: (name: string, email: string, password?: string) => void;
   removeWorker: (id: string) => void;
+  apiError: boolean;
+  isRetrying: boolean;
+  retryLoad: () => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 const defaultMeasurements: Measurements = {
-  bust: '', waist: '', hip: '',
-  shoulderToNipple: '', shoulderUnderBust: '', shoulderToWaist: '',
-  nippleToNipple: '', blouseLength: '', acrossBack: '',
-  skirtShortMidi: '', skirtLong: '',
-  dressShort: '', dressMidi: '', dressLong: '',
-  sleeve: '', sleeveLength: '', aroundArm: '', aroundElbow: '', aroundWrist: '',
-  unit: 'cm',
+  bust: '', shoulder: '', shoulderToNipple: '', shoulderToWaist: '',
+  blouseLength: '', waist: '', hip: '', thigh: '', knee: '', trouser: '',
+  bass: '', dressLength: '', slitLength: '', sleeveLength: '', aroundArm: '',
+  waistToHip: '', kabaLength: '', waistToKnee: '', underbust: '',
 };
 
 const defaultFittings: Fitting = {
@@ -223,18 +244,28 @@ const sampleClients: Client[] = [
     fabricNotes: '',
     clientPhoto: '',
     fabricPhotos: [],
+    fabrics: [],
     illustrations: [],
     clientPhotos: [],
     productionNotes: [],
+    measurementsTaken: true,
+    fabricReceived: false,
     measurements: { ...defaultMeasurements, bust: '92', waist: '72', hip: '98' },
-    fittings: { ...defaultFittings, startDate: '2026-04-01', firstFitting: '2026-05-01', secondFitting: '2026-05-20', finalFitting: '2026-06-10', deliveryDate: '2026-06-18' },
+    fittings: { ...defaultFittings, startDate: '2026-04-01', firstFitting: '2026-05-15', secondFitting: '2026-05-20', finalFitting: '2026-06-10', deliveryDate: '2026-06-18' },
     payments: [
       { id: 'p1', date: '2026-03-01', amount: 2000, method: 'Bank Transfer', receiptNumber: 'HOF-X7Y2B9' },
       { id: 'p2', date: '2026-04-15', amount: 1500, method: 'Mobile Money', receiptNumber: 'HOF-A1Q8F4' },
     ],
     totalCost: 5000,
+    clientPackage: 'Lux',
+    consultationDone: true,
+    consultationNotes: 'Client prefers a modern silhouette with traditional Kente panels. Discussed colour palette — gold and burgundy. Noted shoulder measurements should account for posture.',
+    fittingDone: false,
+    noFitting: false,
+    fittingRescheduleHistory: [],
+    delivered: false,
     timeline: [
-      { id: 't1', date: '2026-03-01', action: 'Client Created', description: 'New client onboarded for wedding reception gown.' },
+      { id: 't1', date: '2026-03-01', action: 'Booking', description: 'New client booked for wedding reception gown.' },
       { id: 't2', date: '2026-03-01', action: 'Payment Recorded', description: 'Initial deposit of GH₵2,000 received.' },
       { id: 't3', date: '2026-03-15', action: 'Measurements Added', description: 'Body measurements taken at studio.' },
     ],
@@ -242,8 +273,8 @@ const sampleClients: Client[] = [
     createdAt: '2026-03-01T10:00:00Z',
     lastActivity: '2026-03-15T14:30:00Z',
     startDate: '2026-04-01',
-    nextFittingDate: '2026-05-01',
-    deliveryDate: '2026-06-18',
+    nextFittingDate: '2026-05-15',
+    deliveryDate: '2026-05-14',
   },
   {
     id: '2',
@@ -269,17 +300,27 @@ const sampleClients: Client[] = [
     fabricNotes: '',
     clientPhoto: '',
     fabricPhotos: [],
+    fabrics: [],
     illustrations: [],
     clientPhotos: [],
     productionNotes: [],
+    measurementsTaken: false,
+    fabricReceived: false,
+    fittingDone: false,
+    noFitting: false,
+    fittingRescheduleHistory: [],
+    delivered: false,
     measurements: { ...defaultMeasurements },
     fittings: defaultFittings,
     payments: [
       { id: 'p3', date: '2026-03-10', amount: 3000, method: 'Bank Transfer', receiptNumber: 'HOF-M4K9P2' },
     ],
     totalCost: 7500,
+    clientPackage: 'Classic',
+    consultationDone: false,
+    consultationNotes: '',
     timeline: [
-      { id: 't4', date: '2026-03-10', action: 'Client Created', description: 'New client for engagement ceremony.' },
+      { id: 't4', date: '2026-03-10', action: 'Booking', description: 'New client booked for engagement ceremony.' },
       { id: 't5', date: '2026-03-10', action: 'Payment Recorded', description: 'Initial deposit of GH₵3,000 received.' },
     ],
     status: 'Active',
@@ -313,15 +354,25 @@ const sampleClients: Client[] = [
     fabricNotes: '',
     clientPhoto: '',
     fabricPhotos: [],
+    fabrics: [],
     illustrations: [],
     clientPhotos: [],
     productionNotes: [],
+    measurementsTaken: false,
+    fabricReceived: false,
+    fittingDone: false,
+    noFitting: false,
+    fittingRescheduleHistory: [],
+    delivered: false,
     measurements: { ...defaultMeasurements, bust: '88', waist: '68', hip: '94' },
     fittings: { ...defaultFittings, startDate: '2026-03-20', firstFitting: '2026-04-15' },
     payments: [],
     totalCost: 4000,
+    clientPackage: 'Essential',
+    consultationDone: false,
+    consultationNotes: '',
     timeline: [
-      { id: 't6', date: '2026-03-12', action: 'Client Created', description: 'New client for naming ceremony.' },
+      { id: 't6', date: '2026-03-12', action: 'Booking', description: 'New client booked for naming ceremony.' },
     ],
     status: 'Completed',
     createdAt: '2026-03-12T11:00:00Z',
@@ -329,6 +380,62 @@ const sampleClients: Client[] = [
     startDate: '2026-03-20',
     nextFittingDate: '2026-04-15',
     deliveryDate: '2026-05-28',
+  },
+  {
+    id: '4',
+    name: 'Abena Kyei Ofori',
+    email: 'abena.kyei@email.com',
+    gender: 'Female',
+    dateOfBirth: '1993-07-22',
+    phone: '+233 50 234 5678',
+    profession: 'Teacher',
+    address: '3 Link Road, Tema',
+    state: 'Greater Accra',
+    country: 'Ghana',
+    eventName: 'Outdooring Ceremony',
+    eventDate: '2026-05-16',
+    eventLocation: 'Tema Community Centre',
+    eventMonth: 'May',
+    kenteVendor: 'Kente Masters',
+    fabricVendor: 'ABC Fabrics',
+    howDidYouHear: 'Friend',
+    referralSource: 'Friend',
+    comments: '',
+    notes: 'Rush order — event in 3 days. Final adjustments needed urgently.',
+    fabricNotes: '',
+    clientPhoto: '',
+    fabricPhotos: [],
+    fabrics: [],
+    illustrations: [],
+    clientPhotos: [],
+    productionNotes: [],
+    measurementsTaken: true,
+    fabricReceived: true,
+    fittingDone: false,
+    noFitting: false,
+    fittingRescheduleHistory: [],
+    delivered: false,
+    measurements: { ...defaultMeasurements, bust: '90', waist: '70', hip: '96', sleeveLength: '22' },
+    fittings: { ...defaultFittings, startDate: '2026-05-10', firstFitting: '2026-05-14' },
+    payments: [
+      { id: 'p5', date: '2026-05-01', amount: 1500, method: 'MoMo Pay', receiptNumber: 'HOF-ABK991' },
+    ],
+    totalCost: 3000,
+    clientPackage: 'Classic',
+    consultationDone: true,
+    consultationNotes: 'Simple traditional dress with gold trim. Prefers loose fitting around waist.',
+    timeline: [
+      { id: 't7', date: '2026-05-01', action: 'Booking', description: 'Rush booking for outdooring ceremony.' },
+      { id: 't8', date: '2026-05-01', action: 'Consultation Done', description: 'Consultation completed.' },
+      { id: 't9', date: '2026-05-02', action: 'Measurements Taken', description: 'Body measurements recorded.' },
+      { id: 't10', date: '2026-05-05', action: 'Fabric Received', description: 'Fabric from Kente Masters received.' },
+    ],
+    status: 'Active',
+    createdAt: '2026-05-01T08:00:00Z',
+    lastActivity: '2026-05-05T10:00:00Z',
+    startDate: '2026-05-10',
+    nextFittingDate: '2026-05-14',
+    deliveryDate: '2026-05-15',
   },
 ];
 
@@ -363,75 +470,107 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   ]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [useApi, setUseApi] = useState(false);
+  const [apiError, setApiError] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
+  const layoutInit = useRef(false);
   const hasFetched = useRef(false);
 
-  // Load clients: try API first, fallback to localStorage
+  // ── Effect 1: Synchronous localStorage restore (runs before first paint) ──
+  // useLayoutEffect fires synchronously after DOM mutations but before the browser
+  // paints, so returning users never see a loading flash — their cached data is
+  // already in state when the screen is drawn for the first time.
+  useLayoutEffect(() => {
+    if (layoutInit.current) return;
+    layoutInit.current = true;
+
+    try {
+      const savedAuth = safeGetItem('studio_auth');
+      if (savedAuth === 'true') setIsAuthenticated(true);
+      const savedUser = safeGetItem('studio_user');
+      if (savedUser) {
+        try { setUserProfile(JSON.parse(savedUser)); } catch { /* corrupt */ }
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const savedClients = safeGetItem('studio_clients');
+      if (savedClients) {
+        const parsed = JSON.parse(savedClients);
+        if (Array.isArray(parsed) && parsed.length > 0) setClients(parsed);
+      }
+      const savedWorkers = safeGetItem('studio_workers');
+      if (savedWorkers) {
+        const parsed = JSON.parse(savedWorkers);
+        if (Array.isArray(parsed) && parsed.length > 0) setWorkers(parsed);
+      }
+    } catch { /* ignore */ }
+
+    // Mark app as ready — for returning users this is instant (no spinner ever shown)
+    setIsLoaded(true);
+  }, []);
+
+  // ── Effect 2: Background MongoDB sync ────────────────────────────────────
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
 
-    const loadData = async () => {
-      try {
-        const savedAuth = safeGetItem('studio_auth');
-        if (savedAuth === 'true') setIsAuthenticated(true);
-        const savedUser = safeGetItem('studio_user');
-        if (savedUser) {
-          try { setUserProfile(JSON.parse(savedUser)); } catch { /* corrupt data, use defaults */ }
-        }
-      } catch { /* ignore auth restore errors */ }
-
+    const syncFromApi = async () => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
-        
-        // Load clients
+
         const clientRes = await fetch('/api/clients', { signal: controller.signal });
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
-          if (Array.isArray(data) && data.length > 0) setClients(data);
-          else {
-            for (const sc of sampleClients) {
-              await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc), signal: controller.signal });
-            }
-            setClients(sampleClients);
+          setApiError(false);
+          if (Array.isArray(data) && data.length > 0) {
+            setClients(prev => {
+              // Merge: preserve any client added locally before this sync resolved
+              const apiIds = new Set(data.map((c: Client) => c.id));
+              const localOnly = prev.filter(c => !apiIds.has(c.id));
+              return localOnly.length > 0 ? [...localOnly, ...data] : data;
+            });
+          } else if (process.env.NODE_ENV !== 'production') {
+            // Seed sample clients in development only — never in production
+            setClients(prev => {
+              if (prev.length > 0) return prev; // already have local data
+              for (const sc of sampleClients) {
+                fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc) });
+              }
+              return sampleClients;
+            });
           }
         } else {
           throw new Error('Client API returned non-ok');
         }
 
-        // Load workers
         const workerRes = await fetch('/api/workers', { signal: controller.signal });
         if (workerRes.ok) {
-          const data = await workerRes.json();
-          if (Array.isArray(data) && data.length > 0) setWorkers(data);
-          else {
-            const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' };
-            await fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker), signal: controller.signal });
-            setWorkers([defaultWorker as UserProfile]);
+          const wData = await workerRes.json();
+          if (Array.isArray(wData) && wData.length > 0) {
+            setWorkers(wData);
+          } else {
+            setWorkers(prev => {
+              if (prev.length > 0) return prev; // keep local workers
+              const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' as const };
+              fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
+              return [defaultWorker];
+            });
           }
         }
         clearTimeout(timeoutId);
       } catch (err) {
-        console.warn('API Error, falling back to local data:', err);
-        // Fallback: localStorage
-        try {
-          const savedClients = safeGetItem('studio_clients');
-          const savedWorkers = safeGetItem('studio_workers');
-          if (savedClients) setClients(JSON.parse(savedClients));
-          else setClients(sampleClients);
-          if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
-        } catch {
-          // Even localStorage fallback failed — use hardcoded samples
-          setClients(sampleClients);
-        }
-      } finally {
-        // ALWAYS mark as loaded — never leave the app stuck on a blank screen
-        setTimeout(() => setIsLoaded(true), 100);
+        console.warn('API unreachable:', err);
+        // Only show the error banner if we have no local data at all (truly first visit)
+        setClients(prev => {
+          if (prev.length === 0) setApiError(true);
+          return prev;
+        });
       }
     };
-    loadData();
+    syncFromApi();
   }, []);
 
   // Save to localStorage as backup (always)
@@ -449,6 +588,30 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       description,
       timestamp: new Date().toISOString(),
     }, ...prev]);
+  }, []);
+
+  const retryLoad = useCallback(async () => {
+    setApiError(false);
+    setIsRetrying(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const clientRes = await fetch('/api/clients', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (clientRes.ok) {
+        const data = await clientRes.json();
+        setUseApi(true);
+        // Only update clients if the server returned real data
+        if (Array.isArray(data) && data.length > 0) setClients(data);
+      } else {
+        throw new Error('API non-ok');
+      }
+    } catch {
+      // Don't wipe existing clients — just re-show the error banner
+      setApiError(true);
+    } finally {
+      setIsRetrying(false);
+    }
   }, []);
 
   const login = useCallback((email: string, password: string): boolean => {
@@ -560,7 +723,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       dateOfBirth: '',
       totalCost: 0,
       timeline: [
-        { id: `t-${Date.now()}`, date: now, action: 'Client Created', description: `${clientData.name} was added as a new client.` },
+        { id: `t-${Date.now()}`, date: now, action: 'Booking', description: `${clientData.name} was booked as a new client.` },
       ],
       status: 'Active',
       createdAt: now,
@@ -568,6 +731,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       startDate: '',
       nextFittingDate: '',
       deliveryDate: '',
+      consultationDone: false,
+      consultationNotes: '',
+      clientPackage: clientData.clientPackage || '',
+      measurementsTaken: false,
+      fabricReceived: false,
+      fabrics: [],
     };
     setClients(prev => [newClient, ...prev]);
     setActiveClientId(newClient.id);
@@ -675,26 +844,23 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
     setClients(prev => prev.map(c => {
       if (c.id === clientId) {
+        const isFirst = !c.measurementsTaken;
         const newTimelineEvent: TimelineEvent = {
           id: `t-${Date.now()}`,
           date: now,
-          action: 'Measurements Updated',
-          description: 'Client measurements were updated.',
+          action: isFirst ? 'Measurements Taken' : 'Measurements Updated',
+          description: isFirst ? 'Client measurements recorded.' : 'Client measurements were updated.',
         };
         const updatedTimeline = [...c.timeline, newTimelineEvent];
+        const updates = { measurements, timeline: updatedTimeline, lastActivity: now, measurementsTaken: true };
         if (useApi) {
-          fetch(`/api/clients/${clientId}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ measurements, timeline: updatedTimeline, lastActivity: now }) 
+          fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
           }).catch(e => console.warn('API Error:', e));
         }
-        return {
-          ...c,
-          measurements,
-          timeline: updatedTimeline,
-          lastActivity: now,
-        };
+        return { ...c, ...updates };
       }
       return c;
     }));
@@ -759,6 +925,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }));
   }, [useApi, userProfile.name]);
 
+  const deleteClient = useCallback((id: string) => {
+    setClients(prev => prev.filter(c => c.id !== id));
+    setActiveClientId(prev => prev === id ? null : prev);
+    if (useApi) {
+      fetch(`/api/clients/${id}`, { method: 'DELETE' }).catch(e => console.warn('API Error:', e));
+    }
+    addAuditLog('Client Deleted', 'A client record was permanently deleted.');
+  }, [useApi, addAuditLog]);
+
   const getActiveClient = useCallback(() => {
     return clients.find(c => c.id === activeClientId);
   }, [clients, activeClientId]);
@@ -805,6 +980,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setActiveClientId,
       addClient,
       updateClient,
+      deleteClient,
       addPayment,
       addTimelineEvent,
       updateMeasurements,
@@ -818,6 +994,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       addProductionNote,
       addWorker,
       removeWorker,
+      apiError,
+      isRetrying,
+      retryLoad,
     }}>
       {children}
     </StudioContext.Provider>

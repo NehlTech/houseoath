@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Client, useStudio, Payment } from '@/context/StudioContext';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
+import InvoicePreviewModal from './InvoicePreviewModal';
 
 interface PaymentsTabProps {
   client: Client;
@@ -16,6 +17,7 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
   const [editingCost, setEditingCost] = useState(false);
   const [totalCost, setTotalCost] = useState(client.totalCost.toString());
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -50,14 +52,21 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button 
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => setShowInvoice(true)}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-canvas text-charcoal font-bold hover:bg-border/40 border border-border/60 transition-all text-sm"
+          >
+            <span className="material-symbols-outlined text-lg">description</span>
+            Generate Invoice
+          </button>
+          <button
             onClick={() => {
               setShowForm(true);
               setTimeout(() => {
                 formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }, 100);
-            }} 
+            }}
             className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white font-bold hover:brightness-110 shadow-lg shadow-primary/20 transition-all"
           >
             <span className="material-symbols-outlined">add</span>
@@ -121,9 +130,9 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
               <select value={method} onChange={(e) => setMethod(e.target.value)}
                 className="w-full bg-white border border-none rounded-lg h-12 px-4 focus:ring-primary focus:border-primary">
                 <option>Bank Transfer</option>
+                <option>MoMo Pay</option>
                 <option>Mobile Money</option>
                 <option>Cash</option>
-                <option>Card</option>
               </select>
             </div>
           </div>
@@ -221,10 +230,18 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
 
       {/* Receipt Modal */}
       {selectedReceipt && (
-        <ReceiptPreviewModal 
-          client={client} 
-          payment={selectedReceipt} 
-          onClose={() => setSelectedReceipt(null)} 
+        <ReceiptPreviewModal
+          client={client}
+          payment={selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoice && (
+        <InvoicePreviewModal
+          client={client}
+          onClose={() => setShowInvoice(false)}
         />
       )}
     </div>

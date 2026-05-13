@@ -139,6 +139,53 @@ function WorkerSelectField({ label, value, clientId }: { label: string; value: s
   );
 }
 
+function EditableDateField({ label, value, fieldKey, clientId }: { label: string; value: string; fieldKey: string; clientId: string }) {
+  const { updateClient } = useStudio();
+  const [editing, setEditing] = useState(false);
+
+  const displayDate = value
+    ? (() => { const d = new Date(value + 'T00:00:00'); return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); })()
+    : '—';
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    if (!newVal) return;
+    // Save immediately when a date is picked — don't wait for blur
+    updateClient(clientId, { [fieldKey]: newVal } as Partial<Client>);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 ring-1 ring-primary/50 transition-all">
+        <span className="text-gray text-sm flex-shrink-0 mr-3">{label}</span>
+        <input
+          autoFocus
+          type="date"
+          className="text-sm font-medium text-charcoal text-right bg-transparent border-none outline-none flex-1 min-w-0"
+          defaultValue={value}
+          onChange={handleChange}
+          onKeyDown={e => { if (e.key === 'Escape') setEditing(false); }}
+          onBlur={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      className="flex items-center justify-between p-3 rounded-lg bg-canvas shadow-sm border-none cursor-pointer hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 transition-all group"
+    >
+      <span className="text-gray text-sm flex-shrink-0 mr-2">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-charcoal text-right">{displayDate}</span>
+        <span className="material-symbols-outlined text-primary/40 text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">edit_calendar</span>
+      </div>
+    </div>
+  );
+}
+
 function EditableTextArea({ label, value, fieldKey, clientId }: { label: string; value: string; fieldKey: string; clientId: string }) {
   const { updateClient } = useStudio();
   const [editing, setEditing] = useState(false);
@@ -230,7 +277,7 @@ export default function OverviewTab({ client }: OverviewTabProps) {
           </div>
           <div className="space-y-3">
             <EditableField label="Event Name" value={client.eventName} fieldKey="eventName" clientId={client.id} />
-            <EditableField label="Event Date" value={client.eventDate} fieldKey="eventDate" clientId={client.id} />
+            <EditableDateField label="Event Date" value={client.eventDate} fieldKey="eventDate" clientId={client.id} />
              <EditableField label="Event Location" value={client.eventLocation} fieldKey="eventLocation" clientId={client.id} />
             <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} clientId={client.id} />
             <EditableNumberField label="Total Cost" value={client.totalCost} fieldKey="totalCost" clientId={client.id} prefix="GHS " />

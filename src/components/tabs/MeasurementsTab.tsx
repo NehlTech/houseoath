@@ -1,19 +1,48 @@
 'use client';
 
 import { useState } from 'react';
-import { Client, useStudio } from '@/context/StudioContext';
+import { Client, Measurements, useStudio } from '@/context/StudioContext';
 
 interface MeasurementsTabProps {
   client: Client;
 }
 
+const FIELDS: { key: keyof Measurements; label: string }[] = [
+  { key: 'bust',            label: 'Bust' },
+  { key: 'shoulder',        label: 'Shoulder' },
+  { key: 'shoulderToNipple',label: 'Shoulder to Nipple' },
+  { key: 'shoulderToWaist', label: 'Shoulder to Waist' },
+  { key: 'blouseLength',    label: 'Blouse Length' },
+  { key: 'waist',           label: 'Waist' },
+  { key: 'hip',             label: 'Hip' },
+  { key: 'thigh',           label: 'Thigh' },
+  { key: 'knee',            label: 'Knee' },
+  { key: 'trouser',         label: 'Trouser' },
+  { key: 'bass',            label: 'Bass' },
+  { key: 'dressLength',     label: 'Dress Length' },
+  { key: 'slitLength',      label: 'Slit Length' },
+  { key: 'sleeveLength',    label: 'Sleeve Length' },
+  { key: 'aroundArm',       label: 'Around Arm' },
+  { key: 'waistToHip',      label: 'Waist to Hip' },
+  { key: 'kabaLength',      label: 'Kaba Length' },
+  { key: 'waistToKnee',     label: 'Waist to Knee' },
+  { key: 'underbust',       label: 'Underbust' },
+];
+
+const defaultEmpty: Measurements = {
+  bust: '', shoulder: '', shoulderToNipple: '', shoulderToWaist: '',
+  blouseLength: '', waist: '', hip: '', thigh: '', knee: '', trouser: '',
+  bass: '', dressLength: '', slitLength: '', sleeveLength: '', aroundArm: '',
+  waistToHip: '', kabaLength: '', waistToKnee: '', underbust: '',
+};
+
 export default function MeasurementsTab({ client }: MeasurementsTabProps) {
   const { updateMeasurements } = useStudio();
-  const [measurements, setMeasurements] = useState({ ...client.measurements });
+  const [measurements, setMeasurements] = useState<Measurements>({ ...defaultEmpty, ...client.measurements });
   const [isEditing, setIsEditing] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: keyof Measurements, value: string) => {
     setMeasurements(prev => ({ ...prev, [key]: value }));
   };
 
@@ -21,83 +50,105 @@ export default function MeasurementsTab({ client }: MeasurementsTabProps) {
     updateMeasurements(client.id, measurements);
     setIsEditing(false);
     setShowSaved(true);
-    setTimeout(() => setShowSaved(false), 2000);
+    setTimeout(() => setShowSaved(false), 2500);
   };
 
-  const sections = [
-    { id: 'body', title: 'Body Measurements', group: '1 of 5', icon: 'accessibility_new',
-      fields: ['bust', 'waist', 'hip', 'highHip'] },
-    { id: 'upper', title: 'Upper Body', group: '2 of 5', icon: 'checkroom',
-      fields: ['shoulderToNipple', 'shoulderUnderBust', 'shoulderToWaist', 'nippleToNipple', 'blouseLength', 'acrossBack'] },
-    { id: 'skirt', title: 'Skirt & Lower', group: '3 of 5', icon: 'dry_cleaning',
-      fields: ['skirtShortMidi', 'skirtLong'] },
-    { id: 'dress', title: 'Dress Specific', group: '4 of 5', icon: 'styler',
-      fields: ['dressShort', 'dressMidi', 'dressLong'] },
-    { id: 'sleeve', title: 'Sleeve & Arm', group: '5 of 5', icon: 'gesture',
-      fields: ['sleeve', 'sleeveLength', 'aroundArm', 'aroundElbow', 'aroundWrist'] },
-  ];
-
-  const fieldLabels: Record<string, string> = {
-    bust: 'Bust', waist: 'Waist', hip: 'Hip', highHip: 'High Hip',
-    shoulderToNipple: 'Shoulder to Nipple', shoulderUnderBust: 'Shoulder Under Bust',
-    shoulderToWaist: 'Shoulder to Waist', nippleToNipple: 'Nipple to Nipple',
-    blouseLength: 'Blouse Length', acrossBack: 'Back Width',
-    skirtShortMidi: 'Short / Midi', skirtLong: 'Long',
-    dressShort: 'Short', dressMidi: 'Midi', dressLong: 'Long',
-    sleeve: 'Sleeve', sleeveLength: 'Sleeve Length',
-    aroundArm: 'Bicep Circumference', aroundElbow: 'Around Elbow', aroundWrist: 'Around Wrist',
+  const handleCancel = () => {
+    setMeasurements({ ...defaultEmpty, ...client.measurements });
+    setIsEditing(false);
   };
+
+  const filledCount = FIELDS.filter(f => measurements[f.key]).length;
 
   return (
-    <div className="animate-fade-in space-y-12">
+    <div className="animate-fade-in space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="text-primary">
-            <span className="material-symbols-outlined text-3xl">straighten</span>
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-primary text-3xl">straighten</span>
+          <div>
+            <h2 className="text-lg font-bold text-charcoal tracking-tight">Body Measurements</h2>
+            <p className="text-xs text-muted font-medium">{filledCount} / {FIELDS.length} fields filled · inches</p>
           </div>
-          <h2 className="text-lg font-bold tracking-tight">Body Measurements</h2>
-          {showSaved && <span className="text-green-600 text-sm font-medium animate-fade-in">✓ Saved</span>}
+          {showSaved && (
+            <span className="flex items-center gap-1 text-success text-sm font-semibold animate-fade-in">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span> Saved
+            </span>
+          )}
         </div>
-        {isEditing ? (
-          <button onClick={handleSave} className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white font-bold text-sm">Save Changes</button>
-        ) : (
-          <button onClick={() => setIsEditing(true)} className="flex items-center justify-center rounded-lg h-10 px-4 bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors">
-            <span className="material-symbols-outlined text-lg mr-1">edit</span> Edit
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 rounded-lg bg-canvas text-gray font-bold text-sm hover:bg-border/40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-[#E5C04A] transition-colors shadow-sm"
+              >
+                Save Measurements
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-canvas text-charcoal font-bold text-sm hover:bg-border/40 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Sections */}
-      {sections.map(section => (
-        <section key={section.id} id={section.id}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold">{section.title}</h3>
-            <span className="text-xs font-medium px-2 py-1 rounded-sm bg-slate-100 text-slate-500 uppercase tracking-wider">Group {section.group}</span>
+      {/* Measurements Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {FIELDS.map(({ key, label }) => (
+          <div key={key}>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">
+              {label}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0"
+                placeholder="0.0"
+                value={measurements[key] || ''}
+                onChange={(e) => handleChange(key, e.target.value)}
+                disabled={!isEditing}
+                className={`w-full rounded-lg h-11 px-4 pr-12 text-sm font-medium outline-none transition-all
+                  border border-border/60
+                  ${isEditing
+                    ? 'bg-white text-charcoal focus:ring-1 focus:ring-primary focus:border-primary'
+                    : 'bg-canvas text-charcoal/70 cursor-default'}
+                  ${measurements[key] && !isEditing ? 'border-primary/30 bg-primary/5' : ''}
+                `}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted font-semibold pointer-events-none">
+                in
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {section.fields.map(field => (
-              <div key={field} className="space-y-2">
-                <label className="text-sm font-semibold flex items-center gap-1.5">
-                  {fieldLabels[field]}
-                  <span className="material-symbols-outlined text-slate-400 text-base cursor-help">info</span>
-                </label>
-                <div className="relative">
-                  <input
-                    className="w-full bg-white border border-none rounded-lg h-12 px-4 focus:ring-primary focus:border-primary disabled:bg-slate-50 disabled:text-slate-900"
-                    placeholder="0.00"
-                    type="number"
-                    value={(measurements as Record<string, string>)[field] || ''}
-                    onChange={(e) => handleChange(field, e.target.value)}
-                    disabled={!isEditing}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">cm</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+        ))}
+      </div>
+
+      {!isEditing && filledCount === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <span className="material-symbols-outlined text-4xl text-border mb-3">straighten</span>
+          <p className="text-muted text-sm font-medium">No measurements recorded yet.</p>
+          <button
+            onClick={() => setIsEditing(true)}
+            className="mt-3 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-[#E5C04A] transition-colors"
+          >
+            Add Measurements
+          </button>
+        </div>
+      )}
     </div>
   );
 }

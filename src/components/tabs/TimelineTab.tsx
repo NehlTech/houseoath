@@ -9,10 +9,13 @@ interface TimelineTabProps {
 export default function TimelineTab({ client }: TimelineTabProps) {
   const getActionIcon = (actionStr: string | undefined, titleStr: string | undefined) => {
     const str = (actionStr || titleStr || '').toLowerCase();
-    if (str.includes('created') || str.includes('consultation')) return 'person_add';
-    if (str.includes('payment') || str.includes('deposit')) return 'payments';
-    if (str.includes('measurement') || str.includes('fitting')) return 'straighten';
-    if (str.includes('fabric')) return 'checkroom';
+    if (str.includes('booking') || str.includes('created')) return 'person_add';
+    if (str.includes('consultation')) return 'forum';
+    if (str.includes('payment') || str.includes('deposit') || str.includes('paid')) return 'payments';
+    if (str.includes('measurement')) return 'straighten';
+    if (str.includes('fitting')) return 'checkroom';
+    if (str.includes('fabric received')) return 'inventory_2';
+    if (str.includes('fabric')) return 'texture';
     if (str.includes('illustration') || str.includes('design')) return 'draw';
     if (str.includes('photo')) return 'photo_camera';
     return 'circle';

@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors. We do this to prioritize fixing the iOS crash first.
     ignoreDuringBuilds: true,
+  },
+  webpack: (config) => {
+    // pdfjs-dist tries to require 'canvas' on the server side; alias it away
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
   },
 };
 

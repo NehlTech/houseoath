@@ -1,204 +1,386 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Client, useStudio } from '@/context/StudioContext';
+import { Client, FabricItem, useStudio } from '@/context/StudioContext';
 import { uploadToImageKit } from '@/lib/imagekit';
 
 interface FabricTabProps {
   client: Client;
 }
 
-const SAMPLE_FABRICS = [
-  { name: 'Authentic Adwinasa', vendor: 'Heritage Weavers GH', type: 'Kente', desc: 'Symbolizes total completion and high level of craftsmanship.', image: '/samples/kente_adwinasa.png' },
-  { name: 'Organic Ivory', vendor: 'EcoFab Supply', type: 'Linen', desc: 'Pre-washed, sustainable linen with a soft hand-feel.', image: '/samples/organic_ivory.png' },
-  { name: 'Sika Futuro', vendor: 'Kumasi Artisans Co.', type: 'Kente', desc: 'Traditional gold dust pattern representing wealth.', image: '/samples/sika_futuro.png' },
-];
+const FABRIC_TYPES = ['Kente Pattern', 'Lace & Silk', 'Cotton Print', 'Linen', 'Brocade', 'Other'];
 
-const CATEGORIES = ['All Uploads', 'Kente Patterns', 'Lace & Silks', 'Cotton Prints'];
+const inputCls = 'w-full bg-white border border-border/60 rounded-lg h-11 px-4 text-sm text-charcoal focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder-muted';
+const textareaCls = 'w-full bg-white border border-border/60 rounded-lg p-4 text-sm text-charcoal focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder-muted resize-none';
 
 export default function FabricTab({ client }: FabricTabProps) {
-  const { updateClient } = useStudio();
+  const { updateClient, addTimelineEvent } = useStudio();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notes, setNotes] = useState(client.fabricNotes || '');
-  const [activeCategory, setActiveCategory] = useState('All Uploads');
-  const [fabricName, setFabricName] = useState('');
-  const [fabricDesc, setFabricDesc] = useState('');
-  const [fabricType, setFabricType] = useState('Kente Pattern');
-  const [vendorName, setVendorName] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    
-    for (const file of Array.from(files)) {
-      try {
-        const result = await uploadToImageKit(file, `fabric-${client.name}-${Date.now()}`);
-        const photos = [...(client.fabricPhotos || []), result.url];
-        updateClient(client.id, { fabricPhotos: photos });
-      } catch (error) {
-        console.error("Fabric upload failed:", error);
-        alert("Failed to upload fabric image. Please check your connection.");
+  const fabrics: FabricItem[] = client.fabrics || [];
+
+  // Dynamic category tabs based on uploaded fabric types
+  const uploadedTypes = [...new Set(fabrics.map(f => f.type))];
+  const categories = ['All Uploads', ...uploadedTypes];
+  const [activeCategory, setActiveCategory] = useState('All Uploads');
+
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: '', vendor: '', type: FABRIC_TYPES[0], description: '', receivedDate: '',
+  });
+
+  const displayedFabrics = activeCategory === 'All Uploads'
+    ? fabrics
+    : fabrics.filter(f => f.type === activeCategory);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingFile(file);
+    const reader = new FileReader();
+    reader.onload = ev => setPendingPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleUpload = async () => {
+    if (!pendingFile) { alert('Please select a fabric image first.'); return; }
+    setIsUploading(true);
+    try {
+      const result = await uploadToImageKit(pendingFile, `fabric-${client.name}-${Date.now()}`);
+      const newFabric: FabricItem = {
+        id: `f-${Date.now()}`,
+        name: form.name || 'Unnamed Fabric',
+        vendor: form.vendor,
+        type: form.type,
+        description: form.description,
+        image: result.url,
+        addedAt: new Date().toISOString(),
+        ...(form.receivedDate ? { receivedDate: form.receivedDate } : {}),
+      };
+
+      const updatedFabrics = [...fabrics, newFabric];
+      const isFirstReceived = !!form.receivedDate && !client.fabricReceived;
+
+      updateClient(client.id, {
+        fabrics: updatedFabrics,
+        ...(isFirstReceived ? { fabricReceived: true } : {}),
+      });
+
+      if (isFirstReceived) {
+        addTimelineEvent(
+          client.id,
+          'Fabric Received',
+          `Fabric "${newFabric.name}"${newFabric.vendor ? ` from ${newFabric.vendor}` : ''} received on ${form.receivedDate}.`,
+        );
       }
+
+      // Switch to the new fabric's type tab
+      if (!uploadedTypes.includes(form.type)) {
+        setActiveCategory(form.type);
+      } else {
+        setActiveCategory(form.type);
+      }
+
+      setForm({ name: '', vendor: '', type: FABRIC_TYPES[0], description: '', receivedDate: '' });
+      setPendingFile(null);
+      setPendingPreview(null);
+    } catch {
+      alert('Failed to upload fabric image. Please check your connection.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  // Combine sample fabrics with uploaded ones
-  const allFabrics = [
-    ...SAMPLE_FABRICS,
-    ...(client.fabricPhotos || []).map((photo, i) => ({
-      name: `Fabric ${i + 1}`,
-      vendor: client.fabricVendor || 'Custom Upload',
-      type: 'Custom',
-      desc: '',
-      image: photo,
-    })),
-  ];
+  const handleSetReceived = (fabricId: string, receivedDate: string) => {
+    const updatedFabrics = fabrics.map(f =>
+      f.id === fabricId ? { ...f, receivedDate } : f
+    );
+    const isFirstReceived = !client.fabricReceived;
+    updateClient(client.id, {
+      fabrics: updatedFabrics,
+      ...(isFirstReceived ? { fabricReceived: true } : {}),
+    });
+    if (isFirstReceived) {
+      const fab = fabrics.find(f => f.id === fabricId);
+      addTimelineEvent(
+        client.id,
+        'Fabric Received',
+        `Fabric "${fab?.name || 'fabric'}"${fab?.vendor ? ` from ${fab.vendor}` : ''} marked as received.`,
+      );
+    }
+  };
 
   return (
     <div className="animate-fade-in space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">Fabric Library</h1>
-          <p className="text-slate-500 mt-1 text-sm">Manage and view your uploaded textile collection</p>
-        </div>
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-lg shrink-0">
-          <button 
-            onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md font-semibold text-xs sm:text-sm transition-all outline-none ${viewMode === 'grid' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            <span className="material-symbols-outlined text-lg">grid_view</span>
-            Grid
-          </button>
-          <button 
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md font-semibold text-xs sm:text-sm transition-all outline-none ${viewMode === 'list' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            <span className="material-symbols-outlined text-lg">view_list</span>
-            List
-          </button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-display font-extrabold text-charcoal">Fabric Library</h1>
+        <p className="text-muted mt-0.5 text-sm">{fabrics.length} fabric{fabrics.length !== 1 ? 's' : ''} uploaded</p>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
-              activeCategory === cat
-                ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+      {/* Dynamic Category Tabs */}
+      {fabrics.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+                activeCategory === cat
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'bg-canvas text-gray hover:bg-border/40'
+              }`}
+            >
+              {cat}
+              {cat !== 'All Uploads' && (
+                <span className="ml-1.5 text-[10px] opacity-75">
+                  ({fabrics.filter(f => f.type === cat).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Fabric Gallery */}
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6' : 'flex flex-col gap-4'}>
-        {allFabrics.map((fabric, i) => (
-          <div key={i} onClick={() => setSelectedPhoto(fabric.image)} className={`group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-primary/5 cursor-pointer ${viewMode === 'grid' ? 'flex flex-col' : 'flex flex-row items-center pr-6'}`}>
-            <div className={`relative overflow-hidden shrink-0 ${viewMode === 'grid' ? 'w-full aspect-square' : 'w-32 h-32 md:w-48 md:h-48'}`}>
-              <div className="w-full h-full bg-center bg-cover transition-transform duration-500 group-hover:scale-110" style={{ backgroundImage: `url('${fabric.image}')` }}></div>
-              <div className="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">{fabric.type}</div>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="material-symbols-outlined text-white text-2xl transition-transform pointer-events-auto">zoom_in</span>
-              </div>
-            </div>
-            <div className={`p-4 md:p-6 flex-1 flex flex-col justify-center ${viewMode === 'list' && 'border-l border-slate-100 ml-2'}`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className={`font-bold text-slate-900 ${viewMode === 'list' ? 'text-lg md:text-xl' : ''}`}>{fabric.name}</h3>
-                  {fabric.vendor && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="material-symbols-outlined text-xs text-primary">storefront</span>
-                      <p className="text-[11px] md:text-sm font-medium text-slate-500">{fabric.vendor}</p>
-                    </div>
-                  )}
-                </div>
-                {viewMode === 'list' && (
-                  <button className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors">
-                    <span className="material-symbols-outlined">more_vert</span>
-                  </button>
-                )}
-              </div>
-              {fabric.desc && (
-                <p className={`text-slate-400 mt-3 italic ${viewMode === 'grid' ? 'text-xs line-clamp-2' : 'text-sm'}`}>&ldquo;{fabric.desc}&rdquo;</p>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Upload Placeholder */}
-        <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-xl bg-primary/5 p-6 min-h-[280px] hover:bg-primary/10 transition-colors cursor-pointer group">
-          <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform mb-3">
-            <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
-          </div>
-          <h3 className="font-bold text-slate-700">Add New Fabric</h3>
-          <p className="text-xs text-slate-500 text-center mt-1.5">Upload photos and details of your new textile</p>
+      {fabrics.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-primary/20 rounded-xl">
+          <span className="material-symbols-outlined text-5xl text-border mb-3">texture</span>
+          <p className="text-muted text-sm font-medium">No fabrics uploaded yet.</p>
+          <p className="text-muted text-xs mt-1">Use the upload form below to add fabric details and photos.</p>
         </div>
-        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleUpload} />
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {displayedFabrics.map((fabric) => (
+            <FabricCard
+              key={fabric.id}
+              fabric={fabric}
+              onPreview={() => setSelectedPhoto(fabric.image)}
+              onSetReceived={handleSetReceived}
+            />
+          ))}
+          {displayedFabrics.length === 0 && (
+            <div className="col-span-full py-10 text-center text-muted text-sm font-medium">
+              No {activeCategory} uploaded yet.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick Fabric Upload Form */}
       <div className="bg-white rounded-xl p-6 border border-primary/10 shadow-sm">
-        <h3 className="font-bold text-slate-900 mb-5 flex items-center gap-2 text-lg">
+        <h3 className="font-bold text-charcoal mb-5 flex items-center gap-2 text-lg">
           <span className="material-symbols-outlined text-primary">cloud_upload</span>
-          Quick Fabric Upload
+          Upload Fabric
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Left column */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Fabric Name</label>
-              <input className="w-full bg-white border border-none rounded-lg h-11 px-4 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. Traditional Silk Kente" value={fabricName} onChange={e => setFabricName(e.target.value)} />
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Fabric Name</label>
+              <input
+                className={inputCls}
+                placeholder="e.g. Sika Futuro Kente"
+                value={form.name}
+                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+              />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Vendor Name</label>
-              <input className="w-full bg-white border border-none rounded-lg h-11 px-4 text-sm focus:ring-primary focus:border-primary" placeholder="Select or enter vendor" value={vendorName} onChange={e => setVendorName(e.target.value)} />
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Vendor Name</label>
+              <input
+                className={inputCls}
+                placeholder="e.g. Kumasi Artisans Co."
+                value={form.vendor}
+                onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
+              />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Fabric Type</label>
-              <select className="w-full bg-white border border-none rounded-lg h-11 px-4 text-sm focus:ring-primary focus:border-primary" value={fabricType} onChange={e => setFabricType(e.target.value)}>
-                <option>Kente Pattern</option>
-                <option>Lace & Silk</option>
-                <option>Cotton Print</option>
-                <option>Linen</option>
-                <option>Brocade</option>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Fabric Type</label>
+              <select
+                className={inputCls}
+                value={form.type}
+                onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+              >
+                {FABRIC_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">
+                Received Date
+                <span className="ml-1 normal-case font-normal text-muted text-[10px]">(optional — marks fabric as received)</span>
+              </label>
+              <input
+                type="date"
+                className={inputCls}
+                value={form.receivedDate}
+                onChange={e => setForm(p => ({ ...p, receivedDate: e.target.value }))}
+              />
+            </div>
           </div>
+
+          {/* Right column */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
-                Notes & Description
-              </label>
-              <textarea className="w-full bg-white border border-none rounded-lg p-4 text-sm focus:ring-primary focus:border-primary resize-none" rows={4} placeholder="Describe the pattern, weaving, texture, or special care..." value={fabricDesc} onChange={e => setFabricDesc(e.target.value)} />
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Notes & Description</label>
+              <textarea
+                className={textareaCls}
+                rows={4}
+                placeholder="Describe pattern, weaving technique, texture, care instructions..."
+                value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+              />
             </div>
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-              <button className="px-5 py-3 sm:py-2.5 w-full sm:w-auto rounded-lg border border-none text-slate-700 font-bold text-sm hover:bg-slate-50">Save Draft</button>
-              <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 w-full sm:w-auto rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all">
-                <span className="material-symbols-outlined text-lg">upload</span>
-                Upload Fabric
+
+            {/* Image picker */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Fabric Photo</label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative flex items-center justify-center w-full h-32 rounded-lg border-2 border-dashed transition-colors cursor-pointer overflow-hidden
+                  ${pendingPreview ? 'border-primary' : 'border-border/60 hover:border-primary/50 hover:bg-primary/5'}`}
+              >
+                {pendingPreview ? (
+                  <img src={pendingPreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted">
+                    <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                    <span className="text-xs font-medium">Tap to select photo</span>
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-md hover:bg-[#E5C04A] disabled:opacity-60 transition-all"
+              >
+                {isUploading ? (
+                  <span className="material-symbols-outlined text-lg animate-spin">sync</span>
+                ) : (
+                  <span className="material-symbols-outlined text-lg">upload</span>
+                )}
+                {isUploading ? 'Uploading...' : 'Upload Fabric'}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox — full screen */}
       {selectedPhoto && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setSelectedPhoto(null)}>
-          <button className="absolute top-6 right-6 text-white hover:text-primary transition-colors" onClick={() => setSelectedPhoto(null)}>
-            <span className="material-symbols-outlined text-3xl">close</span>
-          </button>
-          <img src={selectedPhoto} alt="Preview" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
+        <div
+          className="fixed inset-0 z-[200] bg-black flex flex-col"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div className="flex items-center justify-between px-5 py-4 shrink-0">
+            <p className="text-white/60 text-xs uppercase tracking-widest font-semibold">Fabric Preview</p>
+            <button
+              onClick={() => setSelectedPhoto(null)}
+              className="p-2 rounded-full text-white hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+            <img
+              src={selectedPhoto}
+              alt="Fabric preview"
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── FabricCard ──────────────────────────────────────────────────────────────
+
+interface FabricCardProps {
+  fabric: FabricItem;
+  onPreview: () => void;
+  onSetReceived: (id: string, date: string) => void;
+}
+
+function FabricCard({ fabric, onPreview, onSetReceived }: FabricCardProps) {
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateVal, setDateVal] = useState(fabric.receivedDate || '');
+
+  return (
+    <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-primary/5 flex flex-col">
+      {/* Image */}
+      <div
+        onClick={onPreview}
+        className="relative w-full aspect-square overflow-hidden cursor-pointer"
+      >
+        <div
+          className="w-full h-full bg-center bg-cover transition-transform duration-500 group-hover:scale-110"
+          style={{ backgroundImage: `url('${fabric.image}')` }}
+        />
+        <div className="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+          {fabric.type}
+        </div>
+        {fabric.receivedDate && (
+          <div className="absolute bottom-3 left-3 bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="material-symbols-outlined text-[11px]">check_circle</span>
+            Received
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-4 flex-1 flex flex-col gap-1">
+        <h3 className="font-bold text-charcoal text-[15px] leading-tight">{fabric.name}</h3>
+        {fabric.vendor && (
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-primary text-[13px]">storefront</span>
+            <p className="text-[12px] text-gray font-medium">{fabric.vendor}</p>
+          </div>
+        )}
+        {fabric.description && (
+          <p className="text-xs text-muted italic line-clamp-2 mt-1">&ldquo;{fabric.description}&rdquo;</p>
+        )}
+
+        {/* Received Date */}
+        <div className="mt-2 pt-2 border-t border-border/50">
+          {fabric.receivedDate ? (
+            <p className="text-xs text-success font-semibold flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px]">event_available</span>
+              Received: {new Date(fabric.receivedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          ) : editingDate ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="flex-1 text-xs border border-border/60 rounded-lg h-8 px-2 focus:ring-1 focus:ring-primary outline-none"
+                value={dateVal}
+                onChange={e => setDateVal(e.target.value)}
+                autoFocus
+              />
+              <button
+                onClick={() => { if (dateVal) { onSetReceived(fabric.id, dateVal); setEditingDate(false); } }}
+                className="px-2 py-1 rounded-lg bg-primary text-white text-xs font-bold"
+              >Save</button>
+              <button onClick={() => setEditingDate(false)} className="text-muted text-xs">✕</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingDate(true)}
+              className="text-xs text-muted hover:text-primary font-medium flex items-center gap-1 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[13px]">event</span>
+              Mark as received
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
