@@ -89,6 +89,24 @@ summary {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Windows-style wave dots */
+@keyframes dot-wave {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+  50%       { transform: translateY(-8px) scale(1.15); opacity: 1; }
+}
+.loading-dot {
+  animation: dot-wave 1.5s ease-in-out infinite;
+}
+
+/* Loading message fade-in */
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loading-msg {
+  animation: msg-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }

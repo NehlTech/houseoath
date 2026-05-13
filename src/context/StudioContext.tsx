@@ -452,17 +452,34 @@ function safeRemoveItem(key: string): void {
   try { localStorage.removeItem(key); } catch { /* ignore */ }
 }
 
+const LOADING_MESSAGES = [
+  'Threading the needle…',
+  'Pressing the fabric…',
+  'Measuring twice, cutting once…',
+  'Laying out the patterns…',
+  'Checking client fittings…',
+  'Ironing out the details…',
+  'Setting up the studio…',
+  'Welcoming clients in…',
+  'Sharpening the scissors…',
+  'Pinning the seams…',
+  'Chalking the lines…',
+  'Hanging the garments…',
+  'Stitching it all together…',
+  'Getting everything ready for you…',
+];
+
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [activeClientId, setActiveClientId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [userProfile, setUserProfile] = useState<UserProfile>({ 
-    name: 'Admin', 
-    email: 'admin@houseofoath.com', 
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: 'Admin',
+    email: 'admin@houseofoath.com',
     password: 'admin123',
-    avatar: null, 
-    role: 'Admin' 
+    avatar: null,
+    role: 'Admin'
   });
   const [workers, setWorkers] = useState<UserProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
@@ -472,6 +489,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [useApi, setUseApi] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   const layoutInit = useRef(false);
   const hasFetched = useRef(false);
@@ -954,12 +972,41 @@ export function StudioProvider({ children }: { children: ReactNode }) {
            eventMonthStr.includes(searchStr);
   });
 
+  // Cycle loading messages while the app initialises
+  useEffect(() => {
+    if (isLoaded) return;
+    const t = setInterval(() => setLoadingMsgIdx(i => (i + 1) % LOADING_MESSAGES.length), 2200);
+    return () => clearInterval(t);
+  }, [isLoaded]);
+
   if (!isLoaded) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-canvas">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-charcoal/20 border-t-primary" />
-          <p className="text-gray text-sm font-medium tracking-widest uppercase animate-pulse">Loading Studio...</p>
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-canvas gap-6 select-none">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center size-16 rounded-2xl border-2 border-charcoal/80 bg-white shadow-md overflow-hidden">
+            <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-1" />
+          </div>
+          <p className="text-charcoal font-display font-bold text-lg tracking-wide">House of Oath</p>
+        </div>
+
+        {/* Cycling message — keyed so it re-mounts and replays the fade-in */}
+        <p
+          key={loadingMsgIdx}
+          className="loading-msg text-gray text-sm font-medium text-center px-8"
+        >
+          {LOADING_MESSAGES[loadingMsgIdx]}
+        </p>
+
+        {/* Windows-style wave dots */}
+        <div className="flex items-center gap-2">
+          {[0, 1, 2, 3, 4].map(i => (
+            <span
+              key={i}
+              className="loading-dot inline-block w-2.5 h-2.5 rounded-full bg-primary"
+              style={{ animationDelay: `${i * 180}ms` }}
+            />
+          ))}
         </div>
       </div>
     );
