@@ -42,9 +42,9 @@ export default function Dashboard() {
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-canvas">
       {/* Sidebar — acts as a toggleable drawer on desktop */}
-      <aside className={`relative flex h-full w-full flex-col bg-card shadow-sm z-10 transition-all duration-300 ease-in-out
+      <aside className={`relative flex h-full w-full flex-col overflow-hidden bg-card shadow-sm z-10 transition-all duration-300 ease-in-out
         ${mobileShowWorkspace ? 'hidden md:flex' : 'flex'}
-        ${sidebarOpen ? 'md:w-[380px] md:min-w-[380px]' : 'md:w-0 md:min-w-0 md:overflow-hidden'}`}>
+        ${sidebarOpen ? 'md:w-[380px] md:min-w-[380px]' : 'md:w-0 md:min-w-0'}`}>
         <Sidebar
           onSelectClient={handleSelectClient}
           onNewClient={() => setShowNewClient(true)}

@@ -382,8 +382,8 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   };
 
   return (
-    <>
-      <div className="flex flex-col  bg-card">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="shrink-0 flex flex-col bg-card">
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">
           {/* Hamburger — toggles sidebar drawer (desktop only) */}
@@ -581,7 +581,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden flex items-center justify-between bg-card p-2 z-20">
+      <div className="shrink-0 md:hidden flex items-center justify-between bg-card p-2 z-20">
         <button onClick={onOpenSettings} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary w-16 transition-colors">
           <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
             <span className="material-symbols-outlined text-[22px]">settings</span>
@@ -619,6 +619,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
           <span className="text-[10px] font-bold uppercase tracking-wider">Log out</span>
         </button>
       </div>
-    </>
+    </div>
   );
 }
