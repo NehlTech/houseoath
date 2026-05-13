@@ -511,11 +511,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       }
     } catch { /* ignore */ }
 
+    let hasLocalClients = false;
     try {
       const savedClients = safeGetItem('studio_clients');
       if (savedClients) {
         const parsed = JSON.parse(savedClients);
-        if (Array.isArray(parsed) && parsed.length > 0) setClients(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setClients(parsed);
+          hasLocalClients = true;
+        }
       }
       const savedWorkers = safeGetItem('studio_workers');
       if (savedWorkers) {
@@ -524,8 +528,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       }
     } catch { /* ignore */ }
 
-    // Mark app as ready — for returning users this is instant (no spinner ever shown)
-    setIsLoaded(true);
+    // Returning users (have cached data): reveal the UI instantly — no loading screen.
+    // First-time / cleared-cache users: keep the loading screen until the API responds.
+    if (hasLocalClients) setIsLoaded(true);
   }, []);
 
   // ── Effect 2: Background MongoDB sync ────────────────────────────────────
@@ -586,6 +591,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           if (prev.length === 0) setApiError(true);
           return prev;
         });
+      } finally {
+        // Always reveal the UI once the API attempt finishes (covers first-time users
+        // who had no localStorage data and were held on the loading screen)
+        setIsLoaded(true);
       }
     };
     syncFromApi();
