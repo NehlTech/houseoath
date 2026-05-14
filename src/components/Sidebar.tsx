@@ -382,7 +382,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   };
 
   return (
-    <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+    <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', overflow: 'hidden' }}>
       {/* ── STATIC TOP: always visible ── */}
       <div className="bg-card" style={{ minHeight: 0 }}>
         {/* Top Header */}
