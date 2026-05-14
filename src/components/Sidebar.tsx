@@ -22,9 +22,13 @@ interface ClientRowProps {
   onSelect: () => void;
   onArchive: () => void;
   onRestore: () => void;
+  isSelected: boolean;
+  selectionMode: boolean;
+  onLongPress: () => void;
+  onToggleSelect: () => void;
 }
 
-function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelect, onArchive, onRestore }: ClientRowProps) {
+function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelect, onArchive, onRestore, isSelected, selectionMode, onLongPress, onToggleSelect }: ClientRowProps) {
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -43,19 +47,22 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isAnimatingOut) return;
     e.stopPropagation();
-    rowSwipeStart.current = e.clientX;
+    // In selection mode skip swipe tracking
+    if (!selectionMode) {
+      rowSwipeStart.current = e.clientX;
+    }
     setIsDragging(false);
     didSwipe.current = false;
 
     longPressTimer.current = setTimeout(() => {
-      // Long press fallback: execute action directly
       if (!didSwipe.current) {
-        if (isArchived) onRestore(); else onArchive();
+        onLongPress();
       }
     }, 600);
-  }, [isAnimatingOut, isArchived, onArchive, onRestore]);
+  }, [isAnimatingOut, selectionMode, onLongPress]);
 
   const handlePointerMove = useCallback((e: ReactPointerEvent) => {
+    if (selectionMode) return;
     if (rowSwipeStart.current === null || isAnimatingOut) return;
     e.stopPropagation();
     const diff = e.clientX - rowSwipeStart.current;
@@ -72,12 +79,17 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
     }
 
     setDragOffset(offset);
-  }, [isAnimatingOut]);
+  }, [isAnimatingOut, selectionMode]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
+    }
+
+    if (selectionMode) {
+      rowSwipeStart.current = null;
+      return;
     }
 
     if (isAnimatingOut) return;
@@ -102,7 +114,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
     }
 
     rowSwipeStart.current = null;
-  }, [dragOffset, isAnimatingOut, isArchived, onArchive, onRestore]);
+  }, [dragOffset, isAnimatingOut, isArchived, onArchive, onRestore, selectionMode]);
 
   const handleContextMenu = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
@@ -111,8 +123,12 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
 
   const handleClick = useCallback(() => {
     if (didSwipe.current || isAnimatingOut) return;
+    if (selectionMode) {
+      onToggleSelect();
+      return;
+    }
     onSelect();
-  }, [isAnimatingOut, onSelect]);
+  }, [isAnimatingOut, onSelect, selectionMode, onToggleSelect]);
 
   const swipeProgress = rowRef.current ? Math.min(1, Math.abs(dragOffset) / (rowRef.current.offsetWidth * 0.4)) : 0;
 
@@ -144,11 +160,21 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
           touchAction: 'pan-y',
         }}
         className={`relative z-10 flex cursor-pointer items-center gap-3 px-4 py-3 select-none ${
-          isActive
+          isSelected
+            ? 'bg-[#FAF7ED] border-l-4 border-l-primary'
+            : isActive
             ? 'bg-[#FAF7ED] border-l-4 border-l-primary'
             : 'bg-card hover:bg-canvas'
         }`}
       >
+        {selectionMode && (
+          <span
+            className="material-symbols-outlined shrink-0 text-[22px] transition-colors"
+            style={isSelected ? { color: '#d4af35', fontVariationSettings: "'FILL' 1" } : { color: '#9ca3af' }}
+          >
+            {isSelected ? 'check_circle' : 'radio_button_unchecked'}
+          </span>
+        )}
         {client.clientPhoto ? (
           <div className="h-12 w-12 shrink-0 rounded-full bg-cover bg-center shadow-sm border-none" style={{ backgroundImage: `url('${client.clientPhoto}')` }} />
         ) : (
@@ -231,7 +257,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onToggleSidebar }: SidebarProps) {
-  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
+  const { clients: _clients, activeClient, searchQuery, setSearchQuery, updateClient, deleteClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectionMode = selectedIds.size > 0;
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'completed' | 'archived'>('all');
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -305,6 +333,13 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   const completedCount = searchedClients.filter(c => c.status === 'Completed').length;
   const archivedCount = searchedClients.filter(c => c.status === 'Archived').length;
   const allCount = searchedClients.filter(c => c.status !== 'Archived').length;
+
+  // Selection helpers (defined after categorizedClients so handleSelectAll can reference it)
+  const handleLongPressClient = (id: string) => setSelectedIds(prev => new Set([...prev, id]));
+  const handleToggleClient = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const handleDeleteSelected = () => { selectedIds.forEach(id => deleteClient(id)); setSelectedIds(new Set()); };
+  const handleClearSelection = () => setSelectedIds(new Set());
+  const handleSelectAll = () => setSelectedIds(new Set(categorizedClients.map(c => c.id)));
 
   const minSwipeDistance = 50;
 
@@ -452,48 +487,63 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex px-2 w-full overflow-x-auto no-scrollbar ">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
-              activeTab === 'all' ? 'text-primary' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
-            }`}
-          >
-            <span className="text-[14px] tracking-wide font-medium">All</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'all' ? 'bg-primary/15 text-primary' : 'bg-canvas text-muted'}`}>
-              {allCount}
-            </span>
-            {activeTab === 'all' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-t-full"></div>}
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('due')}
-            className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
-              activeTab === 'due' ? 'text-warning' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
-            }`}
-          >
-            <span className="text-[14px] tracking-wide font-medium">Due</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'due' ? 'bg-warning/15 text-warning' : 'bg-canvas text-muted'}`}>
-              {dueCount}
-            </span>
-            {activeTab === 'due' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-warning rounded-t-full"></div>}
-          </button>
+        {/* Tabs / Selection Action Bar */}
+        {selectionMode ? (
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-charcoal text-white animate-fade-in">
+            <button onClick={handleClearSelection} title="Cancel">
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+            <span className="flex-1 text-sm font-bold ml-1">{selectedIds.size} selected</span>
+            <button onClick={handleSelectAll} className="text-xs font-semibold px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors">
+              All
+            </button>
+            <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-1.5 bg-danger rounded-lg text-sm font-bold hover:brightness-110 transition-all">
+              <span className="material-symbols-outlined text-[16px]">delete</span>
+              Delete
+            </button>
+          </div>
+        ) : (
+          <div className="flex px-2 w-full overflow-x-auto no-scrollbar ">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
+                activeTab === 'all' ? 'text-primary' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
+              }`}
+            >
+              <span className="text-[14px] tracking-wide font-medium">All</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'all' ? 'bg-primary/15 text-primary' : 'bg-canvas text-muted'}`}>
+                {allCount}
+              </span>
+              {activeTab === 'all' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-t-full"></div>}
+            </button>
 
-          <button
-            onClick={() => setActiveTab('completed')}
-            className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
-              activeTab === 'completed' ? 'text-success' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
-            }`}
-          >
-            <span className="text-[14px] tracking-wide font-medium">Finished</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'completed' ? 'bg-success/15 text-success' : 'bg-canvas text-muted'}`}>
-              {completedCount}
-            </span>
-            {activeTab === 'completed' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-success rounded-t-full"></div>}
-          </button>
+            <button
+              onClick={() => setActiveTab('due')}
+              className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
+                activeTab === 'due' ? 'text-warning' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
+              }`}
+            >
+              <span className="text-[14px] tracking-wide font-medium">Due</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'due' ? 'bg-warning/15 text-warning' : 'bg-canvas text-muted'}`}>
+                {dueCount}
+              </span>
+              {activeTab === 'due' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-warning rounded-t-full"></div>}
+            </button>
 
-        </div>
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
+                activeTab === 'completed' ? 'text-success' : 'text-muted hover:text-gray hover:bg-canvas rounded-t-lg'
+              }`}
+            >
+              <span className="text-[14px] tracking-wide font-medium">Finished</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'completed' ? 'bg-success/15 text-success' : 'bg-canvas text-muted'}`}>
+                {completedCount}
+              </span>
+              {activeTab === 'completed' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-success rounded-t-full"></div>}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── SCROLLABLE MIDDLE: grows to fill all remaining space ── */}
@@ -542,6 +592,10 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
               onSelect={() => onSelectClient(client.id)}
               onArchive={() => updateClient(client.id, { status: 'Archived' })}
               onRestore={() => updateClient(client.id, { status: 'Active' })}
+              isSelected={selectedIds.has(client.id)}
+              selectionMode={selectionMode}
+              onLongPress={() => handleLongPressClient(client.id)}
+              onToggleSelect={() => handleToggleClient(client.id)}
             />
           ))}
 

@@ -19,7 +19,6 @@
 /* Global Styles */
 html {
   height: 100%;
-  overflow: hidden;
   background-color: #f8f9fa; /* canvas — fills the status-bar area on Safari */
 }
 

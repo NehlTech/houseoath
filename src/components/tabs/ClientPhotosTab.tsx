@@ -15,6 +15,9 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const photoSelectionMode = selectedPhotos.size > 0;
+  const longPressRef = useRef<{ timer: ReturnType<typeof setTimeout>; url: string } | null>(null);
 
   const photos: string[] = Array.isArray(client.clientPhotos) ? client.clientPhotos as string[] : [];
 
@@ -45,6 +48,40 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
 
   const handleDelete = (url: string) => {
     updateClient(client.id, { clientPhotos: photos.filter(p => p !== url) });
+  };
+
+  const handleDeleteSelectedPhotos = () => {
+    updateClient(client.id, { clientPhotos: photos.filter(p => !selectedPhotos.has(p)) });
+    setSelectedPhotos(new Set());
+  };
+
+  const handlePhotoPointerDown = (url: string) => {
+    longPressRef.current = {
+      timer: setTimeout(() => {
+        longPressRef.current = null;
+        setSelectedPhotos(prev => new Set([...prev, url]));
+      }, 500),
+      url,
+    };
+  };
+
+  const handlePhotoPointerUp = () => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    }
+  };
+
+  const handlePhotoClick = (url: string) => {
+    if (photoSelectionMode) {
+      setSelectedPhotos(prev => {
+        const n = new Set(prev);
+        n.has(url) ? n.delete(url) : n.add(url);
+        return n;
+      });
+    } else {
+      setSelectedPhoto(url);
+    }
   };
 
   return (
@@ -85,29 +122,58 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
           {photos.map((src, i) => (
             <div
               key={i}
-              className="break-inside-avoid group relative rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-primary/5 bg-white"
+              className={`break-inside-avoid group relative rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-primary/5 bg-white ${selectedPhotos.has(src) ? 'ring-2 ring-primary' : ''}`}
+              onPointerDown={() => handlePhotoPointerDown(src)}
+              onPointerUp={handlePhotoPointerUp}
+              onPointerLeave={handlePhotoPointerUp}
+              onPointerCancel={handlePhotoPointerUp}
+              onClick={() => handlePhotoClick(src)}
             >
               <img
                 src={src}
                 alt={`Photo ${i + 1}`}
                 className="w-full h-auto block transition-transform duration-500 group-hover:scale-105"
                 loading="lazy"
-                onClick={() => setSelectedPhoto(src)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
-                  <span className="material-symbols-outlined text-white text-xl">zoom_in</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleDelete(src); }}
-                    className="text-white hover:text-danger transition-colors"
-                    title="Remove photo"
-                  >
-                    <span className="material-symbols-outlined text-lg">delete</span>
-                  </button>
+              {!photoSelectionMode && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
+                    <span className="material-symbols-outlined text-white text-xl">zoom_in</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(src); }}
+                      className="text-white hover:text-danger transition-colors"
+                      title="Remove photo"
+                    >
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+              {photoSelectionMode && (
+                <div className={`absolute inset-0 flex items-center justify-center transition-all pointer-events-none ${selectedPhotos.has(src) ? 'bg-primary/20' : 'bg-black/10'}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 shadow ${selectedPhotos.has(src) ? 'bg-primary border-primary' : 'border-white bg-black/30'}`}>
+                    {selectedPhotos.has(src) && <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check</span>}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
+        </div>
+      )}
+
+      {photoSelectionMode && (
+        <div className="sticky bottom-4 left-0 right-0 mx-auto w-fit z-30 animate-slide-up">
+          <div className="flex items-center gap-3 bg-charcoal text-white rounded-2xl py-3 px-4 shadow-2xl">
+            <button onClick={() => setSelectedPhotos(new Set())} className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/10 transition-colors">
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+            <span className="font-bold text-sm">{selectedPhotos.size} selected</span>
+            <button onClick={() => setSelectedPhotos(new Set(photos))} className="text-xs font-semibold px-2 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors">All</button>
+            <button onClick={handleDeleteSelectedPhotos} className="flex items-center gap-1.5 bg-danger px-3 py-1.5 rounded-xl text-sm font-bold hover:brightness-110 transition-all">
+              <span className="material-symbols-outlined text-[16px]">delete</span>
+              Delete
+            </button>
+          </div>
         </div>
       )}
 
