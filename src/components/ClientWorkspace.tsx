@@ -19,11 +19,11 @@ interface ClientWorkspaceProps {
   onBack: () => void;
 }
 
-const tabs = ['Overview', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
+const tabs = ['Dashboard', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
   const { updateClient, deleteClient, addTimelineEvent } = useStudio();
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('Dashboard');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -124,7 +124,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'Overview': return <OverviewTab client={client} />;
+      case 'Dashboard': return <OverviewTab client={client} />;
       case 'Measurements': return <MeasurementsTab client={client} />;
       case 'Fabric': return <FabricTab client={client} />;
       case 'Illustration': return <IllustrationTab client={client} setActiveTab={setActiveTab} />;
@@ -138,11 +138,10 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header — padding-top respects iPhone notch / Dynamic Island */}
-      <div
-        className="px-4 pb-3 md:px-6 md:pb-4 bg-card shadow-sm relative"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
-      >
+      {/* Client Header — safe-top-spacer keeps all content below iPhone notch / Dynamic Island */}
+      <div className="bg-card shadow-sm relative">
+        <div className="safe-top-spacer" aria-hidden="true" />
+        <div className="px-4 pt-3 pb-3 md:px-6 md:pb-4 relative">
         {/* Delete button — top right */}
         <div className="absolute top-3 right-3 z-10">
           {showDeleteConfirm ? (
@@ -272,37 +271,37 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               ) : null}
             </div>
 
-            {/* Contact / event info — 2-col grid */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-0.5">
+            {/* Contact / event info — single column so nothing truncates */}
+            <div className="flex flex-col gap-y-1 pt-0.5">
               {client.phone && (
-                <div className="flex items-center gap-1.5 text-gray min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>call</span>
-                  <span className="text-xs font-medium truncate">{client.phone}</span>
+                <div className="flex items-center gap-1.5 text-gray">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>call</span>
+                  <span className="text-xs font-medium">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center gap-1.5 text-gray min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>mail</span>
-                  <span className="text-xs font-medium truncate">{client.email}</span>
+                <div className="flex items-center gap-1.5 text-gray">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>mail</span>
+                  <span className="text-xs font-medium break-all">{client.email}</span>
                 </div>
               )}
               {client.eventDate && (
-                <div className="flex items-center gap-1.5 text-gray min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>event</span>
-                  <span className="text-xs font-medium truncate">
+                <div className="flex items-center gap-1.5 text-gray">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>event</span>
+                  <span className="text-xs font-medium">
                     {new Date(client.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               )}
               {client.eventLocation && (
-                <div className="flex items-center gap-1.5 text-gray min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 16 }}>location_on</span>
-                  <span className="text-xs font-medium truncate">{client.eventLocation}</span>
+                <div className="flex items-center gap-1.5 text-gray">
+                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>location_on</span>
+                  <span className="text-xs font-medium">{client.eventLocation}</span>
                 </div>
               )}
 
-              {/* Delivery — full row */}
-              <div className="col-span-2 pt-0.5">
+              {/* Delivery */}
+              <div className="pt-0.5">
                 {client.delivered ? (
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-success shrink-0" style={{ fontSize: 16 }}>task_alt</span>
@@ -322,6 +321,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -350,7 +350,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       {/* Mobile Tabs */}
       <div className="md:hidden w-full bg-card  overflow-x-auto no-scrollbar">
         <nav className="flex px-2 min-w-max">
-          {['Overview', 'Measurements', 'Fittings', 'Fabric'].map(tab => (
+          {['Dashboard', 'Measurements', 'Fittings', 'Fabric'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}

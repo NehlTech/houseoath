@@ -232,8 +232,13 @@ export default function OverviewTab({ client }: OverviewTabProps) {
   const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
   const balance = client.totalCost - amountPaid;
   const daysToEvent = client.eventDate ? Math.max(0, Math.ceil((new Date(client.eventDate).getTime() - Date.now()) / 86400000)) : 0;
-  const fittingsDone = [client.fittings.startDate, client.fittings.firstFitting, client.fittings.secondFitting, client.fittings.finalFitting]
-    .filter(d => d && new Date(d) <= new Date()).length;
+  const workProgress = [
+    client.consultationDone,
+    client.measurementsTaken,
+    client.fabricReceived || (client.fabrics && client.fabrics.length > 0) || (client.fabricPhotos && client.fabricPhotos.length > 0),
+    client.fittingDone || client.noFitting,
+    client.delivered,
+  ].filter(Boolean).length;
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -260,11 +265,11 @@ export default function OverviewTab({ client }: OverviewTabProps) {
         <div className="flex flex-col gap-2 rounded-xl p-6 bg-card shadow-sm border-none shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <span className="material-symbols-outlined text-primary">check_circle</span>
+              <span className="material-symbols-outlined text-primary">trending_up</span>
             </div>
-            <p className="text-gray text-[11px] font-bold uppercase tracking-wider">Fittings Done</p>
+            <p className="text-gray text-[11px] font-bold uppercase tracking-wider">Work Progress</p>
           </div>
-          <p className="text-charcoal text-3xl font-display font-bold">{fittingsDone} / 4</p>
+          <p className="text-charcoal text-3xl font-display font-bold">{workProgress} / 5</p>
         </div>
       </div>
 

@@ -22,11 +22,12 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
     if (!files || files.length === 0) return;
     setIsUploading(true);
     try {
+      const newUrls: string[] = [];
       for (const file of Array.from(files)) {
         const result = await uploadToImageKit(file, `photo-${client.name}-${Date.now()}`);
-        const updated = [...photos, result.url];
-        updateClient(client.id, { clientPhotos: updated });
+        newUrls.push(result.url);
       }
+      updateClient(client.id, { clientPhotos: [...photos, ...newUrls] });
     } catch {
       alert('Failed to upload photo. Please check your connection.');
     } finally {
