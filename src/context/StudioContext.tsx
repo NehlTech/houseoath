@@ -493,6 +493,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const layoutInit = useRef(false);
   const hasFetched = useRef(false);
+  const hasLocalDataRef = useRef(false);
+  const silentRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Effect 1: Synchronous localStorage restore (runs before first paint) ──
   // useLayoutEffect fires synchronously after DOM mutations but before the browser
@@ -530,7 +532,35 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     // Returning users (have cached data): reveal the UI instantly — no loading screen.
     // First-time / cleared-cache users: keep the loading screen until the API responds.
-    if (hasLocalClients) setIsLoaded(true);
+    if (hasLocalClients) {
+      hasLocalDataRef.current = true;
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // ── Silent background retry — keeps trying until the API comes back ─────
+  // Defined before Effect 2 so syncFromApi can reference it.
+  const startSilentBackgroundRetry = useCallback(() => {
+    if (silentRetryTimerRef.current) return; // already scheduled
+    const doRetry = async () => {
+      silentRetryTimerRef.current = null;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch('/api/clients', { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('non-ok');
+        const data = await res.json();
+        setUseApi(true);
+        setApiError(false);
+        if (Array.isArray(data) && data.length > 0) setClients(data);
+        setIsLoaded(true); // data arrived — reveal the app (or update if already visible)
+      } catch {
+        // Still unreachable — try again in 5 s
+        silentRetryTimerRef.current = setTimeout(doRetry, 5000);
+      }
+    };
+    silentRetryTimerRef.current = setTimeout(doRetry, 5000);
   }, []);
 
   // ── Effect 2: Background MongoDB sync ────────────────────────────────────
@@ -549,11 +579,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           setUseApi(true);
           setApiError(false);
           if (Array.isArray(data) && data.length > 0) {
-            // API is the single source of truth — all devices must show identical data.
-            // Replace any locally-cached data so browsers never diverge.
             setClients(data);
           }
-          // No sample seeding — fake data must never enter the real database.
         } else {
           throw new Error('Client API returned non-ok');
         }
@@ -565,7 +592,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             setWorkers(wData);
           } else {
             setWorkers(prev => {
-              if (prev.length > 0) return prev; // keep local workers
+              if (prev.length > 0) return prev;
               const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' as const };
               fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
               return [defaultWorker];
@@ -573,21 +600,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           }
         }
         clearTimeout(timeoutId);
+        setIsLoaded(true); // success — reveal the app
       } catch (err) {
-        console.warn('API unreachable:', err);
-        // Only show the error banner if we have no local data at all (truly first visit)
-        setClients(prev => {
-          if (prev.length === 0) setApiError(true);
-          return prev;
-        });
-      } finally {
-        // Always reveal the UI once the API attempt finishes (covers first-time users
-        // who had no localStorage data and were held on the loading screen)
-        setIsLoaded(true);
+        console.warn('API unreachable on initial load:', err);
+        // Never show an error to the user — retry silently in the background.
+        // If the user has cached local data, the app is already visible (isLoaded
+        // was set in useLayoutEffect). If not, the splash screen stays up until
+        // a background retry succeeds.
+        startSilentBackgroundRetry();
       }
+      // No finally — success sets isLoaded above; failure keeps splash and retries.
     };
     syncFromApi();
-  }, []);
+  }, [startSilentBackgroundRetry]);
 
   // Save to localStorage as backup (always)
   useEffect(() => {
@@ -617,18 +642,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (clientRes.ok) {
         const data = await clientRes.json();
         setUseApi(true);
-        // Only update clients if the server returned real data
+        setApiError(false);
         if (Array.isArray(data) && data.length > 0) setClients(data);
+        setIsLoaded(true);
       } else {
         throw new Error('API non-ok');
       }
     } catch {
-      // Don't wipe existing clients — just re-show the error banner
-      setApiError(true);
+      // Silent failure — schedule background retry, never show error to user
+      startSilentBackgroundRetry();
     } finally {
       setIsRetrying(false);
     }
-  }, []);
+  }, [startSilentBackgroundRetry]);
 
   const login = useCallback((email: string, password: string): boolean => {
     if (!email || !password) return false;

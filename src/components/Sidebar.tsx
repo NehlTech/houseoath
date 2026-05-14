@@ -231,7 +231,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onToggleSidebar }: SidebarProps) {
-  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients, userProfile, apiError, isRetrying, retryLoad } = useStudio();
+  const { clients, activeClient, searchQuery, setSearchQuery, updateClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'completed' | 'archived'>('all');
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -545,20 +545,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
             />
           ))}
 
-          {!isRetrying && apiError && (
-            <div className="flex flex-col items-center justify-center p-8 text-center h-48 gap-3">
-              <span className="material-symbols-outlined text-4xl text-warning">cloud_off</span>
-              <p className="text-muted text-sm font-medium leading-relaxed">Could not reach the server.</p>
-              <button
-                onClick={retryLoad}
-                className="px-4 py-2 rounded-full bg-primary text-white text-xs font-bold hover:bg-[#E5C04A] transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-
-          {!apiError && categorizedClients.length === 0 && (
+          {categorizedClients.length === 0 && (
             <div className="flex flex-col items-center justify-center p-8 text-center h-48">
               <span className="material-symbols-outlined text-4xl text-border mb-3">search_off</span>
               <p className="text-muted text-sm font-medium leading-relaxed">
