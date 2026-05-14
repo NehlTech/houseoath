@@ -543,33 +543,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const clientRes = await fetch('/api/clients', { signal: controller.signal });
+        const clientRes = await fetch('/api/clients', { signal: controller.signal, cache: 'no-store' });
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
           setApiError(false);
           if (Array.isArray(data) && data.length > 0) {
-            setClients(prev => {
-              // Merge: preserve any client added locally before this sync resolved
-              const apiIds = new Set(data.map((c: Client) => c.id));
-              const localOnly = prev.filter(c => !apiIds.has(c.id));
-              return localOnly.length > 0 ? [...localOnly, ...data] : data;
-            });
-          } else if (process.env.NODE_ENV !== 'production') {
-            // Seed sample clients in development only — never in production
-            setClients(prev => {
-              if (prev.length > 0) return prev; // already have local data
-              for (const sc of sampleClients) {
-                fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sc) });
-              }
-              return sampleClients;
-            });
+            // API is the single source of truth — all devices must show identical data.
+            // Replace any locally-cached data so browsers never diverge.
+            setClients(data);
           }
+          // No sample seeding — fake data must never enter the real database.
         } else {
           throw new Error('Client API returned non-ok');
         }
 
-        const workerRes = await fetch('/api/workers', { signal: controller.signal });
+        const workerRes = await fetch('/api/workers', { signal: controller.signal, cache: 'no-store' });
         if (workerRes.ok) {
           const wData = await workerRes.json();
           if (Array.isArray(wData) && wData.length > 0) {
