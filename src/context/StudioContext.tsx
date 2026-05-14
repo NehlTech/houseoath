@@ -538,23 +538,35 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Merge clients from API with any locally-created clients the API doesn't know
-  // about yet (i.e. their POST failed). Retries the POST for each unsynced one.
+  // Merge API data with any locally-saved clients the API doesn't know about
+  // (POST failed or never reached the server). Reads from localStorage directly
+  // to avoid React state-timing issues — the state updater stays pure.
   const mergeWithLocal = useCallback((apiData: Client[]) => {
-    setClients(prev => {
-      const apiIds = new Set(apiData.map(c => c.id));
-      const unsynced = prev.filter(c => !apiIds.has(c.id));
-      unsynced.forEach(c => {
-        fetch('/api/clients', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(c),
-        }).catch(() => {});
-      });
-      return apiData.length > 0 || unsynced.length > 0
-        ? [...apiData, ...unsynced]
-        : prev;
+    // Read the ground-truth local copy straight from storage
+    let localClients: Client[] = [];
+    try {
+      const saved = safeGetItem('studio_clients');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) localClients = parsed;
+      }
+    } catch { /* ignore */ }
+
+    const apiIds = new Set(apiData.map(c => c.id));
+    const unsynced = localClients.filter(c => !apiIds.has(c.id));
+
+    // Retry the POST for every client that didn't make it to MongoDB
+    unsynced.forEach(c => {
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(c),
+      }).catch(() => {});
     });
+
+    // Pure state update — no side effects inside the updater
+    const merged = [...apiData, ...unsynced];
+    setClients(merged.length > 0 ? merged : localClients);
   }, []);
 
   // ── Silent background retry — keeps trying until the API comes back ─────
@@ -793,7 +805,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       fabricReceived: false,
       fabrics: [],
     };
-    setClients(prev => [newClient, ...prev]);
+    setClients(prev => {
+      const next = [newClient, ...prev];
+      // Write to localStorage immediately so mergeWithLocal sees it even if
+      // the component re-renders before the async save-effect fires.
+      safeSetItem('studio_clients', JSON.stringify(next));
+      return next;
+    });
     setActiveClientId(newClient.id);
 
     // Sync to MongoDB
