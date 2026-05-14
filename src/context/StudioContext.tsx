@@ -996,6 +996,47 @@ export function StudioProvider({ children }: { children: ReactNode }) {
            eventMonthStr.includes(searchStr);
   });
 
+  // ── Keyboard scroll fix (iOS Safari + Chrome mobile) ────────────────────
+  // When a virtual keyboard appears the browser forcibly scrolls window even
+  // though body has overflow:hidden. It never restores the scroll position
+  // after the keyboard is dismissed, leaving content stuck behind the status
+  // bar.  We detect keyboard dismissal via visualViewport (viewport grows) and
+  // reset the window scroll to 0.
+  useEffect(() => {
+    const resetScroll = () => window.scrollTo(0, 0);
+
+    // Primary: visualViewport fires on every keyboard show/hide.
+    // Only reset when the viewport GROWS (keyboard dismissed, not appeared).
+    let prevVpHeight = window.visualViewport?.height ?? 0;
+    const handleVpResize = () => {
+      const h = window.visualViewport?.height ?? 0;
+      if (h > prevVpHeight) resetScroll();
+      prevVpHeight = h;
+    };
+    window.visualViewport?.addEventListener('resize', handleVpResize);
+
+    // Fallback for browsers without visualViewport: reset once the keyboard
+    // is fully gone (i.e. no editable element is focused after a short delay).
+    let blurTimer: ReturnType<typeof setTimeout>;
+    const handleFocusOut = () => {
+      clearTimeout(blurTimer);
+      blurTimer = setTimeout(() => {
+        const a = document.activeElement;
+        const isEditable = a && (
+          a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT'
+        );
+        if (!isEditable) resetScroll();
+      }, 150);
+    };
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleVpResize);
+      document.removeEventListener('focusout', handleFocusOut);
+      clearTimeout(blurTimer);
+    };
+  }, []);
+
   // Cycle loading messages while the app initialises
   useEffect(() => {
     if (isLoaded) return;
