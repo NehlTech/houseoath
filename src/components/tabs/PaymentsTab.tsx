@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Client, useStudio, Payment } from '@/context/StudioContext';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
 import InvoicePreviewModal from './InvoicePreviewModal';
@@ -18,7 +19,6 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
   const [totalCost, setTotalCost] = useState(client.totalCost.toString());
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
 
   const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
   const balance = client.totalCost - amountPaid;
@@ -35,6 +35,70 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
     updateClient(client.id, { totalCost: parseFloat(totalCost) || 0 });
     setEditingCost(false);
   };
+
+  // ── Add Payment Modal (portal) ─────────────────────────────────────────────
+  const addPaymentModal = showForm ? createPortal(
+    <div
+      className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-fade-in">
+        <div className="flex items-center justify-between mb-5">
+          <h4 className="text-lg font-extrabold tracking-tight text-charcoal">Record Payment</h4>
+          <button
+            onClick={() => setShowForm(false)}
+            className="size-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Amount (GHS)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              autoFocus
+              className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-base font-semibold text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Payment Method</label>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option>Bank Transfer</option>
+              <option>MoMo Pay</option>
+              <option>Mobile Money</option>
+              <option>Cash</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={() => setShowForm(false)}
+            className="flex-1 py-2.5 rounded-lg text-slate-500 text-sm font-semibold border border-border/60 hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAddPayment}
+            disabled={!amount || parseFloat(amount) <= 0}
+            className="flex-1 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            Record Payment
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -61,12 +125,7 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
             Generate Invoice
           </button>
           <button
-            onClick={() => {
-              setShowForm(true);
-              setTimeout(() => {
-                formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 100);
-            }}
+            onClick={() => setShowForm(true)}
             className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white font-bold hover:brightness-110 shadow-lg shadow-primary/20 transition-all"
           >
             <span className="material-symbols-outlined">add</span>
@@ -115,37 +174,9 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
         </div>
       </div>
 
-      {/* Add Payment Form */}
-      {showForm && (
-        <div ref={formRef} className="bg-white rounded-xl p-6 shadow-sm border border-primary/10 animate-slide-up scroll-m-24">
-          <h4 className="text-lg font-bold mb-4">Record Payment</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Amount (GHS)</label>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
-                className="w-full bg-white border border-none rounded-lg h-12 px-4 focus:ring-primary focus:border-primary" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Payment Method</label>
-              <select value={method} onChange={(e) => setMethod(e.target.value)}
-                className="w-full bg-white border border-none rounded-lg h-12 px-4 focus:ring-primary focus:border-primary">
-                <option>Bank Transfer</option>
-                <option>MoMo Pay</option>
-                <option>Mobile Money</option>
-                <option>Cash</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 mt-4">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg text-slate-500 text-sm font-medium">Cancel</button>
-            <button onClick={handleAddPayment} className="px-6 py-2 rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20">Record Payment</button>
-          </div>
-        </div>
-      )}
-
       {/* Payment History Table & List */}
       <div className="bg-white rounded-xl border border-none shadow-sm overflow-hidden">
-        <div className="p-4 md:p-6  flex justify-between items-center">
+        <div className="p-4 md:p-6 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold">Payment History</h2>
             <p className="text-slate-500 text-xs md:text-sm">Recent transactions and verification status</p>
@@ -209,7 +240,7 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
                       onClick={() => setSelectedReceipt(payment)}
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-primary font-semibold text-xs transition-all"
                     >
@@ -227,6 +258,9 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
           </table>
         </div>
       </div>
+
+      {/* Add Payment Modal (portal) */}
+      {addPaymentModal}
 
       {/* Receipt Modal */}
       {selectedReceipt && (

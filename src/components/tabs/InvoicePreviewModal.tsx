@@ -10,11 +10,59 @@ interface InvoicePreviewModalProps {
   onClose: () => void;
 }
 
+interface InvoiceLineItem {
+  id: string;
+  description: string;
+  qty: string;
+  rate: string;
+}
+
+interface InvoiceFormData {
+  invoiceNo: string;
+  invoiceDate: string;
+  dueDate: string;
+  terms: string;
+  items: InvoiceLineItem[];
+  salesTaxEnabled: boolean;
+  salesTax: string;
+  shippingEnabled: boolean;
+  shipping: string;
+  notes: string;
+}
+
+function generateInvoiceNo(clientId: string): string {
+  return `HOA-INV-${clientId.substring(0, 6).toUpperCase().padEnd(6, '0')}-${Date.now().toString().slice(-4)}`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function newItem(): InvoiceLineItem {
+  return { id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, description: '', qty: '1', rate: '' };
+}
+
 export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewModalProps) {
   const invoiceRef = useRef<HTMLDivElement>(null);
-  const [isZoomed, setIsZoomed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [step, setStep] = useState<'form' | 'preview'>('form');
+  const [isZoomed, setIsZoomed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const [form, setForm] = useState<InvoiceFormData>({
+    invoiceNo: generateInvoiceNo(client.id),
+    invoiceDate: todayIso,
+    dueDate: '',
+    terms: 'Payment before delivery',
+    items: [newItem()],
+    salesTaxEnabled: false,
+    salesTax: '',
+    shippingEnabled: false,
+    shipping: '',
+    notes: '',
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -22,6 +70,36 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
+  // ── Derived totals ──────────────────────────────────────────────────────────
+  const subtotal = form.items.reduce((sum, item) => {
+    const qty = parseFloat(item.qty) || 0;
+    const rate = parseFloat(item.rate) || 0;
+    return sum + qty * rate;
+  }, 0);
+  const salesTaxAmt = form.salesTaxEnabled ? (parseFloat(form.salesTax) || 0) : 0;
+  const shippingAmt = form.shippingEnabled ? (parseFloat(form.shipping) || 0) : 0;
+  const total = subtotal + salesTaxAmt + shippingAmt;
+
+  const canPreview = form.items.length > 0 && form.dueDate.trim() !== '' &&
+    form.items.some(item => item.description.trim() !== '' && parseFloat(item.rate) > 0);
+
+  // ── Item helpers ────────────────────────────────────────────────────────────
+  const updateItem = (id: string, field: keyof InvoiceLineItem, value: string) => {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map(item => item.id === id ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const removeItem = (id: string) => {
+    setForm(prev => ({ ...prev, items: prev.items.filter(item => item.id !== id) }));
+  };
+
+  const addItem = () => {
+    setForm(prev => ({ ...prev, items: [...prev.items, newItem()] }));
+  };
+
+  // ── Watermark ───────────────────────────────────────────────────────────────
   const approvedIllustration =
     client.illustrations?.find(ill => ill.status === 'Approved') ||
     client.illustrations?.find(ill => ill.status === 'Current') ||
@@ -31,10 +109,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
     ? `/api/proxy-image?url=${encodeURIComponent(watermarkUrl)}`
     : watermarkUrl;
 
-  const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
-  const balanceDue = Math.max(0, client.totalCost - amountPaid);
-  const invoiceNo = `HOA-INV-${client.id.substring(0, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
-
+  // ── html2canvas capture ──────────────────────────────────────────────────────
   const captureInvoice = useCallback(async () => {
     if (!invoiceRef.current) return null;
     setIsGenerating(true);
@@ -64,7 +139,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
     const dataUrl = await captureInvoice();
     if (dataUrl) {
       const link = document.createElement('a');
-      link.download = `HOA-Invoice-${invoiceNo}.png`;
+      link.download = `HOA-Invoice-${form.invoiceNo}.png`;
       link.href = dataUrl;
       link.click();
     }
@@ -74,31 +149,32 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
     e.stopPropagation();
     const dataUrl = await captureInvoice();
     if (!dataUrl) return;
-    const shareText = `*House of Oath - Invoice*\nInvoice No: ${invoiceNo}\nBilled To: ${client.name}\nAmount Due: GHS ${balanceDue.toLocaleString()}\n\nThank you for choosing House of Oath.`;
+    const shareText = `*House of Oath - Invoice*\nInvoice No: ${form.invoiceNo}\nBilled To: ${client.name}\nTotal: GHS ${total.toLocaleString()}\n\nThank you for choosing House of Oath.`;
     try {
       const res = await fetch(dataUrl);
       const blob = await res.blob();
-      const file = new File([blob], `HOA-Invoice-${invoiceNo}.png`, { type: 'image/png' });
+      const file = new File([blob], `HOA-Invoice-${form.invoiceNo}.png`, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: `Invoice ${invoiceNo} - House of Oath`, text: shareText });
+        await navigator.share({ files: [file], title: `Invoice ${form.invoiceNo} - House of Oath`, text: shareText });
       } else if (navigator.share) {
-        await navigator.share({ title: `Invoice ${invoiceNo} - House of Oath`, text: shareText });
+        await navigator.share({ title: `Invoice ${form.invoiceNo} - House of Oath`, text: shareText });
       } else {
         navigator.clipboard.writeText(shareText);
         const link = document.createElement('a');
-        link.download = `HOA-Invoice-${invoiceNo}.png`;
+        link.download = `HOA-Invoice-${form.invoiceNo}.png`;
         link.href = dataUrl;
         link.click();
       }
     } catch {
       const link = document.createElement('a');
-      link.download = `HOA-Invoice-${invoiceNo}.png`;
+      link.download = `HOA-Invoice-${form.invoiceNo}.png`;
       link.href = dataUrl;
       link.click();
     }
   };
 
-  const InvoiceContent = ({ isZoomed: zoomed }: { isZoomed: boolean }) => (
+  // ── Invoice document (shared between normal + zoomed) ──────────────────────
+  const InvoiceDocument = ({ isZoomed: zoomed }: { isZoomed: boolean }) => (
     <div
       ref={invoiceRef}
       className={`w-full h-full min-h-full flex-grow relative flex flex-col ${zoomed ? 'p-8 sm:p-16' : 'p-8 sm:p-12 md:p-16'}`}
@@ -150,15 +226,16 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
           <div className="flex flex-col sm:items-end gap-2 text-left sm:text-right">
             <p className="text-[9px] uppercase tracking-[0.2em] text-[#1a0f08]/50 font-semibold font-sans">Invoice</p>
             <p className="text-[13px] sm:text-[15px] uppercase tracking-widest font-medium" style={{ fontFamily: '"Inter", sans-serif' }}>
-              {invoiceNo}
+              {form.invoiceNo}
             </p>
             <p className="text-[11px] sm:text-[12px] tracking-wider text-[#1a0f08]/70 font-display italic mt-1">
-              Date Issued: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Date Issued: {formatDate(form.invoiceDate)}
             </p>
-            {client.eventDate && (
-              <p className="text-[10px] text-[#1a0f08]/60 tracking-wider">
-                Event: {new Date(client.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
+            <p className="text-[10px] text-[#1a0f08]/60 tracking-wider">
+              Due: {form.dueDate ? formatDate(form.dueDate) : '—'}
+            </p>
+            {form.terms && (
+              <p className="text-[9px] text-[#1a0f08]/50 tracking-wider italic mt-1">{form.terms}</p>
             )}
           </div>
         </div>
@@ -166,55 +243,71 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
         {/* Service Table */}
         <div className="w-full flex-1">
           <div className="grid grid-cols-12 gap-4 border-b-[1px] border-[#1a0f08] pb-3 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-semibold text-[#1a0f08]/60 font-sans">
-            <div className="col-span-12 sm:col-span-8">Description of Services</div>
+            <div className="col-span-12 sm:col-span-6">Description of Services</div>
             <div className="hidden sm:block sm:col-span-2 text-center">Qty</div>
+            <div className="hidden sm:block sm:col-span-2 text-right">Rate (GHS)</div>
             <div className="hidden sm:block sm:col-span-2 text-right">Amount (GHS)</div>
           </div>
-          <div className="grid grid-cols-12 gap-4 py-6 text-[12px] sm:text-[14px] font-display leading-relaxed" style={{ color: '#1a0f08' }}>
-            <div className="col-span-12 sm:col-span-8 pr-0 sm:pr-8">
-              <p className="font-sans font-medium uppercase tracking-wider text-[11px] sm:text-[13px] mb-2">
-                {client.eventName || 'Tailoring Services'}
-              </p>
-              {client.notes && (
-                <p className="text-[#1a0f08]/80 text-justify italic opacity-90 leading-loose">{client.notes}</p>
-              )}
-              {client.fabricVendor && (
-                <p className="mt-4 text-[11px] font-sans tracking-widest text-[#1a0f08]/60 uppercase">Material: {client.fabricVendor}</p>
-              )}
-            </div>
-            <div className="col-span-12 flex justify-between sm:hidden border-t border-[#1a0f0810] pt-4 mt-4 font-sans tracking-widest">
-              <span className="text-[10px] text-[#1a0f08]/50 uppercase">Quantity: 1</span>
-              <span className="font-medium">GHS {client.totalCost.toLocaleString()}</span>
-            </div>
-            <div className="hidden sm:block sm:col-span-2 text-center pt-1 font-sans tracking-widest">1</div>
-            <div className="hidden sm:block sm:col-span-2 text-right pt-1 font-sans tracking-widest font-medium">{client.totalCost.toLocaleString()}</div>
-          </div>
+
+          {form.items.map((item, idx) => {
+            const itemAmt = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+            return (
+              <div
+                key={item.id}
+                className={`grid grid-cols-12 gap-4 py-5 text-[12px] sm:text-[13px] font-sans leading-relaxed ${idx < form.items.length - 1 ? 'border-b border-[#1a0f0810]' : ''}`}
+                style={{ color: '#1a0f08' }}
+              >
+                <div className="col-span-12 sm:col-span-6 pr-0 sm:pr-6">
+                  <p className="font-medium tracking-wide">{item.description || <span className="opacity-30 italic">No description</span>}</p>
+                </div>
+                {/* Mobile: qty + amount on one line */}
+                <div className="col-span-12 flex justify-between sm:hidden border-t border-[#1a0f0810] pt-3 mt-1 font-sans tracking-widest text-[11px]">
+                  <span className="text-[#1a0f08]/50 uppercase">Qty: {item.qty || '1'}</span>
+                  <span className="font-medium">GHS {itemAmt.toLocaleString()}</span>
+                </div>
+                <div className="hidden sm:block sm:col-span-2 text-center pt-0.5 font-sans tracking-widest">{item.qty || '1'}</div>
+                <div className="hidden sm:block sm:col-span-2 text-right pt-0.5 font-sans tracking-widest">{item.rate ? (parseFloat(item.rate) || 0).toLocaleString() : '—'}</div>
+                <div className="hidden sm:block sm:col-span-2 text-right pt-0.5 font-sans tracking-widest font-medium">{itemAmt.toLocaleString()}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Totals */}
         <div className="w-full border-t-[1px] border-[#1a0f0815] pt-8 flex justify-end mt-12 sm:mt-0">
           <div className="w-full sm:w-[320px] flex flex-col gap-4 font-sans tracking-widest text-[11px] sm:text-[12px] relative z-10 text-[#1a0f08]">
             <div className="flex justify-between items-center text-[#1a0f08]/70">
-              <span className="uppercase text-[9px] font-semibold">Total Contract Value</span>
-              <span>GHS {client.totalCost.toLocaleString()}</span>
+              <span className="uppercase text-[9px] font-semibold">Subtotal</span>
+              <span>GHS {subtotal.toLocaleString()}</span>
             </div>
-            {amountPaid > 0 && (
+            {form.salesTaxEnabled && salesTaxAmt > 0 && (
               <div className="flex justify-between items-center text-[#1a0f08]/70">
-                <span className="uppercase text-[9px] font-semibold">Payments Received</span>
-                <span>GHS {amountPaid.toLocaleString()}</span>
+                <span className="uppercase text-[9px] font-semibold">Sales Tax</span>
+                <span>GHS {salesTaxAmt.toLocaleString()}</span>
+              </div>
+            )}
+            {form.shippingEnabled && shippingAmt > 0 && (
+              <div className="flex justify-between items-center text-[#1a0f08]/70">
+                <span className="uppercase text-[9px] font-semibold">Shipping / Delivery</span>
+                <span>GHS {shippingAmt.toLocaleString()}</span>
               </div>
             )}
             <div className="flex flex-col bg-[#1a0f08]/5 -mx-4 py-3 sm:-mx-6 px-4 sm:px-6 mt-2 border-y border-[#1a0f0815]">
               <div className="flex justify-between items-center">
-                <span className="uppercase text-[10px] font-bold">Amount Due</span>
-                <span className="font-bold text-[14px] sm:text-[15px]">GHS {balanceDue.toLocaleString()}</span>
+                <span className="uppercase text-[10px] font-bold">Total</span>
+                <span className="font-bold text-[14px] sm:text-[15px]">GHS {total.toLocaleString()}</span>
               </div>
             </div>
-            {balanceDue === 0 && (
-              <p className="text-[9px] text-[#1a0f08]/40 text-right uppercase tracking-widest font-semibold">Fully Paid</p>
-            )}
           </div>
         </div>
+
+        {/* Notes */}
+        {form.notes && (
+          <div className="w-full mt-10 pt-6 border-t-[1px] border-[#1a0f0815]">
+            <p className="text-[9px] uppercase tracking-[0.2em] text-[#1a0f08]/50 font-semibold font-sans mb-2">Notes</p>
+            <p className="text-[11px] text-[#1a0f08]/70 italic leading-relaxed font-display">{form.notes}</p>
+          </div>
+        )}
 
         {/* Footer Payment Details */}
         <div className="w-full mt-16 pt-8 border-t-[1px] border-[#1a0f08] flex flex-col sm:flex-row justify-between gap-6 sm:gap-0 font-sans tracking-[0.15em] text-[8px] sm:text-[9px] uppercase text-[#1a0f08]/60">
@@ -231,7 +324,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
           </div>
           <div className="flex flex-col sm:items-end gap-1.5 text-left sm:text-right max-w-xs">
             <p className="font-bold text-[#1a0f08]">Payment Terms</p>
-            <p>Payment due before delivery.</p>
+            <p>{form.terms || 'Payment due before delivery.'}</p>
             <p>Bank or MoMo payments accepted.</p>
           </div>
         </div>
@@ -243,7 +336,278 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
     </div>
   );
 
-  const modalContent = (
+  // ── FORM STEP ───────────────────────────────────────────────────────────────
+  const formContent = (
+    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-0 sm:p-6 overflow-y-auto">
+      <div className="bg-canvas w-full max-w-2xl min-h-screen sm:min-h-0 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+        {/* Form header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-border/60 px-5 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-lg font-extrabold tracking-tight text-charcoal">New Invoice</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{client.name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+          {/* Billed To (read-only) */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Billed To</p>
+            <p className="font-bold text-charcoal">{client.name}</p>
+            {client.phone && <p className="text-sm text-slate-500">{client.phone}</p>}
+            {client.email && <p className="text-sm text-slate-500">{client.email}</p>}
+          </div>
+
+          {/* Invoice meta */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Invoice Details</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Invoice Number</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={form.invoiceNo}
+                  className="w-full bg-slate-50 border border-border/60 rounded-lg h-10 px-3 text-sm font-mono text-slate-400 cursor-default"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Invoice Date</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={formatDate(form.invoiceDate)}
+                  className="w-full bg-slate-50 border border-border/60 rounded-lg h-10 px-3 text-sm text-slate-400 cursor-default"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Due Date <span className="text-primary">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={e => setForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                  className="w-full bg-white border border-border/60 rounded-lg h-10 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Terms</label>
+                <input
+                  type="text"
+                  value={form.terms}
+                  onChange={e => setForm(prev => ({ ...prev, terms: e.target.value }))}
+                  placeholder="Payment before delivery"
+                  className="w-full bg-white border border-border/60 rounded-lg h-10 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Line Items</p>
+
+            {/* Table header (desktop) */}
+            <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pb-1 border-b border-border/40">
+              <div className="col-span-5">Description</div>
+              <div className="col-span-2 text-center">Qty</div>
+              <div className="col-span-2 text-right">Rate (GHS)</div>
+              <div className="col-span-2 text-right">Amount</div>
+              <div className="col-span-1"></div>
+            </div>
+
+            <div className="space-y-2">
+              {form.items.map(item => {
+                const amt = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+                return (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-12 sm:col-span-5">
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={e => updateItem(item.id, 'description', e.target.value)}
+                        placeholder="Description"
+                        className="w-full bg-slate-50 border border-border/60 rounded-lg h-9 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      />
+                    </div>
+                    <div className="col-span-3 sm:col-span-2">
+                      <input
+                        type="number"
+                        value={item.qty}
+                        min="0"
+                        onChange={e => updateItem(item.id, 'qty', e.target.value)}
+                        placeholder="1"
+                        className="w-full bg-slate-50 border border-border/60 rounded-lg h-9 px-3 text-sm text-charcoal text-center focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      />
+                    </div>
+                    <div className="col-span-4 sm:col-span-2">
+                      <input
+                        type="number"
+                        value={item.rate}
+                        min="0"
+                        onChange={e => updateItem(item.id, 'rate', e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-slate-50 border border-border/60 rounded-lg h-9 px-3 text-sm text-charcoal text-right focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      />
+                    </div>
+                    <div className="col-span-4 sm:col-span-2 text-right">
+                      <div className="h-9 flex items-center justify-end px-3 bg-slate-50 border border-border/60 rounded-lg text-sm font-semibold text-charcoal">
+                        {amt > 0 ? amt.toLocaleString() : '—'}
+                      </div>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        disabled={form.items.length === 1}
+                        className="size-9 flex items-center justify-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={addItem}
+              className="mt-1 flex items-center gap-1.5 text-primary text-sm font-bold hover:underline transition-all"
+            >
+              <span className="material-symbols-outlined text-[18px]">add_circle</span>
+              Add Product / Service
+            </button>
+          </div>
+
+          {/* Optional extras */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Optional Charges</p>
+
+            {/* Sales Tax */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-charcoal">Sales Tax</label>
+                <button
+                  role="switch"
+                  aria-checked={form.salesTaxEnabled}
+                  onClick={() => setForm(prev => ({ ...prev, salesTaxEnabled: !prev.salesTaxEnabled }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none ${form.salesTaxEnabled ? 'bg-primary' : 'bg-slate-200'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.salesTaxEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {form.salesTaxEnabled && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-500 font-medium shrink-0">GHS</span>
+                  <input
+                    type="number"
+                    value={form.salesTax}
+                    min="0"
+                    onChange={e => setForm(prev => ({ ...prev, salesTax: e.target.value }))}
+                    placeholder="0.00"
+                    className="flex-1 bg-slate-50 border border-border/60 rounded-lg h-10 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Shipping */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-charcoal">Shipping / Delivery</label>
+                <button
+                  role="switch"
+                  aria-checked={form.shippingEnabled}
+                  onClick={() => setForm(prev => ({ ...prev, shippingEnabled: !prev.shippingEnabled }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none ${form.shippingEnabled ? 'bg-primary' : 'bg-slate-200'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.shippingEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {form.shippingEnabled && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-500 font-medium shrink-0">GHS</span>
+                  <input
+                    type="number"
+                    value={form.shipping}
+                    min="0"
+                    onChange={e => setForm(prev => ({ ...prev, shipping: e.target.value }))}
+                    placeholder="0.00"
+                    className="flex-1 bg-slate-50 border border-border/60 rounded-lg h-10 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Summary card */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Summary</p>
+            <div className="space-y-2 text-sm font-sans">
+              <div className="flex justify-between text-slate-500">
+                <span>Subtotal</span>
+                <span>GHS {subtotal.toLocaleString()}</span>
+              </div>
+              {form.salesTaxEnabled && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Sales Tax</span>
+                  <span>GHS {salesTaxAmt.toLocaleString()}</span>
+                </div>
+              )}
+              {form.shippingEnabled && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Shipping / Delivery</span>
+                  <span>GHS {shippingAmt.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-border/60 font-extrabold text-charcoal text-base">
+                <span>Total</span>
+                <span>GHS {total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="bg-white rounded-xl border border-border/60 p-4 space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Notes (optional)</label>
+            <textarea
+              value={form.notes}
+              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+              placeholder="Any additional notes for the client..."
+              className="w-full bg-slate-50 border border-border/60 rounded-lg px-3 py-2 text-sm text-charcoal resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+        </div>
+
+        {/* Form footer */}
+        <div className="sticky bottom-0 bg-white border-t border-border/60 px-5 py-4 flex items-center justify-between shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg text-slate-500 text-sm font-semibold hover:bg-slate-100 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => setStep('preview')}
+            disabled={!canPreview}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            Preview Invoice
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── PREVIEW STEP ────────────────────────────────────────────────────────────
+  const previewContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-95 p-0 sm:p-8 overflow-y-auto">
       {isGenerating && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
@@ -269,7 +633,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
             </div>
           </div>
           <div onClick={() => setIsZoomed(false)} className="w-full max-w-[800px] bg-white min-h-screen relative flex flex-col shadow-2xl">
-            <InvoiceContent isZoomed={true} />
+            <InvoiceDocument isZoomed={true} />
           </div>
         </div>
       ) : (
@@ -280,6 +644,13 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
               <p className="text-white/40 text-[9px] uppercase tracking-widest mt-1 sm:hidden italic">Tap the invoice to fill screen</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => { setStep('form'); setIsZoomed(false); }}
+                className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white/90 transition-all backdrop-blur-md cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span className="font-medium tracking-wider text-[10px] sm:text-xs uppercase">Edit</span>
+              </button>
               <button onClick={onClose} className="flex items-center justify-center size-9 sm:w-auto sm:h-auto sm:px-5 sm:py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white/90 transition-all backdrop-blur-md cursor-pointer">
                 <span className="material-symbols-outlined text-[18px] sm:hidden">close</span>
                 <span className="hidden sm:inline font-medium tracking-wider text-xs uppercase">Cancel</span>
@@ -300,7 +671,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
             onClick={() => setIsZoomed(true)}
             className="w-full max-w-[800px] overflow-hidden rounded-xl shadow-2xl relative bg-white shrink-0 cursor-pointer sm:cursor-default min-h-[400px] sm:min-h-[calc(800px*1.414)]"
           >
-            <InvoiceContent isZoomed={false} />
+            <InvoiceDocument isZoomed={false} />
           </div>
         </div>
       )}
@@ -308,5 +679,5 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
   );
 
   if (!mounted) return null;
-  return createPortal(modalContent, document.body);
+  return createPortal(step === 'form' ? formContent : previewContent, document.body);
 }

@@ -14,17 +14,23 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const photos: string[] = Array.isArray(client.clientPhotos) ? client.clientPhotos as string[] : [];
+
+  const TAILOR_VERBS = ['Pinning', 'Cutting', 'Pressing', 'Stitching', 'Hemming', 'Fitting'];
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const filesArr = Array.from(files);
     setIsUploading(true);
+    setUploadProgress({ current: 0, total: filesArr.length });
     try {
       const newUrls: string[] = [];
-      for (const file of Array.from(files)) {
-        const result = await uploadToImageKit(file, `photo-${client.name}-${Date.now()}`);
+      for (let i = 0; i < filesArr.length; i++) {
+        setUploadProgress({ current: i + 1, total: filesArr.length });
+        const result = await uploadToImageKit(filesArr[i], `photo-${client.name}-${Date.now()}`);
         newUrls.push(result.url);
       }
       updateClient(client.id, { clientPhotos: [...photos, ...newUrls] });
@@ -32,6 +38,7 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
       alert('Failed to upload photo. Please check your connection.');
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
       e.target.value = '';
     }
   };
@@ -53,12 +60,12 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
           disabled={isUploading}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-60 transition-all"
         >
-          {isUploading ? (
-            <span className="material-symbols-outlined text-lg animate-spin">sync</span>
-          ) : (
-            <span className="material-symbols-outlined text-lg">upload</span>
-          )}
-          {isUploading ? 'Uploading...' : 'Upload Photos'}
+          <span className={`material-symbols-outlined text-lg ${isUploading ? 'animate-spin' : ''}`}>
+            {isUploading ? 'sync' : 'upload'}
+          </span>
+          {uploadProgress
+            ? `${TAILOR_VERBS[(uploadProgress.current - 1) % TAILOR_VERBS.length]} photo ${uploadProgress.current} / ${uploadProgress.total}`
+            : isUploading ? 'Starting…' : 'Upload Photos'}
         </button>
         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleUpload} />
       </div>
@@ -108,10 +115,13 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
         <div className="flex justify-center pt-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-all"
+            disabled={isUploading}
+            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 disabled:opacity-60 transition-all"
           >
-            <span className="material-symbols-outlined text-lg">add_photo_alternate</span>
-            Add More Photos
+            <span className={`material-symbols-outlined text-lg ${isUploading ? 'animate-spin' : ''}`}>
+              {isUploading ? 'sync' : 'add_photo_alternate'}
+            </span>
+            {uploadProgress ? `${uploadProgress.current} / ${uploadProgress.total} done` : 'Add More Photos'}
           </button>
         </div>
       )}

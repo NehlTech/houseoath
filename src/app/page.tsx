@@ -40,7 +40,7 @@ export default function Dashboard() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="relative flex h-dvh w-full overflow-hidden bg-canvas">
+    <div className="relative flex w-full overflow-hidden bg-canvas" style={{ height: '100dvh', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Sidebar — acts as a toggleable drawer on desktop */}
       <aside className={`relative flex h-full w-full flex-col overflow-hidden bg-card shadow-sm z-10 transition-all duration-300 ease-in-out
         ${mobileShowWorkspace ? 'hidden md:flex' : 'flex'}

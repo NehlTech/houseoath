@@ -138,10 +138,8 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header — safe-top-spacer keeps all content below iPhone notch / Dynamic Island */}
-      <div className="bg-card shadow-sm relative">
-        <div className="safe-top-spacer" aria-hidden="true" />
-        <div className="px-4 pt-3 pb-3 md:px-6 md:pb-4 relative">
+      {/* Client Header */}
+      <div className="bg-card shadow-sm relative px-4 pt-3 pb-3 md:px-6 md:pb-4">
         {/* Delete button — top right */}
         <div className="absolute top-3 right-3 z-10">
           {showDeleteConfirm ? (
@@ -321,7 +319,6 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
