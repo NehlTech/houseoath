@@ -138,8 +138,11 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header */}
-      <div className="px-4 py-3 md:px-6 md:py-4 bg-card shadow-sm relative">
+      {/* Client Header — padding-top respects iPhone notch / Dynamic Island */}
+      <div
+        className="px-4 pb-3 md:px-6 md:pb-4 bg-card shadow-sm relative"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+      >
         {/* Delete button — top right */}
         <div className="absolute top-3 right-3 z-10">
           {showDeleteConfirm ? (
@@ -175,7 +178,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
           {/* Avatar */}
           <div className="relative group shrink-0">
-            <label className="cursor-pointer block relative rounded-full overflow-hidden size-14 md:size-16 shadow-md transition-transform hover:scale-[1.02]">
+            <label className="cursor-pointer block relative rounded-full overflow-hidden size-12 md:size-16 shadow-md transition-transform hover:scale-[1.02]">
               <input
                 type="file"
                 accept="image/*"
@@ -391,7 +394,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       )}
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card  z-50 flex items-center justify-between px-2 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card z-50 flex items-center justify-between px-1 pb-safe">
           {['Fabric', 'Illustration', 'Photos', 'Payments', 'Timeline'].map(tab => {
             const icons: Record<string, string> = {
               'Fabric': 'texture',
@@ -400,21 +403,20 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               'Payments': 'payments',
               'Timeline': 'history'
             };
-            
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex flex-col items-center gap-1 p-2 w-16 transition-colors ${
+                className={`flex flex-col items-center gap-0.5 py-1.5 px-1 flex-1 transition-colors ${
                   activeTab === tab ? 'text-primary' : 'text-muted hover:text-gray'
                 }`}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${activeTab === tab ? 'bg-primary/10' : 'hover:bg-canvas'}`}>
-                  <span className={`material-symbols-outlined ${activeTab === tab ? 'text-primary' : 'text-muted'}`}>{icons[tab]}</span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${activeTab === tab ? 'bg-primary/10' : 'hover:bg-canvas'}`}>
+                  <span className={`material-symbols-outlined text-[20px] ${activeTab === tab ? 'text-primary' : 'text-muted'}`}>{icons[tab]}</span>
                 </div>
-                <span className="text-[11px] font-medium tracking-wide truncate w-full text-center">{tab.split(' ')[0]}</span>
+                <span className="text-[10px] font-medium truncate w-full text-center">{tab.split(' ')[0]}</span>
               </button>
-            )
+            );
           })}
       </div>
     </div>

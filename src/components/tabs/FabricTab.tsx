@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Client, FabricItem, useStudio } from '@/context/StudioContext';
 import { uploadToImageKit } from '@/lib/imagekit';
 
 interface FabricTabProps {
   client: Client;
 }
+
+interface CropBox { x: number; y: number; w: number; h: number; }
 
 const FABRIC_TYPES = ['Kente Pattern', 'Lace & Silk', 'Cotton Print', 'Linen', 'Brocade', 'Other'];
 
@@ -16,15 +19,20 @@ const textareaCls = 'w-full bg-white border border-border/60 rounded-lg p-4 text
 export default function FabricTab({ client }: FabricTabProps) {
   const { updateClient, addTimelineEvent } = useStudio();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const fabrics: FabricItem[] = client.fabrics || [];
 
-  // Dynamic category tabs based on uploaded fabric types
   const uploadedTypes = [...new Set(fabrics.map(f => f.type))];
   const categories = ['All Uploads', ...uploadedTypes];
   const [activeCategory, setActiveCategory] = useState('All Uploads');
 
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  // Lightbox + crop state
+  const [lightboxFabric, setLightboxFabric] = useState<FabricItem | null>(null);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropBox, setCropBox] = useState<CropBox>({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+  const [isSavingCrop, setIsSavingCrop] = useState(false);
+
   const [isUploading, setIsUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
@@ -78,13 +86,7 @@ export default function FabricTab({ client }: FabricTabProps) {
         );
       }
 
-      // Switch to the new fabric's type tab
-      if (!uploadedTypes.includes(form.type)) {
-        setActiveCategory(form.type);
-      } else {
-        setActiveCategory(form.type);
-      }
-
+      setActiveCategory(form.type);
       setForm({ name: '', vendor: '', type: FABRIC_TYPES[0], description: '', receivedDate: '' });
       setPendingFile(null);
       setPendingPreview(null);
@@ -114,6 +116,101 @@ export default function FabricTab({ client }: FabricTabProps) {
     }
   };
 
+  // ── Crop drag handlers ────────────────────────────────────────────────────
+  const startHandleDrag = (handle: string) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const img = imgRef.current;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startBox = { ...cropBox };
+    const onMove = (ev: PointerEvent) => {
+      const dx = (ev.clientX - startX) / rect.width;
+      const dy = (ev.clientY - startY) / rect.height;
+      let { x, y, w, h } = startBox;
+      if (handle === 'tl' || handle === 'bl' || handle === 'l') {
+        const nx = Math.max(0, Math.min(startBox.x + dx, startBox.x + startBox.w - 0.05));
+        w = startBox.w - (nx - startBox.x); x = nx;
+      }
+      if (handle === 'tr' || handle === 'br' || handle === 'r') {
+        w = Math.max(0.05, Math.min(startBox.w + dx, 1 - startBox.x));
+      }
+      if (handle === 'tl' || handle === 'tr' || handle === 't') {
+        const ny = Math.max(0, Math.min(startBox.y + dy, startBox.y + startBox.h - 0.05));
+        h = startBox.h - (ny - startBox.y); y = ny;
+      }
+      if (handle === 'bl' || handle === 'br' || handle === 'b') {
+        h = Math.max(0.05, Math.min(startBox.h + dy, 1 - startBox.y));
+      }
+      setCropBox({ x, y, w, h });
+    };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const startBoxDrag = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const img = imgRef.current;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startBox = { ...cropBox };
+    const onMove = (ev: PointerEvent) => {
+      const dx = (ev.clientX - startX) / rect.width;
+      const dy = (ev.clientY - startY) / rect.height;
+      setCropBox({
+        x: Math.max(0, Math.min(startBox.x + dx, 1 - startBox.w)),
+        y: Math.max(0, Math.min(startBox.y + dy, 1 - startBox.h)),
+        w: startBox.w, h: startBox.h,
+      });
+    };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  // ── Apply crop — updates the fabric's image in place ──────────────────────
+  const handleApplyCrop = async () => {
+    const img = imgRef.current;
+    if (!img || !lightboxFabric) return;
+    setIsSavingCrop(true);
+    try {
+      const canvas = document.createElement('canvas');
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      canvas.width = Math.round(cropBox.w * nw);
+      canvas.height = Math.round(cropBox.h * nh);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { setIsSavingCrop(false); return; }
+      ctx.drawImage(img, Math.round(cropBox.x * nw), Math.round(cropBox.y * nh), canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setIsSavingCrop(false); return; }
+        try {
+          const file = new File([blob], `cropped-fabric-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          const result = await uploadToImageKit(file, `fabric-crop-${client.name}-${Date.now()}`);
+          const updatedFabrics = fabrics.map(f =>
+            f.id === lightboxFabric.id ? { ...f, image: result.url } : f
+          );
+          updateClient(client.id, { fabrics: updatedFabrics });
+          setCropMode(false);
+          setLightboxFabric(null);
+        } catch {
+          alert('Failed to save cropped image. Please check your connection.');
+        }
+        setIsSavingCrop(false);
+      }, 'image/jpeg', 0.95);
+    } catch {
+      alert('Failed to crop. Please try again.');
+      setIsSavingCrop(false);
+    }
+  };
+
+  const closeLightbox = () => { setLightboxFabric(null); setCropMode(false); };
+
   return (
     <div className="animate-fade-in space-y-8">
       {/* Header */}
@@ -122,7 +219,7 @@ export default function FabricTab({ client }: FabricTabProps) {
         <p className="text-muted mt-0.5 text-sm">{fabrics.length} fabric{fabrics.length !== 1 ? 's' : ''} uploaded</p>
       </div>
 
-      {/* Dynamic Category Tabs */}
+      {/* Category Tabs */}
       {fabrics.length > 0 && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0">
           {categories.map(cat => (
@@ -159,7 +256,7 @@ export default function FabricTab({ client }: FabricTabProps) {
             <FabricCard
               key={fabric.id}
               fabric={fabric}
-              onPreview={() => setSelectedPhoto(fabric.image)}
+              onPreview={() => { setLightboxFabric(fabric); setCropMode(false); setCropBox({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); }}
               onSetReceived={handleSetReceived}
             />
           ))}
@@ -171,7 +268,7 @@ export default function FabricTab({ client }: FabricTabProps) {
         </div>
       )}
 
-      {/* Quick Fabric Upload Form */}
+      {/* Upload Form */}
       <div className="bg-white rounded-xl p-6 border border-primary/10 shadow-sm">
         <h3 className="font-bold text-charcoal mb-5 flex items-center gap-2 text-lg">
           <span className="material-symbols-outlined text-primary">cloud_upload</span>
@@ -234,8 +331,6 @@ export default function FabricTab({ client }: FabricTabProps) {
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               />
             </div>
-
-            {/* Image picker */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-1.5">Fabric Photo</label>
               <div
@@ -254,7 +349,6 @@ export default function FabricTab({ client }: FabricTabProps) {
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
             </div>
-
             <div className="flex justify-end pt-1">
               <button
                 onClick={handleUpload}
@@ -273,29 +367,146 @@ export default function FabricTab({ client }: FabricTabProps) {
         </div>
       </div>
 
-      {/* Lightbox — full screen */}
-      {selectedPhoto && (
-        <div
-          className="fixed inset-0 z-[200] bg-black flex flex-col"
-          onClick={() => setSelectedPhoto(null)}
-        >
-          <div className="flex items-center justify-between px-5 py-4 shrink-0">
-            <p className="text-white/60 text-xs uppercase tracking-widest font-semibold">Fabric Preview</p>
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="p-2 rounded-full text-white hover:bg-white/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-2xl">close</span>
-            </button>
+      {/* ── Lightbox + Crop — portal on body (escapes overflow containers) ── */}
+      {lightboxFabric && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#111', display: 'flex', flexDirection: 'column' }}>
+          {/* Top bar */}
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', flexShrink: 0, background: 'rgba(0,0,0,0.7)', gap: 8 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ color: '#fff', fontWeight: 700, fontSize: 13, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lightboxFabric.name}</p>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0 }}>
+                {lightboxFabric.type}{cropMode ? ' — drag handles to adjust' : ' · Tap outside to close'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              {!cropMode ? (
+                <button
+                  onClick={() => { setCropMode(true); setCropBox({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>crop</span>
+                  Crop
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setCropMode(false)}
+                    style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleApplyCrop}
+                    disabled={isSavingCrop}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: '#d4af35', border: 'none', borderRadius: 8, color: '#fff', cursor: isSavingCrop ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, opacity: isSavingCrop ? 0.65 : 1 }}
+                  >
+                    {isSavingCrop
+                      ? <><span className="material-symbols-outlined" style={{ fontSize: 14 }}>sync</span> Saving...</>
+                      : <><span className="material-symbols-outlined" style={{ fontSize: 14 }}>check</span> Save Crop</>
+                    }
+                  </button>
+                </>
+              )}
+              <button
+                onClick={closeLightbox}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', color: '#fff', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 min-h-0 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
-            <img
-              src={selectedPhoto}
-              alt="Fabric preview"
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
+
+          {/* Content area */}
+          <div
+            style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+            onClick={cropMode ? undefined : closeLightbox}
+          >
+            {/* View mode */}
+            {!cropMode && (
+              <img
+                src={lightboxFabric.image}
+                alt={lightboxFabric.name}
+                style={{ maxWidth: '100vw', maxHeight: 'calc(100vh - 80px)', display: 'block', userSelect: 'none' }}
+                draggable={false}
+                onClick={e => e.stopPropagation()}
+              />
+            )}
+
+            {/* Crop mode */}
+            {cropMode && (
+              <div
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ position: 'relative' }}>
+                  <img
+                    ref={imgRef}
+                    src={lightboxFabric.image}
+                    alt={lightboxFabric.name}
+                    crossOrigin="anonymous"
+                    style={{ maxWidth: '100vw', maxHeight: 'calc(100vh - 80px)', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
+                    draggable={false}
+                  />
+                  {/* Crop overlay */}
+                  <div style={{ position: 'absolute', inset: 0, touchAction: 'none' }}>
+                    {/* Dark masks */}
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: `${cropBox.y * 100}%`, background: 'rgba(0,0,0,0.65)' }} />
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: `${(cropBox.y + cropBox.h) * 100}%`, bottom: 0, background: 'rgba(0,0,0,0.65)' }} />
+                    <div style={{ position: 'absolute', top: `${cropBox.y * 100}%`, height: `${cropBox.h * 100}%`, left: 0, width: `${cropBox.x * 100}%`, background: 'rgba(0,0,0,0.65)' }} />
+                    <div style={{ position: 'absolute', top: `${cropBox.y * 100}%`, height: `${cropBox.h * 100}%`, left: `${(cropBox.x + cropBox.w) * 100}%`, right: 0, background: 'rgba(0,0,0,0.65)' }} />
+
+                    {/* Crop box body — drag to move */}
+                    <div
+                      onPointerDown={startBoxDrag}
+                      style={{ position: 'absolute', left: `${cropBox.x * 100}%`, top: `${cropBox.y * 100}%`, width: `${cropBox.w * 100}%`, height: `${cropBox.h * 100}%`, border: '2px solid rgba(255,255,255,0.9)', cursor: 'move', boxSizing: 'border-box', touchAction: 'none' }}
+                    >
+                      {[0, 1, 2].map(row => [0, 1, 2].map(col => (
+                        <div key={`${row}-${col}`} style={{ position: 'absolute', left: `${col * 33.33}%`, top: `${row * 33.33}%`, width: '33.33%', height: '33.33%', border: '0.5px solid rgba(255,255,255,0.2)', boxSizing: 'border-box', pointerEvents: 'none' }} />
+                      )))}
+                    </div>
+
+                    {/* Corner handles */}
+                    {([
+                      { id: 'tl', lp: cropBox.x,              tp: cropBox.y,              cursor: 'nw-resize' },
+                      { id: 'tr', lp: cropBox.x + cropBox.w,  tp: cropBox.y,              cursor: 'ne-resize' },
+                      { id: 'bl', lp: cropBox.x,              tp: cropBox.y + cropBox.h,  cursor: 'sw-resize' },
+                      { id: 'br', lp: cropBox.x + cropBox.w,  tp: cropBox.y + cropBox.h,  cursor: 'se-resize' },
+                    ] as { id: string; lp: number; tp: number; cursor: string }[]).map(h => (
+                      <div key={h.id} onPointerDown={startHandleDrag(h.id)}
+                        style={{ position: 'absolute', left: `${h.lp * 100}%`, top: `${h.tp * 100}%`, transform: 'translate(-50%,-50%)', width: 20, height: 20, background: '#fff', border: '2px solid rgba(0,0,0,0.2)', borderRadius: 3, cursor: h.cursor, zIndex: 10, touchAction: 'none' }}
+                      />
+                    ))}
+
+                    {/* Edge handles */}
+                    {([
+                      { id: 't', lp: cropBox.x + cropBox.w / 2, tp: cropBox.y,                cursor: 'n-resize' },
+                      { id: 'b', lp: cropBox.x + cropBox.w / 2, tp: cropBox.y + cropBox.h,    cursor: 's-resize' },
+                      { id: 'l', lp: cropBox.x,                  tp: cropBox.y + cropBox.h / 2, cursor: 'w-resize' },
+                      { id: 'r', lp: cropBox.x + cropBox.w,      tp: cropBox.y + cropBox.h / 2, cursor: 'e-resize' },
+                    ] as { id: string; lp: number; tp: number; cursor: string }[]).map(h => (
+                      <div key={h.id} onPointerDown={startHandleDrag(h.id)}
+                        style={{ position: 'absolute', left: `${h.lp * 100}%`, top: `${h.tp * 100}%`, transform: 'translate(-50%,-50%)', width: 14, height: 14, background: '#fff', border: '2px solid rgba(0,0,0,0.2)', borderRadius: 2, cursor: h.cursor, zIndex: 10, touchAction: 'none' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+
+          {/* Bottom hint in crop mode */}
+          {cropMode && (
+            <div style={{ padding: '10px 16px', textAlign: 'center', flexShrink: 0, background: 'rgba(0,0,0,0.5)' }}>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: 0 }}>
+                Drag the box to move · Drag handles to resize · Crop replaces the fabric photo
+              </p>
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -316,16 +527,17 @@ function FabricCard({ fabric, onPreview, onSetReceived }: FabricCardProps) {
   return (
     <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-primary/5 flex flex-col">
       {/* Image */}
-      <div
-        onClick={onPreview}
-        className="relative w-full aspect-square overflow-hidden cursor-pointer"
-      >
+      <div onClick={onPreview} className="relative w-full aspect-square overflow-hidden cursor-pointer">
         <div
           className="w-full h-full bg-center bg-cover transition-transform duration-500 group-hover:scale-110"
           style={{ backgroundImage: `url('${fabric.image}')` }}
         />
         <div className="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
           {fabric.type}
+        </div>
+        {/* Fullscreen hint */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+          <span className="material-symbols-outlined text-white text-3xl drop-shadow-lg">fullscreen</span>
         </div>
         {fabric.receivedDate && (
           <div className="absolute bottom-3 left-3 bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -347,8 +559,6 @@ function FabricCard({ fabric, onPreview, onSetReceived }: FabricCardProps) {
         {fabric.description && (
           <p className="text-xs text-muted italic line-clamp-2 mt-1">&ldquo;{fabric.description}&rdquo;</p>
         )}
-
-        {/* Received Date */}
         <div className="mt-2 pt-2 border-t border-border/50">
           {fabric.receivedDate ? (
             <p className="text-xs text-success font-semibold flex items-center gap-1">
