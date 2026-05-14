@@ -22,18 +22,13 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-if (process.env.NODE_ENV === 'development') {
-  // In development, use a global variable so the MongoClient is not
-  // re-created on every hot reload
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production, create a new client for each instance
+// Cache the connection globally so Vercel serverless function instances
+// within the same container reuse the same MongoClient instead of opening
+// a new TCP connection on every request.
+if (!global._mongoClientPromise) {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  global._mongoClientPromise = client.connect();
 }
+clientPromise = global._mongoClientPromise;
 
 export default clientPromise;

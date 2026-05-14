@@ -27,19 +27,21 @@ export async function GET() {
   }
 }
 
-// POST create client
+// POST create client — idempotent: upsert by client id so retries never
+// create duplicates
 export async function POST(request: Request) {
   try {
     const client = await clientPromise;
     const db = client.db(DB_NAME);
     const body = await request.json();
-    
-    const result = await db.collection(COLLECTION).insertOne(body);
-    
-    return NextResponse.json({ 
-      ...body, 
-      _id: result.insertedId.toString() 
-    }, { status: 201 });
+
+    await db.collection(COLLECTION).updateOne(
+      { id: body.id },
+      { $setOnInsert: body },
+      { upsert: true }
+    );
+
+    return NextResponse.json({ ...body }, { status: 201 });
   } catch (error) {
     console.error('POST /api/clients error:', error);
     return NextResponse.json({ error: 'Failed to create client' }, { status: 500 });

@@ -538,6 +538,25 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Merge clients from API with any locally-created clients the API doesn't know
+  // about yet (i.e. their POST failed). Retries the POST for each unsynced one.
+  const mergeWithLocal = useCallback((apiData: Client[]) => {
+    setClients(prev => {
+      const apiIds = new Set(apiData.map(c => c.id));
+      const unsynced = prev.filter(c => !apiIds.has(c.id));
+      unsynced.forEach(c => {
+        fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(c),
+        }).catch(() => {});
+      });
+      return apiData.length > 0 || unsynced.length > 0
+        ? [...apiData, ...unsynced]
+        : prev;
+    });
+  }, []);
+
   // ── Silent background retry — keeps trying until the API comes back ─────
   // Defined before Effect 2 so syncFromApi can reference it.
   const startSilentBackgroundRetry = useCallback(() => {
@@ -553,7 +572,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         setUseApi(true);
         setApiError(false);
-        if (Array.isArray(data) && data.length > 0) setClients(data);
+        if (Array.isArray(data)) mergeWithLocal(data);
         setIsLoaded(true); // data arrived — reveal the app (or update if already visible)
       } catch {
         // Still unreachable — try again in 5 s
@@ -561,7 +580,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       }
     };
     silentRetryTimerRef.current = setTimeout(doRetry, 5000);
-  }, []);
+  }, [mergeWithLocal]);
 
   // ── Effect 2: Background MongoDB sync ────────────────────────────────────
   useEffect(() => {
@@ -569,18 +588,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     hasFetched.current = true;
 
     const syncFromApi = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
         const clientRes = await fetch('/api/clients', { signal: controller.signal, cache: 'no-store' });
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
           setApiError(false);
-          if (Array.isArray(data) && data.length > 0) {
-            setClients(data);
-          }
+          if (Array.isArray(data)) mergeWithLocal(data);
         } else {
           throw new Error('Client API returned non-ok');
         }
@@ -599,20 +615,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             });
           }
         }
-        clearTimeout(timeoutId);
         setIsLoaded(true); // success — reveal the app
       } catch (err) {
         console.warn('API unreachable on initial load:', err);
         // Never show an error to the user — retry silently in the background.
-        // If the user has cached local data, the app is already visible (isLoaded
-        // was set in useLayoutEffect). If not, the splash screen stays up until
-        // a background retry succeeds.
         startSilentBackgroundRetry();
+      } finally {
+        clearTimeout(timeoutId);
       }
-      // No finally — success sets isLoaded above; failure keeps splash and retries.
     };
     syncFromApi();
-  }, [startSilentBackgroundRetry]);
+  }, [startSilentBackgroundRetry, mergeWithLocal]);
 
   // Save to localStorage as backup (always)
   useEffect(() => {
@@ -643,7 +656,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const data = await clientRes.json();
         setUseApi(true);
         setApiError(false);
-        if (Array.isArray(data) && data.length > 0) setClients(data);
+        if (Array.isArray(data)) mergeWithLocal(data);
         setIsLoaded(true);
       } else {
         throw new Error('API non-ok');
@@ -654,7 +667,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRetrying(false);
     }
-  }, [startSilentBackgroundRetry]);
+  }, [startSilentBackgroundRetry, mergeWithLocal]);
 
   const login = useCallback((email: string, password: string): boolean => {
     if (!email || !password) return false;
