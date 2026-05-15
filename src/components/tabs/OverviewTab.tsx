@@ -223,7 +223,7 @@ function EditableTextArea({ label, value, fieldKey, clientId }: { label: string;
         <h3 className="text-charcoal text-lg font-display font-bold tracking-wide">{label}</h3>
         <span className="material-symbols-outlined text-primary/40 text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
       </div>
-      <p className="text-gray text-sm leading-relaxed">{value || 'Click to add notes...'}</p>
+      <p className="text-gray text-sm leading-relaxed">{value || 'These special notes will be added to the receipt...'}</p>
     </div>
   );
 }

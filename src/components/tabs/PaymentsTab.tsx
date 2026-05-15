@@ -19,6 +19,11 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
   const [totalCost, setTotalCost] = useState(client.totalCost.toString());
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editMethod, setEditMethod] = useState('Bank Transfer');
+  const [editDate, setEditDate] = useState('');
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
   const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
   const balance = client.totalCost - amountPaid;
@@ -34,6 +39,30 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
   const handleSaveCost = () => {
     updateClient(client.id, { totalCost: parseFloat(totalCost) || 0 });
     setEditingCost(false);
+  };
+
+  const handleStartEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setEditAmount(payment.amount.toString());
+    setEditMethod(payment.method);
+    setEditDate(payment.date);
+  };
+
+  const handleSaveEditPayment = () => {
+    if (!editingPayment || !editAmount || parseFloat(editAmount) <= 0) return;
+    const updated = client.payments.map(p =>
+      p.id === editingPayment.id
+        ? { ...p, amount: parseFloat(editAmount), method: editMethod, date: editDate || p.date }
+        : p
+    );
+    updateClient(client.id, { payments: updated });
+    setEditingPayment(null);
+  };
+
+  const handleConfirmDeletePayment = (paymentId: string) => {
+    const updated = client.payments.filter(p => p.id !== paymentId);
+    updateClient(client.id, { payments: updated });
+    setDeletingPaymentId(null);
   };
 
   // ── Add Payment Modal (portal) ─────────────────────────────────────────────
@@ -94,6 +123,114 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
           >
             Record Payment
           </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  // ── Edit Payment Modal (portal) ───────────────────────────────────────────
+  const editPaymentModal = editingPayment ? createPortal(
+    <div
+      className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) setEditingPayment(null); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-fade-in">
+        <div className="flex items-center justify-between mb-5">
+          <h4 className="text-lg font-extrabold tracking-tight text-charcoal">Edit Payment</h4>
+          <button
+            onClick={() => setEditingPayment(null)}
+            className="size-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Amount (GHS)</label>
+            <input
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              placeholder="0.00"
+              autoFocus
+              className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-base font-semibold text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Date</label>
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Payment Method</label>
+            <select
+              value={editMethod}
+              onChange={(e) => setEditMethod(e.target.value)}
+              className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option>Bank Transfer</option>
+              <option>MoMo Pay</option>
+              <option>Mobile Money</option>
+              <option>Cash</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={() => setEditingPayment(null)}
+            className="flex-1 py-2.5 rounded-lg text-slate-500 text-sm font-semibold border border-border/60 hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveEditPayment}
+            disabled={!editAmount || parseFloat(editAmount) <= 0}
+            className="flex-1 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  // ── Delete Payment Confirmation Modal (portal) ─────────────────────────────
+  const deletePaymentModal = deletingPaymentId ? createPortal(
+    <div
+      className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) setDeletingPaymentId(null); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-fade-in">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="size-14 rounded-full bg-danger/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-danger text-3xl">delete</span>
+          </div>
+          <div>
+            <h4 className="text-lg font-extrabold tracking-tight text-charcoal">Delete Payment?</h4>
+            <p className="text-sm text-slate-500 mt-1">
+              GHS {client.payments.find(p => p.id === deletingPaymentId)?.amount.toLocaleString()} — This cannot be undone.
+            </p>
+          </div>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => setDeletingPaymentId(null)}
+              className="flex-1 py-2.5 rounded-lg text-slate-500 text-sm font-semibold border border-border/60 hover:bg-slate-50 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleConfirmDeletePayment(deletingPaymentId)}
+              className="flex-1 py-2.5 rounded-lg bg-danger text-white font-bold text-sm hover:brightness-110 transition-all"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>,
@@ -204,6 +341,22 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
                  <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                  Generate Receipt
                </button>
+               <div className="flex gap-2 mt-2">
+                 <button
+                   onClick={() => handleStartEditPayment(payment)}
+                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
+                 >
+                   <span className="material-symbols-outlined text-[16px]">edit</span>
+                   Edit
+                 </button>
+                 <button
+                   onClick={() => setDeletingPaymentId(payment.id)}
+                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-danger/10 text-danger text-xs font-bold hover:bg-danger/20 transition-colors"
+                 >
+                   <span className="material-symbols-outlined text-[16px]">delete</span>
+                   Delete
+                 </button>
+               </div>
             </div>
           )) : (
             <div className="p-8 text-center text-slate-400 text-sm">No payments recorded yet</div>
@@ -240,13 +393,29 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => setSelectedReceipt(payment)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-primary font-semibold text-xs transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                      Receipt
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedReceipt(payment)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-primary font-semibold text-xs transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                        Receipt
+                      </button>
+                      <button
+                        onClick={() => handleStartEditPayment(payment)}
+                        title="Edit payment"
+                        className="inline-flex items-center justify-center size-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-primary transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button
+                        onClick={() => setDeletingPaymentId(payment.id)}
+                        title="Delete payment"
+                        className="inline-flex items-center justify-center size-8 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )) : (
@@ -261,6 +430,12 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
 
       {/* Add Payment Modal (portal) */}
       {addPaymentModal}
+
+      {/* Edit Payment Modal (portal) */}
+      {editPaymentModal}
+
+      {/* Delete Payment Confirmation (portal) */}
+      {deletePaymentModal}
 
       {/* Receipt Modal */}
       {selectedReceipt && (

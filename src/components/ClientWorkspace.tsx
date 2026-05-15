@@ -22,7 +22,7 @@ interface ClientWorkspaceProps {
 const tabs = ['Dashboard', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
-  const { updateClient, deleteClient, addTimelineEvent } = useStudio();
+  const { updateClient, addTimelineEvent } = useStudio();
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -31,7 +31,6 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   const initials = (client.name || 'U C').split(' ').map(n => n[0] || '').join('').slice(0, 2);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showConsultation, setShowConsultation] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleMarkDelivered = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -39,9 +38,19 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
     addTimelineEvent(client.id, 'Order Delivered', `Order completed and delivered to ${client.name}.`);
   };
 
+  const handleMarkUndelivered = () => {
+    updateClient(client.id, { delivered: false, deliveryDate: '', status: 'Active' });
+    addTimelineEvent(client.id, 'Delivery Reversed', `Delivery reversed for ${client.name}.`);
+  };
+
   const handleMarkFittingDone = () => {
     updateClient(client.id, { fittingDone: true });
     addTimelineEvent(client.id, 'Fitting Completed', 'Client fitting session completed successfully.');
+  };
+
+  const handleMarkUnfitted = () => {
+    updateClient(client.id, { fittingDone: false });
+    addTimelineEvent(client.id, 'Fitting Reversed', 'Fitting status reversed. Client requires re-fitting.');
   };
 
   const minSwipeDistance = 50;
@@ -140,30 +149,11 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header */}
       <div className="bg-card shadow-sm relative px-4 pt-3 pb-3 md:px-6 md:pb-4">
-        {/* Delete button — top right */}
+        {/* HOA Logo Badge — top right */}
         <div className="absolute top-3 right-3 z-10">
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-2 bg-card border border-danger/30 rounded-xl px-3 py-2 shadow-lg">
-              <span className="text-xs text-danger font-semibold">Delete client?</span>
-              <button
-                onClick={() => { deleteClient(client.id); onBack(); }}
-                className="px-3 py-1 rounded-lg bg-danger text-white text-xs font-bold hover:brightness-110 transition-all"
-              >Yes</button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1 rounded-lg bg-canvas text-gray text-xs font-bold hover:bg-border transition-all"
-              >No</button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-danger text-xs font-bold hover:bg-danger/10 transition-colors"
-              title="Delete client"
-            >
-              <span className="material-symbols-outlined text-[16px]">delete</span>
-              <span className="hidden sm:inline">Delete</span>
-            </button>
-          )}
+          <div className="flex items-center justify-center size-10 rounded-full border-2 border-primary overflow-hidden bg-white shadow-sm">
+            <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" />
+          </div>
         </div>
 
         {/* Layout: flex-row on desktop, stacked on mobile */}
@@ -248,10 +238,14 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               </button>
 
               {client.fittingDone ? (
-                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600">
+                <button
+                  onClick={handleMarkUnfitted}
+                  title="Tap to undo fitting"
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors"
+                >
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>checkroom</span>
                   Fitted
-                </span>
+                </button>
               ) : client.noFitting ? (
                 <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>event_busy</span>
@@ -301,12 +295,17 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               {/* Delivery */}
               <div className="pt-0.5">
                 {client.delivered ? (
-                  <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleMarkUndelivered}
+                    title="Tap to undo delivery"
+                    className="flex items-center gap-1.5 group hover:opacity-75 transition-opacity"
+                  >
                     <span className="material-symbols-outlined text-success shrink-0" style={{ fontSize: 16 }}>task_alt</span>
                     <span className="text-xs font-semibold text-success">
                       Delivered{client.deliveryDate ? `: ${new Date(client.deliveryDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                     </span>
-                  </div>
+                    <span className="material-symbols-outlined text-muted opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: 12 }}>undo</span>
+                  </button>
                 ) : (
                   <button
                     onClick={handleMarkDelivered}

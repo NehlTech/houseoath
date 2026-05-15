@@ -36,6 +36,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
   const rowRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<any>(null);
   const didSwipe = useRef(false);
+  const longPressActivated = useRef(false);
 
   const initials = (client.name || 'U C').split(' ').map(n => n[0]).join('').slice(0, 2);
 
@@ -56,6 +57,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
 
     longPressTimer.current = setTimeout(() => {
       if (!didSwipe.current) {
+        longPressActivated.current = true;
         onLongPress();
       }
     }, 600);
@@ -123,6 +125,10 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
 
   const handleClick = useCallback(() => {
     if (didSwipe.current || isAnimatingOut) return;
+    if (longPressActivated.current) {
+      longPressActivated.current = false;
+      return;
+    }
     if (selectionMode) {
       onToggleSelect();
       return;

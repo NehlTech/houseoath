@@ -368,7 +368,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Invoice Details</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Invoice Number</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">Invoice Number</label>
                 <input
                   type="text"
                   readOnly
@@ -377,7 +377,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Invoice Date</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">Invoice Date</label>
                 <input
                   type="text"
                   readOnly
@@ -386,7 +386,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">
                   Due Date <span className="text-primary">*</span>
                 </label>
                 <input
@@ -397,7 +397,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Terms</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1.5">Terms</label>
                 <input
                   type="text"
                   value={form.terms}
