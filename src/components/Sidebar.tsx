@@ -425,7 +425,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   return (
     <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', overflow: 'hidden' }}>
       {/* ── STATIC TOP: always visible ── */}
-      <div className="bg-card" style={{ minHeight: 0, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="bg-card pt-safe" style={{ minHeight: 0 }}>
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">
           {/* Hamburger — toggles sidebar drawer (desktop only) */}
