@@ -231,7 +231,7 @@ export default function FittingsTab({ client }: FittingsTabProps) {
               onClick={handleNoFitting}
               className="text-xs text-muted hover:text-danger transition-colors font-medium"
             >
-              Client doesn't need a fitting
+              Client doesn&apos;t need a fitting
             </button>
           </div>
         </div>

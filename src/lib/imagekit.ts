@@ -70,9 +70,10 @@ export async function uploadToImageKit(
       fileId: result.fileId || "",
       name: result.name || "",
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("ImageKit Upload Error:", e);
-    throw new Error(`Cloud upload failed: ${e.message}`);
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Cloud upload failed: ${msg}`);
   }
 }
 

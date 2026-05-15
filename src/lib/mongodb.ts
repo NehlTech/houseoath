@@ -14,11 +14,7 @@ const options = {
   serverSelectionTimeoutMS: 5000,
 };
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
 declare global {
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
@@ -26,9 +22,9 @@ declare global {
 // within the same container reuse the same MongoClient instead of opening
 // a new TCP connection on every request.
 if (!global._mongoClientPromise) {
-  client = new MongoClient(uri, options);
+  const client = new MongoClient(uri, options);
   global._mongoClientPromise = client.connect();
 }
-clientPromise = global._mongoClientPromise;
+const clientPromise = global._mongoClientPromise;
 
 export default clientPromise;

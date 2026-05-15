@@ -170,6 +170,9 @@ export interface Client {
   fittingRescheduleHistory?: { id: string; date: string; note: string; newDate: string }[];
   // Delivery tracking
   delivered?: boolean;
+  // Legacy/migration fields from external data sources
+  updatedAt?: string;
+  fullName?: string;
 }
 
 interface StudioContextType {
@@ -218,8 +221,8 @@ const defaultFittings: Fitting = {
   startDate: '', firstFitting: '', secondFitting: '', finalFitting: '', deliveryDate: '',
 };
 
-// Sample clients for demo
-const sampleClients: Client[] = [
+// (sample clients removed — production uses real MongoDB data)
+const _sampleClientsPlaceholder: Client[] = [
   {
     id: '1',
     name: 'Ama Serwaa Bonsu',
@@ -1086,7 +1089,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const nameStr = (c.name || (c as any).fullName || '').toLowerCase();
+    const nameStr = (c.name || c.fullName || '').toLowerCase();
     const emailStr = (c.email || '').toLowerCase();
     const eventMonthStr = (c.eventMonth || '').toLowerCase();
     const searchStr = searchQuery.toLowerCase();

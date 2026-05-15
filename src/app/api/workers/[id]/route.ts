@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import type { Filter, Document } from 'mongodb';
 import { requireApiAuth } from '@/lib/apiAuth';
 
 const DB_NAME = 'kente-couture';
@@ -26,7 +27,7 @@ export async function GET(
     const client = await clientPromise;
     const db = client.db(DB_NAME);
 
-    const filter: any = {
+    const filter: Filter<Document> = {
       $or: [
         { id: id },
         ...(ObjectId.isValid(id) ? [{ _id: new ObjectId(id) }] : [])
@@ -60,9 +61,9 @@ export async function PUT(
     const db = client.db(DB_NAME);
 
     // Remove id and _id from updates to avoid conflicts
-    const { id: _id, _id: __id, ...updates } = cleaned;
+    const { id: _omitId, _id: _omitMongoId, ...updates } = cleaned;
 
-    const filter: any = {
+    const filter: Filter<Document> = {
       $or: [
         { id: id },
         ...(ObjectId.isValid(id) ? [{ _id: new ObjectId(id) }] : [])
@@ -98,7 +99,7 @@ export async function DELETE(
     const client = await clientPromise;
     const db = client.db(DB_NAME);
 
-    const filter: any = {
+    const filter: Filter<Document> = {
       $or: [
         { id: id },
         ...(ObjectId.isValid(id) ? [{ _id: new ObjectId(id) }] : [])

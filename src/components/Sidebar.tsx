@@ -17,7 +17,6 @@ interface ClientRowProps {
   client: Client;
   isActive: boolean;
   isArchived: boolean;
-  isNearlyDue: boolean;
   dueInfo: DueInfo | null;
   onSelect: () => void;
   onArchive: () => void;
@@ -28,13 +27,13 @@ interface ClientRowProps {
   onToggleSelect: () => void;
 }
 
-function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelect, onArchive, onRestore, isSelected, selectionMode, onLongPress, onToggleSelect }: ClientRowProps) {
+function ClientRow({ client, isActive, isArchived, dueInfo, onSelect, onArchive, onRestore, isSelected, selectionMode, onLongPress, onToggleSelect }: ClientRowProps) {
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const rowSwipeStart = useRef<number | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const longPressTimer = useRef<any>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didSwipe = useRef(false);
   const longPressActivated = useRef(false);
 
@@ -194,7 +193,7 @@ function ClientRow({ client, isActive, isArchived, isNearlyDue, dueInfo, onSelec
             <p className="truncate font-bold font-display text-charcoal text-[17px] tracking-wide">{client.name}</p>
             <span className="text-[11px] text-muted font-medium shrink-0 ml-2">
               {(() => {
-                const dateStr = (client as any).updatedAt || client.lastActivity || client.createdAt;
+                const dateStr = client.updatedAt || client.lastActivity || client.createdAt;
                 if (!dateStr) return 'Recent';
                 const d = new Date(dateStr);
                 return isNaN(d.getTime()) ? 'Recent' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -263,14 +262,13 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onToggleSidebar }: SidebarProps) {
-  const { clients: _clients, activeClient, searchQuery, setSearchQuery, updateClient, deleteClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
+  const { activeClient, searchQuery, setSearchQuery, updateClient, deleteClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectionMode = selectedIds.size > 0;
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'completed' | 'archived'>('all');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [isSwiping, setIsSwiping] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
   const [pullY, setPullY] = useState(0);
@@ -342,7 +340,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
 
   // Selection helpers (defined after categorizedClients so handleSelectAll can reference it)
   const handleLongPressClient = (id: string) => setSelectedIds(prev => new Set([...prev, id]));
-  const handleToggleClient = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const handleToggleClient = (id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   const handleDeleteSelected = () => { selectedIds.forEach(id => deleteClient(id)); setSelectedIds(new Set()); };
   const handleClearSelection = () => setSelectedIds(new Set());
   const handleSelectAll = () => setSelectedIds(new Set(categorizedClients.map(c => c.id)));
@@ -354,7 +352,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     setTouchEnd(null);
     setTouchStart(e.clientX);
-    setIsSwiping(false);
     // Initiate pull-to-refresh tracking on touch when list is scrolled to top
     if (e.pointerType !== 'mouse' && (listScrollRef.current?.scrollTop ?? 1) === 0) {
       pullStartYRef.current = e.clientY;
@@ -365,7 +362,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   const handlePointerMove = (e: React.PointerEvent) => {
     if (touchStart !== null) {
       setTouchEnd(e.clientX);
-      if (Math.abs(e.clientX - touchStart) > 15) setIsSwiping(true);
     }
     if (pullStartYRef.current !== null && e.pointerId === pullPointerIdRef.current) {
       const dy = e.clientY - pullStartYRef.current;
@@ -401,14 +397,12 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
     if (touchStart === null || touchEnd === null) {
       setTouchStart(null);
       setTouchEnd(null);
-      setTimeout(() => setIsSwiping(false), 0);
       return;
     }
     const distance = touchStart - touchEnd;
     setTouchStart(null);
     setTouchEnd(null);
     if (Math.abs(distance) < minSwipeDistance) {
-      setTimeout(() => setIsSwiping(false), 0);
       return;
     }
     const tabs: ('all' | 'due' | 'completed')[] = ['all', 'due', 'completed'];
@@ -419,7 +413,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
     if (distance < -minSwipeDistance && currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1]);
     }
-    setTimeout(() => setIsSwiping(false), 0);
   };
 
   return (
@@ -595,7 +588,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
               client={client}
               isActive={activeClient?.id === client.id}
               isArchived={client.status === 'Archived'}
-              isNearlyDue={isNearlyDue(client)}
               dueInfo={getDaysUntilDue(client)}
               onSelect={() => onSelectClient(client.id)}
               onArchive={() => updateClient(client.id, { status: 'Archived' })}

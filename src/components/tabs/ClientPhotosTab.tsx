@@ -76,7 +76,7 @@ export default function ClientPhotosTab({ client }: ClientPhotosTabProps) {
     if (photoSelectionMode) {
       setSelectedPhotos(prev => {
         const n = new Set(prev);
-        n.has(url) ? n.delete(url) : n.add(url);
+        if (n.has(url)) { n.delete(url); } else { n.add(url); }
         return n;
       });
     } else {

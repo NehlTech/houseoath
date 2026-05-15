@@ -3,7 +3,21 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas-pro';
-import { Client, Payment } from '@/context/StudioContext';
+import { Client, Payment, DesignIllustration } from '@/context/StudioContext';
+import type { RefObject } from 'react';
+
+interface ReceiptContentProps {
+  receiptRef: RefObject<HTMLDivElement | null>;
+  watermarkUrl: string;
+  client: Client;
+  payment: Payment;
+  approvedIllustration: DesignIllustration | undefined;
+  totalCost: number;
+  totalPaidToDate: number;
+  balanceRemaining: number;
+  isPaidInFull: boolean;
+  isZoomed: boolean;
+}
 
 interface ReceiptPreviewModalProps {
   client: Client;
@@ -266,10 +280,10 @@ Thank you for choosing House of Oath.`;
 }
 
 // ─── Sub-component for Receipt Content ───────────────────────────
-function ReceiptContent({ 
-  receiptRef, watermarkUrl, client, payment, approvedIllustration, 
-  totalCost, totalPaidToDate, balanceRemaining, isPaidInFull, isZoomed 
-}: any) {
+function ReceiptContent({
+  receiptRef, watermarkUrl, client, payment, approvedIllustration: _approvedIllustration,
+  totalCost, totalPaidToDate, balanceRemaining, isPaidInFull, isZoomed
+}: ReceiptContentProps) {
   return (
     <div 
       ref={receiptRef}
