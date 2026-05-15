@@ -157,9 +157,9 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
         {/* Gold wave accent — soft glow + sharp line */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
-                stroke="rgba(212,175,53,0.18)" strokeWidth="18" strokeLinecap="round" fill="none" />
+                stroke="rgba(212,175,53,0.20)" strokeWidth="18" strokeLinecap="round" fill="none" />
           <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
-                stroke="rgba(212,175,53,0.72)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                stroke="#d4af35" strokeWidth="1.5" strokeLinecap="round" fill="none" />
         </svg>
 
         {/* Bottom wave — flows into white tab bar */}
@@ -267,7 +267,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                   onClick={handleMarkFittingDone}
                   title="Tap to mark fitting as done"
                   className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-primary transition-colors animate-pulse"
-                  style={{ background: 'rgba(212,175,53,0.22)', backdropFilter: 'blur(6px)' }}
+                  style={{ background: 'rgba(212,175,53,0.22)', backdropFilter: 'blur(6px)', border: '1px solid #d4af35' }}
                 >
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>checkroom</span>
                   Fitting: {new Date(client.nextFittingDate || client.fittings?.firstFitting || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -275,32 +275,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               ) : null}
             </div>
 
-            {/* Contact / event info — 2-col on mobile, single col on desktop */}
-            <div className="grid grid-cols-2 md:grid-cols-1 gap-x-3 gap-y-1 pt-0.5">
+            {/* Contact / event info */}
+            <div className="flex flex-col gap-y-1 pt-0.5">
               {client.phone && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>call</span>
-                  <span className="text-xs font-medium text-white/80 truncate">{client.phone}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined shrink-0" style={{ fontSize: 14, color: '#d4af35' }}>call</span>
+                  <span className="text-xs font-medium text-white/80">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>mail</span>
-                  <span className="text-xs font-medium text-white/80 truncate">{client.email}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined shrink-0" style={{ fontSize: 14, color: '#d4af35' }}>mail</span>
+                  <span className="text-xs font-medium text-white/80 break-all">{client.email}</span>
                 </div>
               )}
               {client.eventDate && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>event</span>
-                  <span className="text-xs font-medium text-white/80 truncate">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined shrink-0" style={{ fontSize: 14, color: '#d4af35' }}>event</span>
+                  <span className="text-xs font-medium text-white/80">
                     {new Date(client.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               )}
               {client.eventLocation && (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>location_on</span>
-                  <span className="text-xs font-medium text-white/80 truncate">{client.eventLocation}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined shrink-0" style={{ fontSize: 14, color: '#d4af35' }}>location_on</span>
+                  <span className="text-xs font-medium text-white/80">{client.eventLocation}</span>
                 </div>
               )}
 
@@ -322,7 +322,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                   <button
                     onClick={handleMarkDelivered}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-primary transition-colors"
-                    style={{ background: 'rgba(212,175,53,0.20)', border: '1px solid rgba(212,175,53,0.35)' }}
+                    style={{ background: 'rgba(212,175,53,0.20)', border: '1px solid #d4af35' }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 14 }}>local_shipping</span>
                     Mark Delivered
