@@ -426,9 +426,8 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
     <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', overflow: 'hidden' }}>
       {/* ── STATIC TOP: always visible ── */}
       <div className="bg-card" style={{ minHeight: 0 }}>
-        {/* Status-bar spacer — pushes content below iPhone notch/status bar on Safari.
-            Uses max() so it works even when env() returns 0 (viewport-fit not activated). */}
-        <div className="md:hidden" style={{ height: 'max(env(safe-area-inset-top, 0px), 44px)' }} />
+        {/* Status-bar spacer — iOS Safari only (see globals.css .ios-status-spacer) */}
+        <div className="md:hidden ios-status-spacer" />
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">
           {/* Hamburger — toggles sidebar drawer (desktop only) */}

@@ -167,15 +167,15 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
           <path d="M0,34 C280,4 600,32 960,14 C1160,4 1320,26 1440,18 L1440,34 Z" fill="white" />
         </svg>
 
-        {/* HOA Logo Badge — top right */}
-        <div className="absolute top-3 right-3 z-10">
+        {/* HOA Logo Badge — top right; ios-badge-top shifts it below the status bar on iOS Safari */}
+        <div className="absolute right-3 z-10 ios-badge-top">
           <div className="flex items-center justify-center size-10 rounded-full border-2 border-primary overflow-hidden shadow-lg" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
             <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" />
           </div>
         </div>
 
-        {/* Status-bar spacer — pushes back-button/avatar below iPhone notch on Safari */}
-        <div className="md:hidden" style={{ height: 'max(env(safe-area-inset-top, 0px), 44px)' }} />
+        {/* Status-bar spacer — iOS Safari only (see globals.css .ios-status-spacer) */}
+        <div className="md:hidden ios-status-spacer" />
 
         {/* Content */}
         <div className="relative z-10 flex items-start gap-4 px-4 pt-3 pb-10 md:px-6 md:pb-12 pr-16 md:pr-20">
