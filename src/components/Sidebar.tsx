@@ -630,7 +630,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
       </div>
 
       {/* ── STATIC BOTTOM: always visible on mobile ── */}
-      <div className="md:hidden flex items-center justify-between bg-card p-2 z-20">
+      <div className="md:hidden flex items-center justify-between bg-card pt-2 px-2 ios-pb-safe z-20">
         <button onClick={onOpenSettings} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary w-16 transition-colors">
           <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
             <span className="material-symbols-outlined text-[22px]">settings</span>

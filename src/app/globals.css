@@ -63,6 +63,16 @@ body {
   }
 }
 
+/* Bottom padding that fills the home-indicator zone only on iOS Safari */
+.ios-pb-safe {
+  padding-bottom: 0;
+}
+@supports (-webkit-touch-callout: none) {
+  .ios-pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* Vertical offset for absolutely-positioned elements (e.g. logo badge)
    that must sit below the status bar on iOS Safari */
 .ios-badge-top {
