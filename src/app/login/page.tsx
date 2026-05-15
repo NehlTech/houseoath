@@ -108,10 +108,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 text-center text-xs font-medium text-muted relative z-10 space-y-1">
-              <p>Admin: admin@houseofoath.com / admin123</p>
-              <p>Worker: worker@houseofoath.com / 123</p>
-            </div>
           </div>
         </main>
 

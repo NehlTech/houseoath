@@ -53,17 +53,27 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword === confirmPassword && newPassword.length >= 4) {
-      updateUserProfile({ password: newPassword });
-      alert('Password updated successfully!');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } else if (newPassword.length < 4) {
-      alert('Password must be at least 4 characters long.');
-    } else {
-      alert('Passwords do not match.');
+    if (!currentPassword) {
+      alert('Please enter your current password.');
+      return;
     }
+    if (currentPassword !== userProfile.password) {
+      alert('Current password is incorrect.');
+      return;
+    }
+    if (newPassword.length < 4) {
+      alert('Password must be at least 4 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+    updateUserProfile({ password: newPassword });
+    alert('Password updated successfully!');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
   const handleAddWorker = (e: React.FormEvent) => {

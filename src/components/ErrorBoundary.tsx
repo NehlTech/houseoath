@@ -65,7 +65,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             An unexpected error occurred. Please try refreshing the page.
           </p>
           <p style={{ fontSize: '11px', color: '#adb5bd', maxWidth: '400px', wordBreak: 'break-all', marginBottom: '24px' }}>
-            {this.state.error?.message}
+            Something went wrong. Please refresh the page.
           </p>
           <button
             onClick={() => {

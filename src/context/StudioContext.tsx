@@ -559,7 +559,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     unsynced.forEach(c => {
       fetch('/api/clients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+        },
         body: JSON.stringify(c),
       }).catch(() => {});
     });
@@ -578,7 +581,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch('/api/clients', { signal: controller.signal, cache: 'no-store' });
+        const res = await fetch('/api/clients', {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+        });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error('non-ok');
         const data = await res.json();
@@ -603,7 +610,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
       try {
-        const clientRes = await fetch('/api/clients', { signal: controller.signal, cache: 'no-store' });
+        const clientRes = await fetch('/api/clients', {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+        });
         if (clientRes.ok) {
           const data = await clientRes.json();
           setUseApi(true);
@@ -613,7 +624,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           throw new Error('Client API returned non-ok');
         }
 
-        const workerRes = await fetch('/api/workers', { signal: controller.signal, cache: 'no-store' });
+        const workerRes = await fetch('/api/workers', {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+        });
         if (workerRes.ok) {
           const wData = await workerRes.json();
           if (Array.isArray(wData) && wData.length > 0) {
@@ -622,7 +637,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             setWorkers(prev => {
               if (prev.length > 0) return prev;
               const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' as const };
-              fetch('/api/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultWorker) });
+              fetch('/api/workers', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+                },
+                body: JSON.stringify(defaultWorker),
+              });
               return [defaultWorker];
             });
           }
@@ -639,11 +661,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     syncFromApi();
   }, [startSilentBackgroundRetry, mergeWithLocal]);
 
-  // Save to localStorage as backup (always)
+  // Save to localStorage as backup (always) — strip passwords before persisting
   useEffect(() => {
     if (isLoaded) {
       safeSetItem('studio_clients', JSON.stringify(clients));
-      safeSetItem('studio_workers', JSON.stringify(workers));
+      const workersToStore = workers.map(({ password: _pw, ...w }) => w);
+      safeSetItem('studio_workers', JSON.stringify(workersToStore));
     }
   }, [clients, workers, isLoaded]);
 
@@ -662,7 +685,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const clientRes = await fetch('/api/clients', { signal: controller.signal });
+      const clientRes = await fetch('/api/clients', {
+        signal: controller.signal,
+        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+      });
       clearTimeout(timeoutId);
       if (clientRes.ok) {
         const data = await clientRes.json();
@@ -691,7 +717,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true);
         setUserProfile(adminProfile);
         safeSetItem('studio_auth', 'true');
-        safeSetItem('studio_user', JSON.stringify(adminProfile));
+        // Persist profile without password
+        const { password: _pw, ...adminProfileToStore } = adminProfile;
+        safeSetItem('studio_user', JSON.stringify(adminProfileToStore));
         addAuditLog('Login', `Admin logged in successfully.`);
         return true;
       }
@@ -704,7 +732,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(true);
       setUserProfile(matchedWorker);
       safeSetItem('studio_auth', 'true');
-      safeSetItem('studio_user', JSON.stringify(matchedWorker));
+      // Persist profile without password
+      const { password: _pw, ...workerProfileToStore } = matchedWorker;
+      safeSetItem('studio_user', JSON.stringify(workerProfileToStore));
       addAuditLog('Login', `Worker ${matchedWorker.name} logged in successfully.`);
       return true;
     }
@@ -730,15 +760,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         ));
 
         if (useApi) {
-          fetch(`/api/workers/${newProfile.id}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(updates) 
+          fetch(`/api/workers/${newProfile.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
         }
       }
 
-      safeSetItem('studio_user', JSON.stringify(newProfile));
+      // Persist profile without password
+      const { password: _pw, ...profileToStore } = newProfile;
+      safeSetItem('studio_user', JSON.stringify(profileToStore));
       addAuditLog('Profile Updated', 'User profile details were modified.');
       return newProfile;
     });
@@ -746,7 +781,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const addWorker = useCallback((name: string, email: string, password?: string) => {
     const newWorker: UserProfile = {
-      id: `w-${Date.now()}`,
+      id: crypto.randomUUID(),
       name,
       email,
       password: password || '123',
@@ -755,10 +790,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     };
     setWorkers(prev => [...prev, newWorker]);
     if (useApi) {
-      fetch('/api/workers', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(newWorker) 
+      fetch('/api/workers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+        },
+        body: JSON.stringify(newWorker),
       }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Team Member Added', `Worker ${name} (${email}) was added to the team.`);
@@ -767,7 +805,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const removeWorker = useCallback((id: string) => {
     setWorkers(prev => prev.filter(w => w.id !== id));
     if (useApi) {
-      fetch(`/api/workers/${id}`, { method: 'DELETE' }).catch(e => console.warn('API Error:', e));
+      fetch(`/api/workers/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+      }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Team Member Removed', `A worker was removed from the team.`);
   }, [useApi, addAuditLog]);
@@ -776,7 +817,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
     const newClient: Client = {
       ...clientData,
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       measurements: defaultMeasurements,
       fittings: defaultFittings,
       payments: [],
@@ -816,7 +857,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     // Sync to MongoDB
     if (useApi) {
-      fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newClient) }).catch(e => console.warn('API Error:', e));
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+        },
+        body: JSON.stringify(newClient),
+      }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
   }, [useApi, addAuditLog]);
@@ -829,10 +877,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     // Sync to MongoDB
     if (useApi) {
-      fetch(`/api/clients/${id}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ ...updates, lastActivity: now }) 
+      fetch(`/api/clients/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+        },
+        body: JSON.stringify({ ...updates, lastActivity: now }),
       }).catch(e => console.warn('API Error:', e));
     }
     const updatedClientName = clients.find(c => c.id === id)?.name || 'a client';
@@ -841,7 +892,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const addPayment = useCallback((clientId: string, payment: Omit<Payment, 'id' | 'receiptNumber'>) => {
     // Generate a unique, unguessable receipt number (e.g. HOF-A4X9B2)
-    const randomHash = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const randomHash = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
     const receiptNumber = `HOF-${randomHash}`;
     
     const paymentWithId: Payment = { ...payment, id: `pay-${Date.now()}`, receiptNumber };
@@ -875,10 +926,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         };
 
         if (useApi) {
-          fetch(`/api/clients/${clientId}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(updates) 
+          fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
         }
 
@@ -901,10 +955,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (c.id === clientId) {
         const updatedTimeline = [...c.timeline, event];
         if (useApi) {
-          fetch(`/api/clients/${clientId}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }) 
+          fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
         }
         return { ...c, timeline: updatedTimeline, lastActivity: now };
@@ -929,8 +986,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (useApi) {
           fetch(`/api/clients/${clientId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates)
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
         }
         return { ...c, ...updates };
@@ -952,10 +1012,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         };
         const updatedTimeline = [...c.timeline, newTimelineEvent];
         if (useApi) {
-          fetch(`/api/clients/${clientId}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }) 
+          fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
         }
         return {
@@ -982,10 +1045,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         };
         const updatedNotes = [...(c.productionNotes || []), newNote];
         if (useApi) {
-          fetch(`/api/clients/${clientId}`, { 
-            method: 'PUT', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }) 
+          fetch(`/api/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
+            },
+            body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
         }
         return {
@@ -1002,7 +1068,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setClients(prev => prev.filter(c => c.id !== id));
     setActiveClientId(prev => prev === id ? null : prev);
     if (useApi) {
-      fetch(`/api/clients/${id}`, { method: 'DELETE' }).catch(e => console.warn('API Error:', e));
+      fetch(`/api/clients/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
+      }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Client Deleted', 'A client record was permanently deleted.');
   }, [useApi, addAuditLog]);
