@@ -61,7 +61,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body
         className="bg-canvas text-charcoal min-h-screen font-display selection:bg-primary/30 selection:text-white"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', boxSizing: 'border-box' }}
       >
         <ErrorBoundary>
           <StudioProvider>{children}</StudioProvider>
