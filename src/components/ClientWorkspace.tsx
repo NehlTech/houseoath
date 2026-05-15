@@ -181,7 +181,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
         {/* HOA Logo Badge — top right; ios-badge-top shifts it below the status bar on iOS Safari */}
         <div className="absolute right-3 z-10 ios-badge-top">
           <div className="flex items-center justify-center size-10 rounded-full border-2 border-primary overflow-hidden shadow-lg" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
-            <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" />
+            <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" style={{ filter: 'brightness(0) invert(1)' }} />
           </div>
         </div>
 
