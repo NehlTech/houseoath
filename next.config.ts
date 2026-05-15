@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
     config.resolve.alias = { ...config.resolve.alias, canvas: false };
     return config;
   },
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        // pdfjs-dist tries to require 'canvas' server-side; point to empty module
+        canvas: './canvas-empty.js',
+      },
+    },
+  },
 };
 
 export default nextConfig;
