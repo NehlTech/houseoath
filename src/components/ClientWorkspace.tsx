@@ -147,25 +147,43 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header */}
-      <div className="bg-card shadow-sm relative px-4 pt-3 pb-3 md:px-6 md:pb-4">
+      {/* Client Header — Deep Emerald Silk */}
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #053d22 0%, #0c6b3d 48%, #064d2c 100%)' }}>
+        {/* Silk sheen — radial highlight */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
+        {/* Second sheen — subtle top-right glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 85% 15%, rgba(16,185,129,0.07) 0%, transparent 50%)' }} />
+
+        {/* Gold wave accent — soft glow + sharp line */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
+                stroke="rgba(212,175,53,0.18)" strokeWidth="18" strokeLinecap="round" fill="none" />
+          <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
+                stroke="rgba(212,175,53,0.72)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        </svg>
+
+        {/* Bottom wave — flows into white tab bar */}
+        <svg className="absolute bottom-0 left-0 right-0 pointer-events-none" viewBox="0 0 1440 34" preserveAspectRatio="none" style={{ width: '100%', height: 34 }}>
+          <path d="M0,34 C280,4 600,32 960,14 C1160,4 1320,26 1440,18 L1440,34 Z" fill="white" />
+        </svg>
+
         {/* HOA Logo Badge — top right */}
         <div className="absolute top-3 right-3 z-10">
-          <div className="flex items-center justify-center size-10 rounded-full border-2 border-primary overflow-hidden bg-white shadow-sm">
+          <div className="flex items-center justify-center size-10 rounded-full border-2 border-primary overflow-hidden shadow-lg" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
             <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" />
           </div>
         </div>
 
-        {/* Layout: flex-row on desktop, stacked on mobile */}
-        <div className="flex items-start gap-4 pr-20 md:pr-28">
+        {/* Content */}
+        <div className="relative z-10 flex items-start gap-4 px-4 pt-3 pb-10 md:px-6 md:pb-12 pr-16 md:pr-20">
           {/* Back button (mobile) */}
-          <button onClick={onBack} className="md:hidden flex items-center justify-center p-1 -ml-1 mt-0.5 text-muted hover:text-charcoal shrink-0 transition-colors">
+          <button onClick={onBack} className="md:hidden flex items-center justify-center p-1 -ml-1 mt-0.5 text-white/70 hover:text-white shrink-0 transition-colors">
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </button>
 
           {/* Avatar */}
           <div className="relative group shrink-0">
-            <label className="cursor-pointer block relative rounded-full overflow-hidden size-12 md:size-16 shadow-md transition-transform hover:scale-[1.02]">
+            <label className="cursor-pointer block relative rounded-full overflow-hidden size-14 md:size-16 shadow-xl ring-2 ring-white/25 transition-transform hover:scale-[1.02]">
               <input
                 type="file"
                 accept="image/*"
@@ -197,25 +215,16 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             </div>
           </div>
 
-          {/* All info — flows naturally next to avatar on both mobile and desktop */}
+          {/* All info */}
           <div className="flex-1 min-w-0 space-y-1.5">
             {/* Name + package badge */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="text-charcoal text-lg md:text-xl font-display font-bold tracking-wide">{client.name}</h1>
-              {client.clientPackage && (() => {
-                const pkgStyles: Record<string, string> = {
-                  Lux:      'bg-primary/10 text-primary',
-                  Classic:  'bg-blue-500/10 text-blue-600',
-                  Essential:'bg-success/10 text-success',
-                  Delux:    'bg-purple-500/10 text-purple-600',
-                };
-                const cls = pkgStyles[client.clientPackage] ?? 'bg-primary/10 text-primary';
-                return (
-                  <span className={`${cls} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider`}>
-                    {client.clientPackage} Client
-                  </span>
-                );
-              })()}
+              <h1 className="text-white text-lg md:text-xl font-display font-bold tracking-wide" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{client.name}</h1>
+              {client.clientPackage && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
+                  {client.clientPackage} Client
+                </span>
+              )}
             </div>
 
             {/* Status pills */}
@@ -224,9 +233,10 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                 onClick={() => setShowConsultation(true)}
                 className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                   client.consultationDone
-                    ? 'bg-success/10 text-success'
-                    : 'bg-danger/10 text-danger animate-pulse'
+                    ? 'text-white'
+                    : 'text-red-200 animate-pulse'
                 }`}
+                style={{ background: client.consultationDone ? 'rgba(255,255,255,0.18)' : 'rgba(248,113,113,0.25)', backdropFilter: 'blur(6px)' }}
               >
                 <span
                   className="material-symbols-outlined leading-none"
@@ -241,13 +251,14 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                 <button
                   onClick={handleMarkUnfitted}
                   title="Tap to undo fitting"
-                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}
                 >
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1, 'wght' 600" }}>checkroom</span>
                   Fitted
                 </button>
               ) : client.noFitting ? (
-                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white/55" style={{ background: 'rgba(255,255,255,0.10)' }}>
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>event_busy</span>
                   No Fitting
                 </span>
@@ -255,7 +266,8 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                 <button
                   onClick={handleMarkFittingDone}
                   title="Tap to mark fitting as done"
-                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-pulse"
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-primary transition-colors animate-pulse"
+                  style={{ background: 'rgba(212,175,53,0.22)', backdropFilter: 'blur(6px)' }}
                 >
                   <span className="material-symbols-outlined leading-none" style={{ fontSize: 12 }}>checkroom</span>
                   Fitting: {new Date(client.nextFittingDate || client.fittings?.firstFitting || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -263,32 +275,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               ) : null}
             </div>
 
-            {/* Contact / event info — single column so nothing truncates */}
+            {/* Contact / event info */}
             <div className="flex flex-col gap-y-1 pt-0.5">
               {client.phone && (
-                <div className="flex items-center gap-1.5 text-gray">
+                <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>call</span>
-                  <span className="text-xs font-medium">{client.phone}</span>
+                  <span className="text-xs font-medium text-white/80">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center gap-1.5 text-gray">
+                <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>mail</span>
-                  <span className="text-xs font-medium break-all">{client.email}</span>
+                  <span className="text-xs font-medium text-white/80 break-all">{client.email}</span>
                 </div>
               )}
               {client.eventDate && (
-                <div className="flex items-center gap-1.5 text-gray">
+                <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>event</span>
-                  <span className="text-xs font-medium">
+                  <span className="text-xs font-medium text-white/80">
                     {new Date(client.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               )}
               {client.eventLocation && (
-                <div className="flex items-center gap-1.5 text-gray">
+                <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>location_on</span>
-                  <span className="text-xs font-medium">{client.eventLocation}</span>
+                  <span className="text-xs font-medium text-white/80">{client.eventLocation}</span>
                 </div>
               )}
 
@@ -300,16 +312,17 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
                     title="Tap to undo delivery"
                     className="flex items-center gap-1.5 group hover:opacity-75 transition-opacity"
                   >
-                    <span className="material-symbols-outlined text-success shrink-0" style={{ fontSize: 16 }}>task_alt</span>
-                    <span className="text-xs font-semibold text-success">
+                    <span className="material-symbols-outlined shrink-0" style={{ fontSize: 16, color: '#6ee7b7' }}>task_alt</span>
+                    <span className="text-xs font-semibold" style={{ color: '#6ee7b7' }}>
                       Delivered{client.deliveryDate ? `: ${new Date(client.deliveryDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                     </span>
-                    <span className="material-symbols-outlined text-muted opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: 12 }}>undo</span>
+                    <span className="material-symbols-outlined text-white/40 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: 12 }}>undo</span>
                   </button>
                 ) : (
                   <button
                     onClick={handleMarkDelivered}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-primary transition-colors"
+                    style={{ background: 'rgba(212,175,53,0.20)', border: '1px solid rgba(212,175,53,0.35)' }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 14 }}>local_shipping</span>
                     Mark Delivered
