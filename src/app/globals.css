@@ -76,7 +76,7 @@ body {
 /* Vertical offset for absolutely-positioned elements (e.g. logo badge)
    that must sit below the status bar on iOS Safari */
 .ios-badge-top {
-  top: 12px; /* matches top-3 on all other platforms */
+  top: 36px;
 }
 @supports (-webkit-touch-callout: none) {
   .ios-badge-top {
