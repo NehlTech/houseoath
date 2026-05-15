@@ -148,7 +148,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header — Deep Emerald Silk */}
-      <div className="relative overflow-hidden pt-safe" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)' }}>
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)' }}>
         {/* Silk sheen — radial highlight */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
         {/* Second sheen — subtle top-right glow */}
@@ -173,6 +173,9 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-0.5" />
           </div>
         </div>
+
+        {/* Status-bar spacer — pushes back-button/avatar below iPhone notch on Safari */}
+        <div className="md:hidden" style={{ height: 'max(env(safe-area-inset-top, 0px), 44px)' }} />
 
         {/* Content */}
         <div className="relative z-10 flex items-start gap-4 px-4 pt-3 pb-10 md:px-6 md:pb-12 pr-16 md:pr-20">
