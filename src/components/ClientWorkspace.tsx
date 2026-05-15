@@ -148,7 +148,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header — Deep Emerald Silk */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)' }}>
+      <div className="relative overflow-hidden" style={{ backgroundImage: 'url(/header-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {/* Silk sheen — radial highlight */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
         {/* Second sheen — subtle top-right glow */}
