@@ -147,8 +147,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header */}
-      <div className="relative overflow-hidden" style={{ backgroundImage: 'url(/header-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      {/* Client Header — CSS replica of the silk-and-gold image */}
+      <div className="relative overflow-hidden" style={{
+        background: 'linear-gradient(145deg, #010e07 0%, #022814 14%, #045a22 38%, #056030 56%, #034218 78%, #010c06 100%)'
+      }}>
+        {/* Large teal silk sheen — bright upper-left highlight (the main light wave) */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse 155% 135% at -10% -18%, rgba(0,190,84,0.90) 0%, rgba(0,162,68,0.55) 26%, rgba(0,122,47,0.20) 48%, transparent 64%)'
+        }} />
+        {/* Secondary sheen — extends brightness along the upper wave band */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at 38% 20%, rgba(0,172,74,0.28) 0%, transparent 52%)'
+        }} />
+
+        {/* Gold wave — teal edge glow + warm gold glow + crisp gold line */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1440 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Teal-cyan edge glow just above the gold line */}
+          <path d="M -60,74 C 250,52 600,158 750,155 C 900,151 1200,112 1500,100"
+                stroke="rgba(0,218,118,0.38)" strokeWidth="9" strokeLinecap="round" fill="none" />
+          {/* Warm gold soft glow */}
+          <path d="M -60,74 C 250,52 600,158 750,155 C 900,151 1200,112 1500,100"
+                stroke="rgba(212,175,53,0.28)" strokeWidth="22" strokeLinecap="round" fill="none" />
+          {/* Crisp gold line */}
+          <path d="M -60,74 C 250,52 600,158 750,155 C 900,151 1200,112 1500,100"
+                stroke="#d4af35" strokeWidth="2" strokeLinecap="round" fill="none" />
+        </svg>
+
         {/* Bottom wave — flows into white tab bar */}
         <svg className="absolute bottom-0 left-0 right-0 pointer-events-none" viewBox="0 0 1440 34" preserveAspectRatio="none" style={{ width: '100%', height: 34 }}>
           <path d="M0,34 C280,4 600,32 960,14 C1160,4 1320,26 1440,18 L1440,34 Z" fill="white" />
