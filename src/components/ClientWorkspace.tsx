@@ -19,6 +19,17 @@ interface ClientWorkspaceProps {
   onBack: () => void;
 }
 
+function getPackagePillStyle(pkg: string): { background: string; color: string; border: string } {
+  const p = pkg.toLowerCase();
+  if (p === 'lux' || p === 'luxury')
+    return { background: 'rgba(212,175,53,0.22)', color: '#f5d776', border: '1px solid rgba(212,175,53,0.45)' };
+  if (p === 'classic')
+    return { background: 'rgba(99,207,148,0.20)', color: '#7ef5b0', border: '1px solid rgba(99,207,148,0.40)' };
+  if (p === 'essential' || p === 'essentials')
+    return { background: 'rgba(99,160,247,0.20)', color: '#a3c8ff', border: '1px solid rgba(99,160,247,0.40)' };
+  return { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.30)' };
+}
+
 const tabs = ['Dashboard', 'Measurements', 'Fabric', 'Illustration', 'Photos', 'Fittings', 'Payments', 'Timeline'];
 
 export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps) {
@@ -232,11 +243,17 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             {/* Name + package badge */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <h1 className="text-white text-lg md:text-xl font-display font-bold tracking-wide" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{client.name}</h1>
-              {client.clientPackage && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
-                  {client.clientPackage} Client
-                </span>
-              )}
+              {client.clientPackage && (() => {
+                const pillStyle = getPackagePillStyle(client.clientPackage);
+                return (
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                    style={{ ...pillStyle, backdropFilter: 'blur(8px)' }}
+                  >
+                    {client.clientPackage} Client
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Status pills */}
