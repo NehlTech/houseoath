@@ -187,7 +187,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             aria-label="House of Oath"
           />
           <span
-            className="w-16 md:w-28 text-left pl-3 md:pl-5 text-[3.5px] md:text-[5.5px] font-semibold tracking-[0.18em] leading-none -mt-1 md:-mt-2"
+            className="w-16 md:w-28 text-left pl-3 md:pl-5 text-[3.5px] md:text-[9px] font-semibold tracking-[0.18em] leading-none -mt-1 md:-mt-2"
             style={{ color: '#d4af35' }}
           >
             HOUSE OF OATH
