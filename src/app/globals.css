@@ -19,8 +19,8 @@
 /* Global Styles */
 html {
   height: 100%;
-  overflow: hidden; /* prevents iOS Safari document-level scroll that shifts content behind status bar */
-  background-color: #f8f9fa; /* canvas — fills the status-bar area on Safari */
+  overflow: hidden;
+  background-color: #f8f9fa;
 }
 
 body {
@@ -28,11 +28,6 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   font-family: var(--font-display);
-  /* Push all body content below the iOS status bar / notch / Dynamic Island.
-     box-sizing: border-box keeps the body at exactly 100% height so the content
-     area is (100% - safe-area-inset-top), leaving no overflow for Safari to clip. */
-  padding-top: env(safe-area-inset-top, 0px);
-  box-sizing: border-box;
 }
 
 /* Safe-area inset utilities for iPhone notch / Dynamic Island */

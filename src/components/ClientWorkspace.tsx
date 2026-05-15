@@ -148,7 +148,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header — Deep Emerald Silk */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)' }}>
         {/* Silk sheen — radial highlight */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
         {/* Second sheen — subtle top-right glow */}
@@ -416,14 +416,14 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-1 flex-1 transition-colors ${
+                className={`flex flex-col items-center gap-0.5 py-1 flex-1 transition-colors ${
                   activeTab === tab ? 'text-primary' : 'text-muted hover:text-gray'
                 }`}
               >
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${activeTab === tab ? 'bg-primary/10' : 'hover:bg-canvas'}`}>
-                  <span className={`material-symbols-outlined text-[20px] ${activeTab === tab ? 'text-primary' : 'text-muted'}`}>{icons[tab]}</span>
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${activeTab === tab ? 'bg-primary/10' : 'hover:bg-canvas'}`}>
+                  <span className={`material-symbols-outlined text-[17px] ${activeTab === tab ? 'text-primary' : 'text-muted'}`}>{icons[tab]}</span>
                 </div>
-                <span className="text-[10px] font-medium truncate w-full text-center">{tab.split(' ')[0]}</span>
+                <span className="text-[8px] font-medium truncate w-full text-center leading-tight">{tab === 'Illustration' ? 'Illustr.' : tab === 'Payments' ? 'Pay' : tab}</span>
               </button>
             );
           })}
