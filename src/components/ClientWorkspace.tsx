@@ -148,7 +148,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header — Deep Emerald Silk */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #053d22 0%, #0c6b3d 48%, #064d2c 100%)' }}>
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #02200f 0%, #06401f 30%, #085230 55%, #053620 80%, #021a0c 100%)' }}>
         {/* Silk sheen — radial highlight */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
         {/* Second sheen — subtle top-right glow */}
@@ -275,32 +275,32 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
               ) : null}
             </div>
 
-            {/* Contact / event info */}
-            <div className="flex flex-col gap-y-1 pt-0.5">
+            {/* Contact / event info — 2-col on mobile, single col on desktop */}
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-x-3 gap-y-1 pt-0.5">
               {client.phone && (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>call</span>
-                  <span className="text-xs font-medium text-white/80">{client.phone}</span>
+                  <span className="text-xs font-medium text-white/80 truncate">{client.phone}</span>
                 </div>
               )}
               {client.email && (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>mail</span>
-                  <span className="text-xs font-medium text-white/80 break-all">{client.email}</span>
+                  <span className="text-xs font-medium text-white/80 truncate">{client.email}</span>
                 </div>
               )}
               {client.eventDate && (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>event</span>
-                  <span className="text-xs font-medium text-white/80">
+                  <span className="text-xs font-medium text-white/80 truncate">
                     {new Date(client.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               )}
               {client.eventLocation && (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: 14 }}>location_on</span>
-                  <span className="text-xs font-medium text-white/80">{client.eventLocation}</span>
+                  <span className="text-xs font-medium text-white/80 truncate">{client.eventLocation}</span>
                 </div>
               )}
 
