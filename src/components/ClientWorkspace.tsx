@@ -159,9 +159,9 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
         </svg>
 
         {/* HOA Logo Badge — top right; ios-badge-top shifts it below the status bar on iOS Safari */}
-        <div className="absolute right-14 z-10 ios-badge-top">
+        <div className="absolute right-14 z-10 ios-badge-top flex flex-col items-center gap-0">
           <div
-            className="size-12 md:size-20 drop-shadow-lg"
+            className="size-14 md:size-24 drop-shadow-lg"
             style={{
               backgroundColor: '#d4af35',
               WebkitMaskImage: 'url(/ho_logo.png)',
@@ -175,6 +175,12 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             }}
             aria-label="House of Oath"
           />
+          <span
+            className="w-14 md:w-24 text-center text-[4px] md:text-[6px] font-semibold tracking-[0.18em] leading-none -mt-2 md:-mt-3"
+            style={{ color: '#d4af35' }}
+          >
+            HOUSE OF OATH
+          </span>
         </div>
 
         {/* Status-bar spacer — iOS Safari only (see globals.css .ios-status-spacer) */}
