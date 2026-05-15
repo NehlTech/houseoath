@@ -21,11 +21,11 @@ interface ClientWorkspaceProps {
 
 function getPackagePillStyle(pkg: string): { background: string; color: string; border: string } {
   const p = pkg.toLowerCase();
-  if (p === 'lux' || p === 'luxury')
+  if (p.includes('lux'))
     return { background: 'rgba(212,175,53,0.22)', color: '#f5d776', border: '1px solid rgba(212,175,53,0.45)' };
-  if (p === 'classic')
+  if (p.includes('classic'))
     return { background: 'rgba(99,207,148,0.20)', color: '#7ef5b0', border: '1px solid rgba(99,207,148,0.40)' };
-  if (p === 'essential' || p === 'essentials')
+  if (p.includes('essential') || p.includes('standard') || p.includes('basic'))
     return { background: 'rgba(99,160,247,0.20)', color: '#a3c8ff', border: '1px solid rgba(99,160,247,0.40)' };
   return { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.30)' };
 }
@@ -160,7 +160,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
       {/* Client Header — background image */}
       <div className="relative overflow-hidden" style={{
-        backgroundImage: 'url(/header-bg.jpg)',
+        backgroundImage: 'url(/workerspaceheader-bg.jpg)',
         backgroundSize: '100% 100%',
         backgroundRepeat: 'no-repeat',
       }}>
