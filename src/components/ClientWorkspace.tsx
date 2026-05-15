@@ -147,21 +147,8 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
-      {/* Client Header — Deep Emerald Silk */}
+      {/* Client Header */}
       <div className="relative overflow-hidden" style={{ backgroundImage: 'url(/header-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        {/* Silk sheen — radial highlight */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 22% 55%, rgba(52,211,153,0.13) 0%, transparent 62%)' }} />
-        {/* Second sheen — subtle top-right glow */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 85% 15%, rgba(16,185,129,0.07) 0%, transparent 50%)' }} />
-
-        {/* Gold wave accent — soft glow + sharp line */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
-                stroke="rgba(212,175,53,0.20)" strokeWidth="18" strokeLinecap="round" fill="none" />
-          <path d="M -60 100 C 180 28, 480 118, 780 65 C 1020 22, 1270 92, 1540 50"
-                stroke="#d4af35" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-        </svg>
-
         {/* Bottom wave — flows into white tab bar */}
         <svg className="absolute bottom-0 left-0 right-0 pointer-events-none" viewBox="0 0 1440 34" preserveAspectRatio="none" style={{ width: '100%', height: 34 }}>
           <path d="M0,34 C280,4 600,32 960,14 C1160,4 1320,26 1440,18 L1440,34 Z" fill="white" />
