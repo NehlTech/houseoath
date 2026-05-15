@@ -583,7 +583,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       silentRetryTimerRef.current = null;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const res = await fetch('/api/clients', {
           signal: controller.signal,
           cache: 'no-store',
@@ -611,7 +611,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     const syncFromApi = async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       try {
         const clientRes = await fetch('/api/clients', {
           signal: controller.signal,
@@ -655,7 +655,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setIsLoaded(true); // success — reveal the app
       } catch (err) {
         console.warn('API unreachable on initial load:', err);
-        // Never show an error to the user — retry silently in the background.
+        // Show the UI immediately — don't trap the user on the splash screen.
+        // The silent retry will populate clients when MongoDB becomes available.
+        setIsLoaded(true);
         startSilentBackgroundRetry();
       } finally {
         clearTimeout(timeoutId);
@@ -687,7 +689,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setIsRetrying(true);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const clientRes = await fetch('/api/clients', {
         signal: controller.signal,
         headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
