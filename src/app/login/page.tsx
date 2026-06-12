@@ -18,10 +18,13 @@ export default function LoginPage() {
     if (!email || !password) { setError('Please fill in all fields'); return; }
     setLoading(true);
     setError('');
-    setTimeout(() => {
-      login(email, password);
+    const success = await login(email, password);
+    if (success) {
       router.push('/');
-    }, 800);
+    } else {
+      setError('Invalid email or password. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (

@@ -3,43 +3,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/apiAuth";
 
 export async function GET(request: NextRequest) {
-  const authError = requireApiAuth(request);
-  if (authError) return authError;
+  const { error } = await requireApiAuth(request);
+  if (error) return error;
 
   const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
   const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
-  // Basic validation
   if (!publicKey || !privateKey || !urlEndpoint) {
-    console.error("ImageKit server-side configuration is missing.");
     return NextResponse.json(
-      { 
-        error: "ImageKit configuration is missing on server.",
-        details: {
-          hasPublic: !!publicKey,
-          hasPrivate: !!privateKey,
-          hasEndpoint: !!urlEndpoint
-        }
-      },
+      { error: "Image upload service is temporarily unavailable." },
       { status: 500 }
     );
   }
 
   try {
-    // Initialize inside the handler to be sure it gets the latest process.env on Vercel
-    // Note: ImageKit Node.js SDK 7.x only requires privateKey in options
-    const imagekit = new ImageKit({
-      privateKey,
-    });
-
+    const imagekit = new ImageKit({ privateKey });
     const authenticationParameters = imagekit.helper.getAuthenticationParameters();
     return NextResponse.json(authenticationParameters);
-  } catch (error: unknown) {
-    console.error("ImageKit Auth Error:", error);
-    const message = error instanceof Error ? error.message : String(error);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to generate authentication parameters", message },
+      { error: "Failed to generate upload credentials." },
       { status: 500 }
     );
   }

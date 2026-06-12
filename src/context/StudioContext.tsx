@@ -196,7 +196,7 @@ interface StudioContextType {
   updateFittings: (clientId: string, fittings: Fitting) => void;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   addAuditLog: (action: string, description: string) => void;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   getActiveClient: () => Client | undefined;
   filteredClients: Client[];
@@ -480,7 +480,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: 'Admin',
     email: 'admin@houseofoath.com',
-    password: 'admin123',
     avatar: null,
     role: 'Admin'
   });
@@ -508,11 +507,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     layoutInit.current = true;
 
     try {
-      const savedAuth = safeGetItem('studio_auth');
-      if (savedAuth === 'true') setIsAuthenticated(true);
       const savedUser = safeGetItem('studio_user');
       if (savedUser) {
-        try { setUserProfile(JSON.parse(savedUser)); } catch { /* corrupt */ }
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (parsed.email) {
+            // Optimistically assume session cookie is still valid; async check below corrects if expired
+            setIsAuthenticated(true);
+            setUserProfile(prev => ({ ...prev, ...parsed }));
+          }
+        } catch { /* corrupt */ }
       }
     } catch { /* ignore */ }
 
@@ -564,7 +568,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
         },
         body: JSON.stringify(c),
       }).catch(() => {});
@@ -587,7 +590,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const res = await fetch('/api/clients', {
           signal: controller.signal,
           cache: 'no-store',
-          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
         });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error('non-ok');
@@ -616,7 +618,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const clientRes = await fetch('/api/clients', {
           signal: controller.signal,
           cache: 'no-store',
-          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
         });
         if (clientRes.ok) {
           const data = await clientRes.json();
@@ -630,7 +631,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const workerRes = await fetch('/api/workers', {
           signal: controller.signal,
           cache: 'no-store',
-          headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
         });
         if (workerRes.ok) {
           const wData = await workerRes.json();
@@ -639,12 +639,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           } else {
             setWorkers(prev => {
               if (prev.length > 0) return prev;
-              const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', password: '123', avatar: null, role: 'Worker' as const };
+              const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', avatar: null, role: 'Worker' as const };
               fetch('/api/workers', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
                 },
                 body: JSON.stringify(defaultWorker),
               });
@@ -692,7 +691,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const timeoutId = setTimeout(() => controller.abort(), 8000);
       const clientRes = await fetch('/api/clients', {
         signal: controller.signal,
-        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
       });
       clearTimeout(timeoutId);
       if (clientRes.ok) {
@@ -712,45 +710,40 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [startSilentBackgroundRetry, mergeWithLocal]);
 
-  const login = useCallback((email: string, password: string): boolean => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     if (!email || !password) return false;
-
-    // Admin login
-    if (email.toLowerCase() === 'admin@houseofoath.com') {
-      if (password === 'admin123') {
-        const adminProfile: UserProfile = { name: 'Admin', email, avatar: null, role: 'Admin', password: 'admin123' };
-        setIsAuthenticated(true);
-        setUserProfile(adminProfile);
-        safeSetItem('studio_auth', 'true');
-        // Persist profile without password
-        const { password: _pw, ...adminProfileToStore } = adminProfile;
-        safeSetItem('studio_user', JSON.stringify(adminProfileToStore));
-        addAuditLog('Login', `Admin logged in successfully.`);
-        return true;
-      }
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) return false;
+      const sessionRes = await fetch('/api/auth/session');
+      if (!sessionRes.ok) return false;
+      const data = await sessionRes.json();
+      if (!data?.isLoggedIn) return false;
+      const profile: UserProfile = {
+        id: data.userId,
+        name: data.name,
+        email: data.email,
+        avatar: null,
+        role: data.role,
+      };
+      setIsAuthenticated(true);
+      setUserProfile(profile);
+      safeSetItem('studio_user', JSON.stringify(profile));
+      addAuditLog('Login', `${data.name} logged in successfully.`);
+      return true;
+    } catch {
       return false;
     }
+  }, [addAuditLog]);
 
-    // Worker login check
-    const matchedWorker = workers.find(w => w.email.toLowerCase() === email.toLowerCase());
-    if (matchedWorker && matchedWorker.password === password) {
-      setIsAuthenticated(true);
-      setUserProfile(matchedWorker);
-      safeSetItem('studio_auth', 'true');
-      // Persist profile without password
-      const { password: _pw, ...workerProfileToStore } = matchedWorker;
-      safeSetItem('studio_user', JSON.stringify(workerProfileToStore));
-      addAuditLog('Login', `Worker ${matchedWorker.name} logged in successfully.`);
-      return true;
-    }
-
-    return false;
-  }, [workers, addAuditLog]);
-
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     addAuditLog('Logout', 'User logged out.');
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
     setIsAuthenticated(false);
-    safeRemoveItem('studio_auth');
     safeRemoveItem('studio_user');
   }, [addAuditLog]);
 
@@ -769,7 +762,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
@@ -799,7 +791,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
         },
         body: JSON.stringify(newWorker),
       }).catch(e => console.warn('API Error:', e));
@@ -812,7 +803,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (useApi) {
       fetch(`/api/workers/${id}`, {
         method: 'DELETE',
-        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
       }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Team Member Removed', `A worker was removed from the team.`);
@@ -866,7 +856,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
         },
         body: JSON.stringify(newClient),
       }).catch(e => console.warn('API Error:', e));
@@ -886,7 +875,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
         },
         body: JSON.stringify({ ...updates, lastActivity: now }),
       }).catch(e => console.warn('API Error:', e));
@@ -935,7 +923,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
@@ -964,7 +951,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
@@ -993,7 +979,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify(updates),
           }).catch(e => console.warn('API Error:', e));
@@ -1021,7 +1006,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
@@ -1054,7 +1038,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '',
             },
             body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }),
           }).catch(e => console.warn('API Error:', e));
@@ -1075,7 +1058,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (useApi) {
       fetch(`/api/clients/${id}`, {
         method: 'DELETE',
-        headers: { 'x-api-secret': process.env.NEXT_PUBLIC_API_SECRET ?? '' },
       }).catch(e => console.warn('API Error:', e));
     }
     addAuditLog('Client Deleted', 'A client record was permanently deleted.');
@@ -1140,6 +1122,28 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('focusout', handleFocusOut);
       clearTimeout(blurTimer);
     };
+  }, []);
+
+  // ── Session verification: correct the optimistic auth state ─────────────
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.isLoggedIn) {
+          setIsAuthenticated(true);
+          setUserProfile(prev => ({
+            ...prev,
+            id: data.userId,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+          }));
+        } else {
+          setIsAuthenticated(false);
+          safeRemoveItem('studio_user');
+        }
+      })
+      .catch(() => { /* keep optimistic state if server is unreachable */ });
   }, []);
 
   // Cycle loading messages while the app initialises
