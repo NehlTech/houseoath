@@ -25,7 +25,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-canvas overflow-x-hidden">
+    <div className="relative flex h-full w-full flex-col bg-canvas overflow-y-auto overflow-x-hidden">
       {/* Decorative Background */}
       <div className="absolute top-0 left-0 w-full h-96 bg-primary/5 blur-[120px] pointer-events-none" />
 
