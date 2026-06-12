@@ -4,7 +4,14 @@ import type { SessionData } from './lib/session';
 
 const COOKIE_NAME = 'hoath-session';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

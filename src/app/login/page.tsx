@@ -77,7 +77,7 @@ export default function LoginPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <label className="text-gray text-xs font-bold uppercase tracking-wider">Password</label>
-                  <a className="text-primary text-xs font-bold uppercase tracking-wider hover:text-primary/70 transition-colors" href="#">Forgot password?</a>
+                  <a className="text-primary text-xs font-bold uppercase tracking-wider hover:text-primary/70 transition-colors" href="/forgot-password">Forgot password?</a>
                 </div>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">lock</span>
