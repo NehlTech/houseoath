@@ -90,9 +90,12 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
         className="bg-card rounded-t-2xl md:rounded-2xl shadow-2xl w-full md:max-w-md max-h-[92vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Drag handle — mobile only */}
-        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 bg-border rounded-full" />
+        {/* Status-bar spacer + drag handle — mobile only */}
+        <div className="md:hidden shrink-0">
+          <div className="ios-status-spacer" />
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 bg-border rounded-full" />
+          </div>
         </div>
 
         {/* Header */}

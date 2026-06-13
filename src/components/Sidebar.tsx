@@ -420,8 +420,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
     <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: '100%', overflow: 'hidden' }}>
       {/* ── STATIC TOP: always visible ── */}
       <div className="bg-card" style={{ minHeight: 0 }}>
-        {/* Status-bar spacer — iOS Safari only (see globals.css .ios-status-spacer) */}
-        <div className="md:hidden ios-status-spacer" />
         {/* Top Header */}
         <div className="flex items-center gap-3 p-3">
           {/* Hamburger — toggles sidebar drawer (desktop only) */}
