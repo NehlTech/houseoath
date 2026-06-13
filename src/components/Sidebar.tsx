@@ -417,7 +417,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
   };
 
   return (
-    <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: '100%', overflow: 'hidden' }}>
+    <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', overflow: 'hidden' }}>
       {/* ── STATIC TOP: always visible ── */}
       <div className="bg-card" style={{ minHeight: 0 }}>
         {/* Top Header */}
@@ -559,7 +559,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
       <div className="relative overflow-hidden bg-card group/list">
         <div
           ref={listScrollRef}
-          className="h-full overflow-y-auto relative select-none pb-20 md:pb-0"
+          className="h-full overflow-y-auto relative select-none pb-4"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -616,35 +616,6 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
             </div>
           )}
 
-          {/* Profile card — sticky at the bottom of the scroll area */}
-          <div className="sticky bottom-0 bg-card border-t border-border/40 z-10 mt-4">
-            <button
-              onClick={onOpenProfile}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-canvas transition-colors text-left"
-            >
-              {userProfile.avatar ? (
-                <div className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center shadow-sm"
-                  style={{ backgroundImage: `url('${userProfile.avatar}')` }} />
-              ) : (
-                <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-sm"
-                  style={{ background: getAvatarColor(userProfile.name) }}>
-                  {userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-charcoal truncate leading-tight">{userProfile.name}</p>
-                <p className="text-[11px] text-muted truncate">{userProfile.email}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
-                  userProfile.role === 'Admin' ? 'bg-primary text-black' : 'bg-canvas text-gray border border-border'
-                }`}>
-                  {userProfile.role}
-                </span>
-                <span className="material-symbols-outlined text-muted text-[18px]">chevron_right</span>
-              </div>
-            </button>
-          </div>
         </div>
 
         {/* FAB — Admin only; raised above the mobile bottom nav bar */}
@@ -659,6 +630,36 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
             </button>
           </div>
         )}
+      </div>
+
+      {/* ── PROFILE CARD: always visible, sits above the mobile nav ── */}
+      <div className="bg-card border-t border-border/40 pb-[72px] md:pb-0">
+        <button
+          onClick={onOpenProfile}
+          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-canvas transition-colors text-left"
+        >
+          {userProfile.avatar ? (
+            <div className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center shadow-sm"
+              style={{ backgroundImage: `url('${userProfile.avatar}')` }} />
+          ) : (
+            <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-sm"
+              style={{ background: getAvatarColor(userProfile.name) }}>
+              {userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-charcoal truncate leading-tight">{userProfile.name}</p>
+            <p className="text-[11px] text-muted truncate">{userProfile.email}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+              userProfile.role === 'Admin' ? 'bg-primary text-black' : 'bg-canvas text-gray border border-border'
+            }`}>
+              {userProfile.role}
+            </span>
+            <span className="material-symbols-outlined text-muted text-[18px]">chevron_right</span>
+          </div>
+        </button>
       </div>
 
       {/* ── STATIC BOTTOM: always visible on mobile ── */}
