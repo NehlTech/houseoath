@@ -1,11 +1,10 @@
 ﻿'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function InviteVerifier() {
  const searchParams = useSearchParams();
- const router = useRouter();
  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
  const [message, setMessage] = useState('');
 
@@ -27,7 +26,7 @@ function InviteVerifier() {
  if (data.ok) {
  setMessage(`Welcome, ${data.name}! Redirecting you to the studio…`);
  setStatus('success');
- setTimeout(() => router.replace('/'), 2000);
+ setTimeout(() => { window.location.replace('/'); }, 2000);
  } else {
  setStatus('error');
  setMessage(data.error || 'This invite link is invalid or has already been used.');

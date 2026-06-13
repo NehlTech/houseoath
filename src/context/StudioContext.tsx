@@ -754,8 +754,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  const logout = useCallback(async () => {
  addAuditLog('Logout', 'User logged out.');
  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
- setIsAuthenticated(false);
  safeRemoveItem('studio_user');
+ window.location.replace('/login');
  }, [addAuditLog]);
 
  const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
