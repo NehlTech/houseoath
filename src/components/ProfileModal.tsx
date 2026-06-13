@@ -83,15 +83,20 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 md:bg-black/40 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div
         className="bg-card rounded-t-2xl md:rounded-2xl shadow-2xl w-full md:max-w-md max-h-[92vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
+        {/* Drag handle — mobile only */}
+        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 bg-border rounded-full" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-5 pb-4 shrink-0">
+        <div className="flex items-center justify-between px-5 pt-3 pb-4 md:p-5 md:pb-4 shrink-0">
           <div className="flex items-center gap-4">
             {/* Avatar — click to upload */}
             <div className="relative cursor-pointer shrink-0" onClick={() => profileFileRef.current?.click()}>
