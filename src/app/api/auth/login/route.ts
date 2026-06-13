@@ -22,13 +22,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password } = await request.json();
+    const { email, password, rememberMe } = await request.json();
 
     if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
     const normalisedEmail = email.trim().toLowerCase();
+    // rememberMe=true → 30 days; false/default → 8 hours
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 8 * 60 * 60;
+    const sessionOpts = {
+      ...sessionOptions,
+      cookieOptions: { ...sessionOptions.cookieOptions, maxAge },
+    };
 
     // ── Admin login ────────────────────────────────────────────────────────
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -59,7 +65,7 @@ export async function POST(request: NextRequest) {
       }
 
       const cookieStore = await cookies();
-      const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+      const session = await getIronSession<SessionData>(cookieStore, sessionOpts);
       session.isLoggedIn = true;
       session.userId = 'admin';
       session.email = normalisedEmail;
@@ -76,6 +82,10 @@ export async function POST(request: NextRequest) {
     const worker = await db.collection('workers').findOne({ email: normalisedEmail });
 
     if (!worker || !worker.password) {
+      // Worker exists but has no password — they must use their invite link
+      if (worker && !worker.password) {
+        return NextResponse.json({ error: 'Please use the invite link sent to your email to sign in.' }, { status: 401 });
+      }
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -98,15 +108,15 @@ export async function POST(request: NextRequest) {
     }
 
     const cookieStore = await cookies();
-    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+    const session = await getIronSession<SessionData>(cookieStore, sessionOpts);
     session.isLoggedIn = true;
     session.userId = worker.id ?? worker._id.toString();
     session.email = normalisedEmail;
     session.name = worker.name;
-    session.role = 'Worker';
+    session.role = worker.role === 'Admin' ? 'Admin' : 'Worker';
     await session.save();
 
-    return NextResponse.json({ name: worker.name, email: normalisedEmail, role: 'Worker' });
+    return NextResponse.json({ name: worker.name, email: normalisedEmail, role: session.role });
   } catch {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 });
   }

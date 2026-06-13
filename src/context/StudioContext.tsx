@@ -196,12 +196,12 @@ interface StudioContextType {
   updateFittings: (clientId: string, fittings: Fitting) => void;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   addAuditLog: (action: string, description: string) => void;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   getActiveClient: () => Client | undefined;
   filteredClients: Client[];
   addProductionNote: (clientId: string, noteText: string) => void;
-  addWorker: (name: string, email: string, password?: string) => void;
+  addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => void;
   removeWorker: (id: string) => void;
   sessionChecked: boolean;
   apiError: boolean;
@@ -705,13 +705,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [startSilentBackgroundRetry, mergeWithLocal]);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
     if (!email || !password) return false;
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
       if (!res.ok) return false;
       const sessionRes = await fetch('/api/auth/session');
@@ -771,26 +771,23 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     });
   }, [useApi, addAuditLog]);
 
-  const addWorker = useCallback((name: string, email: string, password?: string) => {
+  const addWorker = useCallback((name: string, email: string, role: 'Worker' | 'Admin' = 'Worker') => {
     const newWorker: UserProfile = {
       id: crypto.randomUUID(),
       name,
       email,
-      ...(password ? { password } : {}),
       avatar: null,
-      role: 'Worker'
+      role,
     };
     setWorkers(prev => [...prev, newWorker]);
     if (useApi) {
       fetch('/api/workers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newWorker),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, role }),
       }).catch(e => console.warn('API Error:', e));
     }
-    addAuditLog('Team Member Added', `Worker ${name} (${email}) was added to the team.`);
+    addAuditLog('Team Member Added', `${role} ${name} (${email}) was added to the team.`);
   }, [useApi, addAuditLog]);
 
   const removeWorker = useCallback((id: string) => {

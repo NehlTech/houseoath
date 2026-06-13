@@ -8,11 +8,13 @@ const PUBLIC_PATHS = [
   '/login',
   '/forgot-password',
   '/reset-password',
+  '/invite',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/session',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
+  '/api/auth/verify-invite',
 ];
 
 // Security headers applied to every response.

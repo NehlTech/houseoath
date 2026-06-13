@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Client, useStudio, DesignIllustration, FeedbackComment } from '@/context/StudioContext';
 import { uploadToImageKit } from '@/lib/imagekit';
+import { playSound } from '@/lib/sounds';
 
 interface IllustrationTabProps {
   client: Client;
@@ -214,6 +215,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
       }
     }
     setIsUploading(false);
+    playSound('upload-done');
     e.target.value = '';
   };
 
@@ -472,6 +474,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
                 onClick={e => {
                   e.stopPropagation();
                   if (!confirm(`Delete "${ill.name}"? This cannot be undone.`)) return;
+                  playSound('delete');
                   const newList = illustrations.filter((_, idx) => idx !== i);
                   updateClient(client.id, { illustrations: newList });
                   setSelectedIndex(Math.max(0, selectedIndex - (i <= selectedIndex ? 1 : 0)));

@@ -2,12 +2,13 @@
 
 import { useStudio } from '@/context/StudioContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ClientWorkspace from '@/components/ClientWorkspace';
 import EmptyState from '@/components/EmptyState';
 import NewClientModal from '@/components/NewClientModal';
 import SettingsModal from '@/components/SettingsModal';
+import { useInactivityTimer } from '@/hooks/useInactivityTimer';
 
 export default function Dashboard() {
   const { isAuthenticated, sessionChecked, activeClient, setActiveClient } = useStudio();
@@ -16,6 +17,14 @@ export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [mobileShowWorkspace, setMobileShowWorkspace] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [inactiveSecsLeft, setInactiveSecsLeft] = useState(0);
+
+  const handleInactiveLogout = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    router.push('/login?reason=inactive');
+  }, [router]);
+
+  useInactivityTimer(isAuthenticated, setInactiveSecsLeft, handleInactiveLogout);
 
   useEffect(() => {
     // Only redirect after the server has confirmed the session is invalid.
@@ -84,6 +93,19 @@ export default function Dashboard() {
 
       {showNewClient && <NewClientModal onClose={() => setShowNewClient(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+      {/* Inactivity warning banner */}
+      {inactiveSecsLeft > 0 && (
+        <div className="fixed bottom-20 md:bottom-4 right-4 z-[9999] bg-orange-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-fade-in max-w-xs">
+          <span className="material-symbols-outlined text-white text-xl shrink-0">timer</span>
+          <div>
+            <p className="font-bold text-sm leading-tight">
+              Auto-logout in {Math.floor(inactiveSecsLeft / 60)}:{String(inactiveSecsLeft % 60).padStart(2, '0')}
+            </p>
+            <p className="text-xs opacity-80 mt-0.5">Move your mouse to stay logged in</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

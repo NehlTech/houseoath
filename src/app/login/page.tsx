@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useStudio();
   const router = useRouter();
 
@@ -18,7 +19,7 @@ export default function LoginPage() {
     if (!email || !password) { setError('Please fill in all fields'); return; }
     setLoading(true);
     setError('');
-    const success = await login(email, password);
+    const success = await login(email, password, rememberMe);
     if (success) {
       router.push('/');
     } else {
@@ -96,7 +97,7 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-center gap-2 mt-2">
-                <input className="rounded border-none text-primary focus:ring-primary bg-transparent" id="remember" type="checkbox" />
+                <input className="rounded border-none text-primary focus:ring-primary bg-transparent" id="remember" type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
                 <label className="text-[11px] font-bold tracking-wider text-gray" htmlFor="remember">Keep me logged in</label>
               </div>
 

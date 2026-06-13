@@ -13,6 +13,7 @@ import FittingsTab from './tabs/FittingsTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import TimelineTab from './tabs/TimelineTab';
 import ConsultationModal from './ConsultationModal';
+import { playSound } from '@/lib/sounds';
 
 interface ClientWorkspaceProps {
   client: Client;
@@ -47,6 +48,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
     const today = new Date().toISOString().split('T')[0];
     updateClient(client.id, { delivered: true, deliveryDate: today, status: 'Completed' });
     addTimelineEvent(client.id, 'Order Delivered', `Order completed and delivered to ${client.name}.`);
+    playSound('enable');
   };
 
   const handleMarkUndelivered = () => {
@@ -57,6 +59,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
   const handleMarkFittingDone = () => {
     updateClient(client.id, { fittingDone: true });
     addTimelineEvent(client.id, 'Fitting Completed', 'Client fitting session completed successfully.');
+    playSound('enable');
   };
 
   const handleMarkUnfitted = () => {
@@ -158,6 +161,8 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
+      {/* Single scrollable region — header scrolls, tabs become sticky within it */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
       {/* Client Header — background image */}
       <div className="relative overflow-hidden" style={{
         backgroundImage: 'url(/workerspaceheader-bg.jpg)',
@@ -363,8 +368,9 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
         </div>
       </div>
 
-      {/* Desktop Tabs */}
-      <div className="hidden md:block w-full overflow-x-auto bg-card ">
+      {/* Desktop Tabs — sticky inside scroll container */}
+      <div className="sticky top-0 z-20 hidden md:block bg-card shadow-sm">
+        <div className="overflow-x-auto">
         <nav className="flex min-w-max px-6">
           {tabs.map(tab => (
             <button
@@ -383,10 +389,12 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             </button>
           ))}
         </nav>
+        </div>
       </div>
 
-      {/* Mobile Tabs */}
-      <div className="md:hidden w-full bg-card  overflow-x-auto no-scrollbar">
+      {/* Mobile Tabs — sticky inside scroll container */}
+      <div className="sticky top-0 z-20 md:hidden bg-card shadow-sm">
+        <div className="overflow-x-auto no-scrollbar">
         <nav className="flex px-2 min-w-max">
           {['Dashboard', 'Measurements', 'Fittings', 'Fabric'].map(tab => (
             <button
@@ -405,12 +413,12 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
             </button>
           ))}
         </nav>
+        </div>
       </div>
 
       {/* Tab Content */}
-      <div 
-        ref={scrollRef} 
-        className="flex-1 overflow-y-auto p-4 md:p-6 mx-auto w-full max-w-[1200px] mb-16 md:mb-0 select-none"
+      <div
+        className="p-4 md:p-6 mx-auto w-full max-w-[1200px] mb-16 md:mb-0 select-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -426,6 +434,7 @@ export default function ClientWorkspace({ client, onBack }: ClientWorkspaceProps
       >
         {renderTab()}
       </div>
+      </div>{/* end scrollable region */}
 
       {showConsultation && (
         <ConsultationModal client={client} onClose={() => setShowConsultation(false)} />
