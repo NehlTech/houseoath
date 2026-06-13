@@ -11,40 +11,53 @@ interface IllustrationTabProps {
 }
 
 
-function extractColorsFromImage(imgUrl: string): Promise<string[]> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const size = 60;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve([]); return; }
-        ctx.drawImage(img, 0, 0, size, size);
-        const data = ctx.getImageData(0, 0, size, size).data;
-        const colorCounts = new Map<string, number>();
-        for (let i = 0; i < data.length; i += 16) {
-          const r = data[i], g = data[i + 1], b = data[i + 2];
-          if (r > 245 && g > 245 && b > 245) continue;
-          if (r < 10 && g < 10 && b < 10) continue;
-          const qr = Math.round(r / 40) * 40;
-          const qg = Math.round(g / 40) * 40;
-          const qb = Math.round(b / 40) * 40;
-          const hex = `#${qr.toString(16).padStart(2, '0')}${qg.toString(16).padStart(2, '0')}${qb.toString(16).padStart(2, '0')}`;
-          colorCounts.set(hex, (colorCounts.get(hex) || 0) + 1);
-        }
-        const sorted = [...colorCounts.entries()].sort((a, b) => b[1] - a[1]);
-        resolve(sorted.slice(0, 6).map(e => e[0]));
-      } catch {
-        resolve([]);
-      }
-    };
-    img.onerror = () => resolve([]);
-    img.src = imgUrl;
-  });
+function sampleCanvasColors(img: HTMLImageElement): string[] {
+  const canvas = document.createElement('canvas');
+  const size = 80;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return [];
+  ctx.drawImage(img, 0, 0, size, size);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  const colorCounts = new Map<string, number>();
+  for (let i = 0; i < data.length; i += 12) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    if (r > 245 && g > 245 && b > 245) continue;
+    if (r < 10 && g < 10 && b < 10) continue;
+    const qr = Math.round(r / 36) * 36;
+    const qg = Math.round(g / 36) * 36;
+    const qb = Math.round(b / 36) * 36;
+    const hex = `#${qr.toString(16).padStart(2, '0')}${qg.toString(16).padStart(2, '0')}${qb.toString(16).padStart(2, '0')}`;
+    colorCounts.set(hex, (colorCounts.get(hex) || 0) + 1);
+  }
+  const sorted = [...colorCounts.entries()].sort((a, b) => b[1] - a[1]);
+  return sorted.slice(0, 6).map(e => e[0]);
+}
+
+async function extractColorsFromImage(imgUrl: string): Promise<string[]> {
+  // Fetch as blob → same-origin blob URL → canvas reads without CORS taint
+  try {
+    const resp = await fetch(imgUrl, { mode: 'cors' });
+    if (!resp.ok) throw new Error('fetch failed');
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(blobUrl); try { resolve(sampleCanvasColors(img)); } catch { resolve([]); } };
+      img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve([]); };
+      img.src = blobUrl;
+    });
+  } catch {
+    // Fallback: direct load with crossOrigin hint
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { try { resolve(sampleCanvasColors(img)); } catch { resolve([]); } };
+      img.onerror = () => resolve([]);
+      img.src = imgUrl;
+    });
+  }
 }
 
 // Singleton pdfjs loader — loads once, cached for the session
@@ -92,6 +105,9 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
   const [editVersion, setEditVersion] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editNotes, setEditNotes] = useState('');
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [isExtractingColors, setIsExtractingColors] = useState(false);
 
   const illustrations = client.illustrations || [];
   const selected = illustrations[selectedIndex] || illustrations[0];
@@ -164,12 +180,17 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
+    setIsUploading(true);
     for (const [index, file] of Array.from(files).entries()) {
       try {
         const result = await uploadToImageKit(file, `ill-${client.name}-${Date.now()}`);
         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
         let autoColors: string[] = [];
-        if (!isPdf) autoColors = await extractColorsFromImage(result.url).catch(() => []);
+        if (!isPdf) {
+          setIsExtractingColors(true);
+          autoColors = await extractColorsFromImage(result.url).catch(() => []);
+          setIsExtractingColors(false);
+        }
         const newIll: DesignIllustration = {
           id: `ill-${Date.now()}-${index}`,
           name: isPdf ? `PDF Design — ${file.name.replace(/\.pdf$/i, '')}` : 'Custom Design Concept',
@@ -187,12 +208,42 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
           comments: [],
         };
         updateClient(client.id, { illustrations: [...(client.illustrations || []), newIll] });
-        setSelectedIndex((client.illustrations || []).length);
+        setSelectedIndex((client.illustrations || []).length + index);
       } catch {
         alert('Failed to upload file to Cloud. Please check your connection.');
       }
     }
+    setIsUploading(false);
     e.target.value = '';
+  };
+
+  // ── Create blank concept ─────────────────────────────────────────────────────
+  const handleCreateBlank = () => {
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const newIll: DesignIllustration = {
+      id: `ill-${Date.now()}`,
+      name: 'New Design Concept',
+      version: 'v1.0',
+      type: 'Upload',
+      image: '',
+      status: 'Draft',
+      notes: '',
+      colors: [],
+      timeline: { start: today, lastRevised: today, revisions: 0 },
+      comments: [],
+    };
+    const newList = [...(client.illustrations || []), newIll];
+    updateClient(client.id, { illustrations: newList });
+    setSelectedIndex(newList.length - 1);
+  };
+
+  // ── Re-extract colors from current illustration ──────────────────────────────
+  const handleReextractColors = async () => {
+    if (!selected?.image || selected.type === 'PDF' || isExtractingColors) return;
+    setIsExtractingColors(true);
+    const colors = await extractColorsFromImage(selected.image).catch(() => []);
+    setIsExtractingColors(false);
+    if (colors.length > 0) handleUpdateCurrent({ colors });
   };
 
   // ── Comments ─────────────────────────────────────────────────────────────────
@@ -356,15 +407,24 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
       </div>
       <div className="text-center space-y-1">
         <p className="font-bold text-charcoal tracking-wide">No illustrations yet</p>
-        <p className="text-sm text-muted">Upload a sketch, render, or PDF to get started.</p>
+        <p className="text-sm text-muted">Upload a sketch, render, or PDF — or start a blank concept.</p>
       </div>
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-charcoal font-bold text-sm tracking-wide rounded-xl shadow-md hover:bg-[#E5C04A] transition-all"
-      >
-        <span className="material-symbols-outlined text-[18px]">upload</span>
-        Upload illustration
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-charcoal font-bold text-sm tracking-wide rounded-xl shadow-md hover:bg-[#E5C04A] transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">upload</span>
+          Upload illustration
+        </button>
+        <button
+          onClick={handleCreateBlank}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm tracking-wide rounded-xl shadow-sm hover:bg-slate-50 transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">add_circle</span>
+          New concept
+        </button>
+      </div>
       <input ref={fileInputRef} type="file" className="hidden" accept="image/*,application/pdf,.pdf" multiple onChange={handleUpload} />
     </div>
   );
@@ -394,8 +454,13 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
                 <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center">
                   <span className="material-symbols-outlined text-2xl text-primary/50">picture_as_pdf</span>
                 </div>
-              ) : (
+              ) : ill.image ? (
                 <div className="w-full h-full bg-center bg-cover" style={{ backgroundImage: `url('${ill.image}')` }} />
+              ) : (
+                <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center">
+                  <span className="material-symbols-outlined text-xl text-slate-400">image</span>
+                  <p className="text-[9px] text-slate-400 mt-1 text-center px-1 leading-tight">No image</p>
+                </div>
               )}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5 flex flex-col items-center">
                 <p className="text-[10px] text-white font-bold truncate w-full text-center">{ill.version}</p>
@@ -404,11 +469,27 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
             </div>
           ))}
           {/* Upload new */}
-          <div onClick={() => fileInputRef.current?.click()}
-            className="flex-shrink-0 w-24 lg:w-full aspect-[3/4] rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/10 transition-all py-4"
+          <div onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={`flex-shrink-0 w-24 lg:w-full aspect-[3/4] rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/10 transition-all py-4 ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
           >
-            <span className="material-symbols-outlined text-primary text-2xl">upload</span>
-            <p className="text-[10px] font-bold text-primary mt-1 text-center leading-tight px-2">Upload Image / PDF</p>
+            {isUploading ? (
+              <>
+                <span className="material-symbols-outlined text-primary text-2xl animate-spin" style={{ animationDuration: '1.2s' }}>progress_activity</span>
+                <p className="text-[10px] font-bold text-primary mt-1 text-center leading-tight px-2">Uploading…</p>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-primary text-2xl">upload</span>
+                <p className="text-[10px] font-bold text-primary mt-1 text-center leading-tight px-2">Upload Image / PDF</p>
+              </>
+            )}
+          </div>
+          {/* New blank concept */}
+          <div onClick={handleCreateBlank}
+            className="flex-shrink-0 w-24 lg:w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-all py-4"
+          >
+            <span className="material-symbols-outlined text-slate-400 text-2xl">add_circle</span>
+            <p className="text-[10px] font-bold text-slate-500 mt-1 text-center leading-tight px-2">New Concept</p>
           </div>
           <input ref={fileInputRef} type="file" className="hidden" accept="image/*,application/pdf,.pdf" multiple onChange={handleUpload} />
         </div>
@@ -426,9 +507,11 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
             ) : (
               <h2 onClick={() => setIsEditingTitle(true)} className="text-lg sm:text-xl font-extrabold text-slate-900 italic cursor-pointer hover:text-primary transition-colors flex-1">{selected.name}</h2>
             )}
-            <button onClick={openLightbox} className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors ml-auto sm:ml-0" title="Fullscreen / Crop">
-              <span className="material-symbols-outlined text-lg">fullscreen</span>
-            </button>
+            {selected.image && (
+              <button onClick={openLightbox} className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors ml-auto sm:ml-0" title="Fullscreen / Crop">
+                <span className="material-symbols-outlined text-lg">fullscreen</span>
+              </button>
+            )}
           </div>
 
           {/* Large preview */}
@@ -439,8 +522,17 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
                 <p className="text-sm font-semibold text-slate-500 px-4 text-center">{selected.name}</p>
                 <p className="text-xs text-slate-400 mt-1">Tap to view or crop</p>
               </div>
-            ) : (
+            ) : selected.image ? (
               <div className="w-full aspect-[3/4] md:aspect-[4/5] bg-center bg-cover bg-no-repeat cursor-pointer transition-transform duration-700 ease-in-out group-hover:scale-105" style={{ backgroundImage: `url('${selected.image}')` }} onClick={openLightbox} />
+            ) : (
+              <div
+                className="w-full aspect-[3/4] md:aspect-[4/5] flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span className="material-symbols-outlined text-5xl text-slate-300 mb-3">image</span>
+                <p className="text-sm font-semibold text-slate-400">No image yet</p>
+                <p className="text-xs text-slate-300 mt-1">Click to upload an image or PDF</p>
+              </div>
             )}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-12 pb-4 px-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
               <div>
@@ -497,21 +589,43 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
                   <span className="material-symbols-outlined text-primary text-lg">palette</span>
                   <h4 className="font-bold text-sm text-slate-900">Color Palette</h4>
                 </div>
-                <button onClick={() => colorInputRef.current?.click()} className="text-primary hover:scale-110 transition-transform flex items-center justify-center bg-primary/10 rounded-full p-1">
-                  <span className="material-symbols-outlined text-[16px]">add</span>
-                </button>
+                <div className="flex items-center gap-1">
+                  {selected.image && selected.type !== 'PDF' && (
+                    <button onClick={handleReextractColors} disabled={isExtractingColors} className="text-slate-400 hover:text-primary transition-colors flex items-center justify-center bg-slate-100 hover:bg-primary/10 rounded-full p-1 disabled:opacity-50" title="Re-extract colors from image">
+                      <span className={`material-symbols-outlined text-[16px] ${isExtractingColors ? 'animate-spin' : ''}`} style={isExtractingColors ? { animationDuration: '1.2s' } : {}}>
+                        {isExtractingColors ? 'progress_activity' : 'colorize'}
+                      </span>
+                    </button>
+                  )}
+                  <button onClick={() => colorInputRef.current?.click()} className="text-primary hover:scale-110 transition-transform flex items-center justify-center bg-primary/10 rounded-full p-1">
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                  </button>
+                </div>
                 <input type="color" className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none w-px h-px" ref={colorInputRef} onChange={addColor} />
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {(selected.colors || []).map(color => (
-                  <div key={color} className="w-8 h-8 rounded-lg shadow-sm cursor-pointer hover:scale-110 transition-transform relative group" style={{ background: color }} onClick={() => removeColor(color)} title="Click to remove">
-                    <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full size-4 flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm transition-opacity">
-                      <span className="material-symbols-outlined text-[10px] font-bold">close</span>
+              {isExtractingColors ? (
+                <div className="flex items-center gap-2 py-2">
+                  <span className="material-symbols-outlined text-primary/50 text-sm animate-spin" style={{ animationDuration: '1.2s' }}>progress_activity</span>
+                  <span className="text-xs text-slate-400 italic">Extracting colors from image…</span>
+                </div>
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {(selected.colors || []).map(color => (
+                    <div key={color} className="w-8 h-8 rounded-lg shadow-sm cursor-pointer hover:scale-110 transition-transform relative group" style={{ background: color }} onClick={() => removeColor(color)} title={`${color} — click to remove`}>
+                      <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full size-4 flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm transition-opacity">
+                        <span className="material-symbols-outlined text-[10px] font-bold">close</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {!(selected.colors?.length) && <span className="text-xs text-slate-400 italic">No colors selected</span>}
-              </div>
+                  ))}
+                  {!(selected.colors?.length) && (
+                    <div className="w-full">
+                      <span className="text-xs text-slate-400 italic block mb-1">
+                        {selected.image && selected.type !== 'PDF' ? 'Tap the colorize icon to extract colors from the image' : 'No colors yet — use + to add manually'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-primary/10 shadow-sm">
