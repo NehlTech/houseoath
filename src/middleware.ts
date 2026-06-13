@@ -15,6 +15,38 @@ const PUBLIC_PATHS = [
   '/api/auth/reset-password',
 ];
 
+// Security headers applied to every response.
+// CSP uses unsafe-inline for scripts/styles — nonce-based CSP requires
+// Next.js to inject nonces into every generated script tag, which is not
+// wired up here. The remaining directives (frame-ancestors, form-action,
+// base-uri) still provide meaningful clickjacking and injection protection.
+const SECURITY_HEADERS: [string, string][] = [
+  [
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://ik.imagekit.io",
+      "connect-src 'self' https://ik.imagekit.io https://upload.imagekit.io",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '),
+  ],
+  ['X-Frame-Options', 'DENY'],
+  ['X-Content-Type-Options', 'nosniff'],
+  ['Referrer-Policy', 'strict-origin-when-cross-origin'],
+];
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  for (const [key, value] of SECURITY_HEADERS) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -22,34 +54,10 @@ export async function middleware(request: NextRequest) {
     PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    /\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?)$/.test(pathname);
-
-  // Generate a per-request nonce for CSP (Web Crypto API — Edge-compatible)
-  const nonceBytes = new Uint8Array(16);
-  globalThis.crypto.getRandomValues(nonceBytes);
-  const nonce = btoa(String.fromCharCode(...nonceBytes));
-
-  const csp = [
-    `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'`,
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
-    `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' data: blob: https:`,
-    `connect-src 'self'`,
-    `frame-ancestors 'none'`,
-    `base-uri 'self'`,
-    `form-action 'self'`,
-  ].join('; ');
+    /\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|html|json|txt|mjs|js)$/.test(pathname);
 
   if (isPublic) {
-    const response = NextResponse.next({
-      request: { headers: new Headers({ ...Object.fromEntries(request.headers), 'x-nonce': nonce }) },
-    });
-    response.headers.set('Content-Security-Policy', csp);
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    return response;
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const secret = process.env.SESSION_SECRET;
@@ -73,14 +81,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const response = NextResponse.next({
-    request: { headers: new Headers({ ...Object.fromEntries(request.headers), 'x-nonce': nonce }) },
-  });
-  response.headers.set('Content-Security-Policy', csp);
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  return response;
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {
