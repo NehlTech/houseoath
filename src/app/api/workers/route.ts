@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Role: only 'Worker' or 'Admin' allowed
     body.role = body.role === 'Admin' ? 'Admin' : 'Worker';
+    body.status = 'Active';
 
     const dbClient = await clientPromise;
     const db = dbClient.db(DB_NAME);

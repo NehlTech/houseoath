@@ -107,6 +107,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
+    if (worker.status === 'Archived') {
+      return NextResponse.json({ error: 'Your account has been deactivated. Contact your Admin.' }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOpts);
     session.isLoggedIn = true;

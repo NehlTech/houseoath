@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useStudio } from '@/context/StudioContext';
@@ -9,7 +9,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
- const { userProfile, auditLogs, workers, addWorker, removeWorker } = useStudio();
+ const { userProfile, auditLogs, workers, clients, addWorker, removeWorker, archiveWorker, restoreWorker } = useStudio();
  const isAdmin = userProfile.role === 'Admin';
 
  const [activeTab, setActiveTab] = useState<'team' | 'audit'>('team');
@@ -17,6 +17,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  const [newWorkerEmail, setNewWorkerEmail] = useState('');
  const [newWorkerRole, setNewWorkerRole] = useState<'Worker' | 'Admin'>('Worker');
  const [inviteSent, setInviteSent] = useState(false);
+ const [showArchived, setShowArchived] = useState(false);
+
+ // { id, type: 'archive' | 'delete' } — which worker row is showing inline confirm
+ const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'archive' | 'delete' } | null>(null);
+
+ const activeWorkers = workers.filter(w => w.status !== 'Archived');
+ const archivedWorkers = workers.filter(w => w.status === 'Archived');
+ const assignedCount = (workerName: string) => clients.filter(c => c.assignedWorker === workerName).length;
 
  // Workers only see a minimal empty state — their entry point is Profile
  if (!isAdmin) {
@@ -153,36 +161,161 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  </div>
  </form>
 
+ {/* Active workers */}
  <div className="space-y-3">
- <h5 className="font-bold tracking-wide text-charcoal">Current Team ({workers.length})</h5>
- {workers.length > 0 ? workers.map(worker => (
- <div key={worker.id} className="flex items-center justify-between p-4 rounded-xl bg-canvas hover:bg-border/30 transition-colors group">
- <div className="flex items-center gap-4">
- <div className="h-10 w-10 rounded-full font-bold text-white flex items-center justify-center shadow-sm text-sm" style={{ backgroundColor: getAvatarColor(worker.name) }}>
+ <h5 className="font-bold tracking-wide text-charcoal">Current Team ({activeWorkers.length})</h5>
+ {activeWorkers.length > 0 ? activeWorkers.map(worker => {
+ const isConfirming = confirmAction?.id === worker.id;
+ const clientCount = assignedCount(worker.name);
+ return (
+ <div key={worker.id} className="rounded-xl bg-canvas transition-colors group overflow-hidden">
+ {/* Worker info row */}
+ <div className="flex items-center justify-between p-4">
+ <div className="flex items-center gap-4 min-w-0">
+ <div className="h-10 w-10 shrink-0 rounded-full font-bold text-white flex items-center justify-center shadow-sm text-sm" style={{ backgroundColor: getAvatarColor(worker.name) }}>
  {worker.name.charAt(0)}
  </div>
- <div>
- <div className="flex items-center gap-2">
- <p className="font-bold text-sm text-charcoal tracking-wide">{worker.name}</p>
- <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded-full ${
- worker.role === 'Admin' ? 'bg-primary/15 text-primary' : 'bg-canvas border border-border text-muted'
+ <div className="min-w-0">
+ <div className="flex items-center gap-2 flex-wrap">
+ <p className="font-bold text-sm text-charcoal">{worker.name}</p>
+ <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
+ worker.role === 'Admin' ? 'bg-primary/15 text-primary' : 'bg-white border border-border text-muted'
  }`}>{worker.role}</span>
+ {clientCount > 0 && (
+ <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+ {clientCount} client{clientCount !== 1 ? 's' : ''}
+ </span>
+ )}
  </div>
- <p className="text-xs text-muted font-medium">{worker.email}</p>
+ <p className="text-xs text-muted font-medium truncate">{worker.email}</p>
  </div>
  </div>
+ {/* Action buttons — always visible */}
+ {!isConfirming && (
+ <div className="flex items-center gap-1 shrink-0 ml-2">
  <button
- onClick={() => worker.id && removeWorker(worker.id)}
- className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:bg-danger/10 hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
- title="Remove Worker"
+ onClick={() => setConfirmAction({ id: worker.id!, type: 'archive' })}
+ className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:bg-warning/10 hover:text-warning transition-colors"
+ title="Archive worker"
+ >
+ <span className="material-symbols-outlined text-[18px]">inventory_2</span>
+ </button>
+ <button
+ onClick={() => setConfirmAction({ id: worker.id!, type: 'delete' })}
+ className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+ title="Permanently remove"
  >
  <span className="material-symbols-outlined text-[18px]">delete</span>
  </button>
  </div>
- )) : (
- <p className="text-sm text-muted italic bg-canvas p-6 rounded-xl text-center">No workers added yet.</p>
  )}
  </div>
+
+ {/* Inline confirmation banner */}
+ {isConfirming && confirmAction?.type === 'archive' && (
+ <div className="px-4 pb-4 animate-fade-in">
+ <div className="bg-warning/10 border border-warning/20 rounded-xl px-4 py-3">
+ <p className="text-xs font-semibold text-charcoal mb-2">
+ Archive {worker.name}?
+ {clientCount > 0 && (
+ <span className="font-normal text-gray ml-1">
+ They have {clientCount} assigned client{clientCount !== 1 ? 's' : ''} — assignments will stay but they won&apos;t be able to log in.
+ </span>
+ )}
+ {clientCount === 0 && <span className="font-normal text-gray ml-1">They won&apos;t be able to log in. You can restore them later.</span>}
+ </p>
+ <div className="flex gap-2">
+ <button
+ onClick={() => { archiveWorker(worker.id!); setConfirmAction(null); }}
+ className="px-4 py-1.5 bg-warning text-white text-xs font-bold rounded-lg hover:brightness-110 transition-all"
+ >
+ Archive
+ </button>
+ <button
+ onClick={() => setConfirmAction(null)}
+ className="px-4 py-1.5 bg-canvas text-gray text-xs font-bold rounded-lg hover:bg-border/50 transition-all"
+ >
+ Cancel
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {isConfirming && confirmAction?.type === 'delete' && (
+ <div className="px-4 pb-4 animate-fade-in">
+ <div className="bg-danger/10 border border-danger/20 rounded-xl px-4 py-3">
+ <p className="text-xs font-semibold text-charcoal mb-2">
+ Permanently remove {worker.name}?
+ {clientCount > 0 && (
+ <span className="font-normal text-gray ml-1">
+ This will unassign {clientCount} client{clientCount !== 1 ? 's' : ''}. This cannot be undone.
+ </span>
+ )}
+ {clientCount === 0 && <span className="font-normal text-gray ml-1">This cannot be undone.</span>}
+ </p>
+ <div className="flex gap-2">
+ <button
+ onClick={() => { removeWorker(worker.id!); setConfirmAction(null); }}
+ className="px-4 py-1.5 bg-danger text-white text-xs font-bold rounded-lg hover:brightness-110 transition-all"
+ >
+ Remove
+ </button>
+ <button
+ onClick={() => setConfirmAction(null)}
+ className="px-4 py-1.5 bg-canvas text-gray text-xs font-bold rounded-lg hover:bg-border/50 transition-all"
+ >
+ Cancel
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+ </div>
+ );
+ }) : (
+ <p className="text-sm text-muted italic bg-canvas p-6 rounded-xl text-center">No active workers.</p>
+ )}
+ </div>
+
+ {/* Archived workers */}
+ {archivedWorkers.length > 0 && (
+ <div className="space-y-3">
+ <button
+ onClick={() => setShowArchived(v => !v)}
+ className="flex items-center gap-2 text-sm font-bold text-muted hover:text-charcoal transition-colors"
+ >
+ <span className="material-symbols-outlined text-[18px]">
+ {showArchived ? 'expand_less' : 'expand_more'}
+ </span>
+ Archived ({archivedWorkers.length})
+ </button>
+ {showArchived && archivedWorkers.map(worker => (
+ <div key={worker.id} className="flex items-center justify-between p-4 rounded-xl bg-canvas opacity-60 hover:opacity-80 transition-opacity">
+ <div className="flex items-center gap-4 min-w-0">
+ <div className="h-10 w-10 shrink-0 rounded-full font-bold text-white flex items-center justify-center shadow-sm text-sm grayscale" style={{ backgroundColor: getAvatarColor(worker.name) }}>
+ {worker.name.charAt(0)}
+ </div>
+ <div className="min-w-0">
+ <div className="flex items-center gap-2 flex-wrap">
+ <p className="font-bold text-sm text-charcoal">{worker.name}</p>
+ <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-canvas border border-border text-muted shrink-0">Archived</span>
+ </div>
+ <p className="text-xs text-muted font-medium truncate">{worker.email}</p>
+ </div>
+ </div>
+ <button
+ onClick={() => worker.id && restoreWorker(worker.id)}
+ className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-success hover:bg-success/10 transition-colors shrink-0 ml-2"
+ title="Restore worker"
+ >
+ <span className="material-symbols-outlined text-[16px]">restore</span>
+ Restore
+ </button>
+ </div>
+ ))}
+ </div>
+ )}
  </div>
  )}
 

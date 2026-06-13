@@ -308,7 +308,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  <label className={labelCls}>Assigned Tailor / Worker</label>
  <select className={inputCls} value={form.assignedWorker} onChange={(e) => handleChange('assignedWorker', e.target.value)}>
  <option value="">— Select tailor —</option>
- {workers.map(w => (
+ {workers.filter(w => w.status !== 'Archived').map(w => (
  <option key={w.id} value={w.name}>{w.name}</option>
  ))}
  </select>

@@ -98,6 +98,7 @@ function EditableNumberField({ label, value, fieldKey, clientId, prefix }: { lab
 
 function WorkerSelectField({ label, value, clientId }: { label: string; value: string; clientId: string }) {
  const { updateClient, workers } = useStudio();
+ const activeWorkers = workers.filter(w => w.status !== 'Archived');
  const [editing, setEditing] = useState(false);
 
  const handleSave = (workerName: string) => {
@@ -117,7 +118,7 @@ function WorkerSelectField({ label, value, clientId }: { label: string; value: s
  onBlur={() => setEditing(false)}
  >
  <option value="">Unassigned</option>
- {workers.map(w => (
+ {activeWorkers.map(w => (
  <option key={w.id} value={w.name}>{w.name}</option>
  ))}
  </select>

@@ -100,9 +100,20 @@ export async function DELETE(
     const { id } = await params;
     const client = await clientPromise;
     const db = client.db(DB_NAME);
-    const result = await db.collection(COLLECTION).deleteOne(buildFilter(id));
-    if (result.deletedCount === 0) return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
 
+    // Get worker name before deleting so we can cascade-clear client assignments
+    const worker = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { name: 1 } });
+    if (!worker) return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
+
+    // Cascade: unassign this worker from all client records
+    if (worker.name) {
+      await db.collection('clients').updateMany(
+        { assignedWorker: worker.name },
+        { $set: { assignedWorker: '' } }
+      );
+    }
+
+    await db.collection(COLLECTION).deleteOne(buildFilter(id));
     return NextResponse.json({ message: 'Worker removed successfully' });
   } catch {
     return NextResponse.json({ error: 'Failed to remove worker' }, { status: 500 });

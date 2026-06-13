@@ -68,6 +68,7 @@ export interface UserProfile {
  password?: string;
  avatar: string | null;
  role: 'Admin' | 'Worker';
+ status?: 'Active' | 'Archived';
 }
 
 export interface AuditLog {
@@ -203,6 +204,8 @@ interface StudioContextType {
  addProductionNote: (clientId: string, noteText: string) => void;
  addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => void;
  removeWorker: (id: string) => void;
+ archiveWorker: (id: string) => void;
+ restoreWorker: (id: string) => void;
  sessionChecked: boolean;
  apiError: boolean;
  isRetrying: boolean;
@@ -804,14 +807,47 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  }, [useApi, addAuditLog]);
 
  const removeWorker = useCallback((id: string) => {
+ const workerName = workers.find(w => w.id === id)?.name ?? '';
  setWorkers(prev => prev.filter(w => w.id !== id));
+ // Cascade: clear assignedWorker on locally cached clients
+ if (workerName) {
+ setClients(prev => prev.map(c =>
+ c.assignedWorker === workerName ? { ...c, assignedWorker: '' } : c
+ ));
+ }
  if (useApi) {
  fetch(`/api/workers/${id}`, {
  method: 'DELETE',
  }).catch(e => console.warn('API Error:', e));
  }
- addAuditLog('Team Member Removed', `A worker was removed from the team.`);
- }, [useApi, addAuditLog]);
+ addAuditLog('Team Member Removed', `${workerName || 'A worker'} was permanently removed from the team.`);
+ }, [useApi, addAuditLog, workers]);
+
+ const archiveWorker = useCallback((id: string) => {
+ const worker = workers.find(w => w.id === id);
+ setWorkers(prev => prev.map(w => w.id === id ? { ...w, status: 'Archived' as const } : w));
+ if (useApi) {
+ fetch(`/api/workers/${id}`, {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ status: 'Archived' }),
+ }).catch(e => console.warn('API Error:', e));
+ }
+ addAuditLog('Worker Archived', `${worker?.name ?? 'A worker'} was archived and can no longer log in.`);
+ }, [useApi, addAuditLog, workers]);
+
+ const restoreWorker = useCallback((id: string) => {
+ const worker = workers.find(w => w.id === id);
+ setWorkers(prev => prev.map(w => w.id === id ? { ...w, status: 'Active' as const } : w));
+ if (useApi) {
+ fetch(`/api/workers/${id}`, {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ status: 'Active' }),
+ }).catch(e => console.warn('API Error:', e));
+ }
+ addAuditLog('Worker Restored', `${worker?.name ?? 'A worker'} was restored and can log in again.`);
+ }, [useApi, addAuditLog, workers]);
 
  const addClient = useCallback((clientData: Omit<Client, 'id' | 'createdAt' | 'lastActivity' | 'timeline' | 'payments' | 'measurements' | 'fittings' | 'totalCost' | 'startDate' | 'nextFittingDate' | 'deliveryDate' | 'fabricPhotos' | 'illustrations' | 'clientPhotos' | 'productionNotes' | 'howDidYouHear' | 'comments' | 'dateOfBirth'>) => {
  const now = new Date().toISOString();
@@ -1244,6 +1280,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  addProductionNote,
  addWorker,
  removeWorker,
+ archiveWorker,
+ restoreWorker,
  sessionChecked,
  apiError,
  isRetrying,
