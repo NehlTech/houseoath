@@ -18,6 +18,9 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
+    // Only redirect after the server has confirmed the session is invalid.
+    // The middleware already blocks unauthenticated requests server-side,
+    // so we wait for sessionChecked before acting on isAuthenticated=false.
     if (sessionChecked && !isAuthenticated) router.push('/login');
   }, [isAuthenticated, sessionChecked, router]);
 
@@ -37,7 +40,10 @@ export default function Dashboard() {
     setActiveClient(null);
   };
 
-  if (!sessionChecked || !isAuthenticated) return null;
+  // Don't block on sessionChecked — the StudioContext loading screen already
+  // covers the initial load, and the middleware enforces auth server-side.
+  // Waiting for sessionChecked here causes a blank flash after the spinner.
+  if (!isAuthenticated) return null;
 
   return (
     <div className="relative flex w-full overflow-hidden bg-canvas" style={{ height: '100dvh' }}>
