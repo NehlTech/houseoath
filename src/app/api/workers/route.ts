@@ -66,7 +66,11 @@ export async function POST(request: NextRequest) {
     const dbClient = await clientPromise;
     const db = dbClient.db(DB_NAME);
 
-    // Prevent duplicate email
+    // Prevent duplicate email (workers collection and admin account)
+    const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
+    if (adminEmail && emailRaw === adminEmail) {
+      return NextResponse.json({ error: 'This email is already in use by the admin account' }, { status: 409 });
+    }
     const existing = await db.collection(COLLECTION).findOne({ email: emailRaw });
     if (existing) {
       return NextResponse.json({ error: 'A team member with this email already exists' }, { status: 409 });

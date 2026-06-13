@@ -17,6 +17,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  const [newWorkerEmail, setNewWorkerEmail] = useState('');
  const [newWorkerRole, setNewWorkerRole] = useState<'Worker' | 'Admin'>('Worker');
  const [inviteSent, setInviteSent] = useState(false);
+ const [addWorkerError, setAddWorkerError] = useState('');
+ const [addWorkerLoading, setAddWorkerLoading] = useState(false);
  const [showArchived, setShowArchived] = useState(false);
 
  // { id, type: 'archive' | 'delete' } — which worker row is showing inline confirm
@@ -42,10 +44,16 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  );
  }
 
- const handleAddWorker = (e: React.FormEvent) => {
+ const handleAddWorker = async (e: React.FormEvent) => {
  e.preventDefault();
- if (newWorkerName.trim() && newWorkerEmail.trim()) {
- addWorker(newWorkerName.trim(), newWorkerEmail.trim(), newWorkerRole);
+ if (!newWorkerName.trim() || !newWorkerEmail.trim()) return;
+ setAddWorkerError('');
+ setAddWorkerLoading(true);
+ const error = await addWorker(newWorkerName.trim(), newWorkerEmail.trim(), newWorkerRole);
+ setAddWorkerLoading(false);
+ if (error) {
+ setAddWorkerError(error);
+ } else {
  setNewWorkerName('');
  setNewWorkerEmail('');
  setNewWorkerRole('Worker');
@@ -116,7 +124,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  type="text"
  required
  value={newWorkerName}
- onChange={e => setNewWorkerName(e.target.value)}
+ onChange={e => { setNewWorkerName(e.target.value); setAddWorkerError(''); }}
  placeholder="e.g. Kwame Osei"
  className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none placeholder-muted"
  />
@@ -127,7 +135,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  type="email"
  required
  value={newWorkerEmail}
- onChange={e => setNewWorkerEmail(e.target.value)}
+ onChange={e => { setNewWorkerEmail(e.target.value); setAddWorkerError(''); }}
  placeholder="kwame@houseofoath.com"
  className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none placeholder-muted"
  />
@@ -154,9 +162,15 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  <p className="text-xs text-green-700 font-semibold">Team member added — invite email sent!</p>
  </div>
  )}
+ {addWorkerError && (
+ <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
+ <span className="material-symbols-outlined text-red-500 text-lg shrink-0">error</span>
+ <p className="text-xs text-red-700 font-semibold">{addWorkerError}</p>
+ </div>
+ )}
  <div className="flex justify-end">
- <button type="submit" className="px-6 py-2.5 bg-primary text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg hover:bg-[#E5C04A] transition-all text-sm">
- Add &amp; Send Invite
+ <button type="submit" disabled={addWorkerLoading} className="px-6 py-2.5 bg-primary text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg hover:bg-[#E5C04A] transition-all text-sm disabled:opacity-60">
+ {addWorkerLoading ? 'Adding…' : 'Add & Send Invite'}
  </button>
  </div>
  </form>

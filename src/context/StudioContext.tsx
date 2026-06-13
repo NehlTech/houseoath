@@ -202,7 +202,7 @@ interface StudioContextType {
  getActiveClient: () => Client | undefined;
  filteredClients: Client[];
  addProductionNote: (clientId: string, noteText: string) => void;
- addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => void;
+ addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => Promise<string | null>;
  removeWorker: (id: string) => void;
  archiveWorker: (id: string) => void;
  restoreWorker: (id: string) => void;
@@ -787,24 +787,38 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  });
  }, [useApi, addAuditLog]);
 
- const addWorker = useCallback((name: string, email: string, role: 'Worker' | 'Admin' = 'Worker') => {
- const newWorker: UserProfile = {
- id: crypto.randomUUID(),
- name,
- email,
- avatar: null,
- role,
- };
+ const addWorker = useCallback(async (name: string, email: string, role: 'Worker' | 'Admin' = 'Worker'): Promise<string | null> => {
+ const emailLower = email.trim().toLowerCase();
+
+ // Client-side duplicate guard
+ const duplicate = workers.some(w => w.email.toLowerCase() === emailLower);
+ if (duplicate) return 'A team member with this email already exists';
+
+ const tempId = crypto.randomUUID();
+ const newWorker: UserProfile = { id: tempId, name, email: emailLower, avatar: null, role, status: 'Active' };
  setWorkers(prev => [...prev, newWorker]);
+
  if (useApi) {
- fetch('/api/workers', {
+ try {
+ const res = await fetch('/api/workers', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ name, email, role }),
- }).catch(e => console.warn('API Error:', e));
+ body: JSON.stringify({ name, email: emailLower, role }),
+ });
+ if (!res.ok) {
+ setWorkers(prev => prev.filter(w => w.id !== tempId));
+ const data = await res.json().catch(() => ({}));
+ return (data as { error?: string }).error ?? 'Failed to add team member';
  }
+ } catch {
+ setWorkers(prev => prev.filter(w => w.id !== tempId));
+ return 'Network error — please try again';
+ }
+ }
+
  addAuditLog('Team Member Added', `${role} ${name} (${email}) was added to the team.`);
- }, [useApi, addAuditLog]);
+ return null;
+ }, [useApi, addAuditLog, workers]);
 
  const removeWorker = useCallback((id: string) => {
  const workerName = workers.find(w => w.id === id)?.name ?? '';
