@@ -258,10 +258,11 @@ interface SidebarProps {
   onSelectClient: (id: string) => void;
   onNewClient: () => void;
   onOpenSettings: () => void;
+  onOpenProfile: () => void;
   onToggleSidebar: () => void;
 }
 
-export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onOpenProfile, onToggleSidebar }: SidebarProps) {
   const { activeClient, searchQuery, setSearchQuery, updateClient, deleteClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectionMode = selectedIds.size > 0;
@@ -616,6 +617,36 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
               </p>
             </div>
           )}
+
+          {/* Profile card — sticky at the bottom of the scroll area */}
+          <div className="sticky bottom-0 bg-card border-t border-border/40 z-10 mt-4">
+            <button
+              onClick={onOpenProfile}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-canvas transition-colors text-left"
+            >
+              {userProfile.avatar ? (
+                <div className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center shadow-sm"
+                  style={{ backgroundImage: `url('${userProfile.avatar}')` }} />
+              ) : (
+                <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-sm"
+                  style={{ background: getAvatarColor(userProfile.name) }}>
+                  {userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-charcoal truncate leading-tight">{userProfile.name}</p>
+                <p className="text-[11px] text-muted truncate">{userProfile.email}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                  userProfile.role === 'Admin' ? 'bg-primary text-black' : 'bg-canvas text-gray border border-border'
+                }`}>
+                  {userProfile.role}
+                </span>
+                <span className="material-symbols-outlined text-muted text-[18px]">chevron_right</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* FAB — Admin only; raised above the mobile bottom nav bar */}
@@ -633,17 +664,28 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
       </div>
 
       {/* ── STATIC BOTTOM: always visible on mobile ── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-between bg-card pt-2 px-2 pb-safe z-20">
-        <button onClick={onOpenSettings} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary w-16 transition-colors">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-between bg-card pt-2 px-1 pb-safe z-20">
+        {/* Profile — available to everyone */}
+        <button onClick={onOpenProfile} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary flex-1 transition-colors">
           <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
-            <span className="material-symbols-outlined text-[22px]">settings</span>
+            <span className="material-symbols-outlined text-[22px]">account_circle</span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider">Settings</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider">Profile</span>
         </button>
+
+        {/* Settings — Admin only */}
+        {userProfile.role === 'Admin' && (
+          <button onClick={onOpenSettings} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary flex-1 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
+              <span className="material-symbols-outlined text-[22px]">settings</span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Settings</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab('archived')}
-          className={`flex flex-col items-center gap-1 p-2 w-16 transition-colors ${activeTab === 'archived' ? 'text-danger' : 'text-muted hover:text-danger'}`}
+          className={`flex flex-col items-center gap-1 p-2 flex-1 transition-colors ${activeTab === 'archived' ? 'text-danger' : 'text-muted hover:text-danger'}`}
         >
           <div className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors ${activeTab === 'archived' ? 'bg-danger/10' : 'hover:bg-canvas'}`}>
             <span className="material-symbols-outlined text-[22px]">inventory_2</span>
@@ -656,7 +698,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
 
         <button
           onClick={() => setActiveTab('all')}
-          className={`flex flex-col items-center gap-1 p-2 w-16 transition-colors ${activeTab !== 'archived' ? 'text-primary' : 'text-muted hover:text-primary'}`}
+          className={`flex flex-col items-center gap-1 p-2 flex-1 transition-colors ${activeTab !== 'archived' ? 'text-primary' : 'text-muted hover:text-primary'}`}
         >
           <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${activeTab !== 'archived' ? 'bg-primary/10' : 'hover:bg-canvas'}`}>
             <span className="material-symbols-outlined text-[22px]">group</span>
@@ -664,7 +706,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
           <span className="text-[10px] font-bold uppercase tracking-wider">Clients</span>
         </button>
 
-        <button onClick={logout} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-danger w-16 transition-colors">
+        <button onClick={logout} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-danger flex-1 transition-colors">
           <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
             <span className="material-symbols-outlined text-[22px]">logout</span>
           </div>

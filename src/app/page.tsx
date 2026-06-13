@@ -8,6 +8,7 @@ import ClientWorkspace from '@/components/ClientWorkspace';
 import EmptyState from '@/components/EmptyState';
 import NewClientModal from '@/components/NewClientModal';
 import SettingsModal from '@/components/SettingsModal';
+import ProfileModal from '@/components/ProfileModal';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
 
 export default function Dashboard() {
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [showNewClient, setShowNewClient] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [mobileShowWorkspace, setMobileShowWorkspace] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [inactiveSecsLeft, setInactiveSecsLeft] = useState(0);
@@ -64,6 +66,7 @@ export default function Dashboard() {
           onSelectClient={handleSelectClient}
           onNewClient={() => setShowNewClient(true)}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenProfile={() => setShowProfile(true)}
           onToggleSidebar={() => setSidebarOpen(false)}
         />
       </aside>
@@ -93,6 +96,7 @@ export default function Dashboard() {
 
       {showNewClient && <NewClientModal onClose={() => setShowNewClient(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       {/* Inactivity warning banner */}
       {inactiveSecsLeft > 0 && (
