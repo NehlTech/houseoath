@@ -447,8 +447,9 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
         <div className="lg:col-span-2 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto no-scrollbar">
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:block mb-2">Design Iterations</h4>
           {illustrations.map((ill, i) => (
-            <div key={ill.id} onClick={() => setSelectedIndex(i)}
-              className={`relative flex-shrink-0 w-24 lg:w-full aspect-[3/4] rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${selectedIndex === i ? 'border-primary shadow-lg shadow-primary/20' : 'border-transparent hover:border-primary/30'}`}
+            <div key={ill.id}
+              className={`relative flex-shrink-0 w-24 lg:w-full aspect-[3/4] rounded-xl overflow-hidden cursor-pointer border-2 transition-all group/thumb ${selectedIndex === i ? 'border-primary shadow-lg shadow-primary/20' : 'border-transparent hover:border-primary/30'}`}
+              onClick={() => setSelectedIndex(i)}
             >
               {ill.type === 'PDF' ? (
                 <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center">
@@ -466,6 +467,20 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
                 <p className="text-[10px] text-white font-bold truncate w-full text-center">{ill.version}</p>
                 <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 whitespace-nowrap ${ill.status === 'Current' ? 'bg-primary text-white' : ill.status === 'Approved' ? 'bg-green-500 text-white' : 'bg-slate-500 text-white'}`}>{ill.status}</span>
               </div>
+              {/* Delete button — appears on hover */}
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  if (!confirm(`Delete "${ill.name}"? This cannot be undone.`)) return;
+                  const newList = illustrations.filter((_, idx) => idx !== i);
+                  updateClient(client.id, { illustrations: newList });
+                  setSelectedIndex(Math.max(0, selectedIndex - (i <= selectedIndex ? 1 : 0)));
+                }}
+                className="absolute top-1.5 right-1.5 size-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity shadow-md z-10 hover:bg-red-600"
+                title="Delete illustration"
+              >
+                <span className="material-symbols-outlined text-[13px]">delete</span>
+              </button>
             </div>
           ))}
           {/* Upload new */}
