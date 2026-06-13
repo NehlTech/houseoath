@@ -1,0 +1,4 @@
+# House of Oath Fashion — Studio Management System
+# This is a private application. Search engine indexing is disabled.
+User-agent: *
+Disallow: /

@@ -1,0 +1,27 @@
+{
+  "name": "House of Oath Fashion",
+  "short_name": "HoOath Studio",
+  "description": "Luxury tailoring studio — client management system",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8f9fa",
+  "theme_color": "#d4af35",
+  "lang": "en",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/ho_logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false
+}
