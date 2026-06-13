@@ -645,7 +645,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  });
  if (workerRes.ok) {
  const wData = await workerRes.json();
- if (Array.isArray(wData) && wData.length > 0) {
+ if (Array.isArray(wData)) {
  setWorkers(wData);
  }
  }
@@ -743,7 +743,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  .catch(() => {});
  fetch('/api/workers', { cache: 'no-store' })
  .then(r => r.ok ? r.json() : null)
- .then(d => { if (Array.isArray(d) && d.length > 0) setWorkers(d); })
+ .then(d => { if (Array.isArray(d)) setWorkers(d); })
  .catch(() => {});
  return true;
  } catch {
@@ -1199,13 +1199,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  if (!isAuthenticated) return;
  const id = setInterval(async () => {
  try {
- const res = await fetch('/api/clients', {
- signal: AbortSignal.timeout(8000),
- cache: 'no-store',
- });
- if (!res.ok) return;
- const data = await res.json();
+ const [clientRes, workerRes] = await Promise.all([
+ fetch('/api/clients', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+ fetch('/api/workers', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+ ]);
+ if (clientRes.ok) {
+ const data = await clientRes.json();
  if (Array.isArray(data)) mergeWithLocal(data);
+ }
+ if (workerRes.ok) {
+ const wData = await workerRes.json();
+ if (Array.isArray(wData)) setWorkers(wData);
+ }
  } catch { /* silent — user keeps their local state */ }
  }, 20_000);
  return () => clearInterval(id);
