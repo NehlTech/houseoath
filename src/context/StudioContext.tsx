@@ -551,6 +551,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // (POST failed or never reached the server). Reads from localStorage directly
   // to avoid React state-timing issues — the state updater stays pure.
   const mergeWithLocal = useCallback((apiData: Client[]) => {
+    // If the API responded successfully with zero clients the database was
+    // intentionally cleared. Trust the server — wipe the local cache and
+    // don't re-sync anything back, otherwise cleared data reappears.
+    if (apiData.length === 0) {
+      setClients([]);
+      safeSetItem('studio_clients', JSON.stringify([]));
+      return;
+    }
+
     // Read the ground-truth local copy straight from storage
     let localClients: Client[] = [];
     try {
@@ -568,16 +577,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     unsynced.forEach(c => {
       fetch('/api/clients', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(c),
       }).catch(() => {});
     });
 
-    // Pure state update — no side effects inside the updater
     const merged = [...apiData, ...unsynced];
-    setClients(merged.length > 0 ? merged : localClients);
+    setClients(merged);
   }, []);
 
   // ── Silent background retry — keeps trying until the API comes back ─────
