@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { requireApiAuth } from '@/lib/apiAuth';
+import { deepStripMongoOperators } from '@/lib/mongoSanitize';
 
 export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'clients';
+const MAX_BODY_BYTES = 5_242_880; // 5 MB (clients can have large fabric/photo data)
 
-function deepStripMongoOperators(obj: unknown): unknown {
-  if (Array.isArray(obj)) return obj.map(deepStripMongoOperators);
-  if (obj !== null && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>)
-        .filter(([k]) => !k.startsWith('$'))
-        .map(([k, v]) => [k, deepStripMongoOperators(v)])
-    );
-  }
-  return obj;
-}
-
-// GET all clients
 export async function GET(request: NextRequest) {
   const { error, session } = await requireApiAuth(request);
   if (error) return error;
@@ -28,10 +17,7 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db(DB_NAME);
 
-    // Workers only see clients assigned to them
-    const filter = session.role === 'Worker'
-      ? { assignedWorker: session.name }
-      : {};
+    const filter = session.role === 'Worker' ? { assignedWorker: session.name } : {};
 
     const clients = await db.collection(COLLECTION)
       .find(filter)
@@ -50,10 +36,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST create client — idempotent upsert by id
 export async function POST(request: NextRequest) {
   const { error } = await requireApiAuth(request);
   if (error) return error;
+
+  const contentLength = Number(request.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
+  }
 
   try {
     const client = await clientPromise;
@@ -61,11 +51,7 @@ export async function POST(request: NextRequest) {
     const raw = await request.json();
     const body = deepStripMongoOperators(raw) as Record<string, unknown>;
 
-    if (
-      typeof body.name !== 'string' ||
-      body.name.trim().length === 0 ||
-      body.name.length > 500
-    ) {
+    if (typeof body.name !== 'string' || body.name.trim().length === 0 || body.name.length > 500) {
       return NextResponse.json({ error: 'Invalid or missing field: name' }, { status: 400 });
     }
 

@@ -4,21 +4,11 @@ import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import type { Filter, Document } from 'mongodb';
 import { requireApiAuth } from '@/lib/apiAuth';
+import { deepStripMongoOperators } from '@/lib/mongoSanitize';
 
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'workers';
-
-function deepStripMongoOperators(obj: unknown): unknown {
-  if (Array.isArray(obj)) return obj.map(deepStripMongoOperators);
-  if (obj !== null && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>)
-        .filter(([k]) => !k.startsWith('$'))
-        .map(([k, v]) => [k, deepStripMongoOperators(v)])
-    );
-  }
-  return obj;
-}
+const MAX_BODY_BYTES = 1_048_576;
 
 function buildFilter(id: string): Filter<Document> {
   return {
@@ -29,16 +19,20 @@ function buildFilter(id: string): Filter<Document> {
   };
 }
 
-// GET a single worker — password never returned
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireApiAuth(request);
+  const { error, session } = await requireApiAuth(request);
   if (error) return error;
 
+  const { id } = await params;
+
+  if (session.role !== 'Admin' && session.userId !== id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    const { id } = await params;
     const client = await clientPromise;
     const db = client.db(DB_NAME);
     const doc = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { password: 0 } });
@@ -49,13 +43,21 @@ export async function GET(
   }
 }
 
-// PUT update a worker — hash new password if provided
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireApiAuth(request);
+  const { error, session } = await requireApiAuth(request);
   if (error) return error;
+
+  if (session.role !== 'Admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const contentLength = Number(request.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
+  }
 
   try {
     const { id } = await params;
@@ -63,11 +65,11 @@ export async function PUT(
     const cleaned = deepStripMongoOperators(raw) as Record<string, unknown>;
     const { id: _omitId, _id: _omitMongoId, ...updates } = cleaned;
 
-    // Hash new password if provided
     if (typeof updates.password === 'string' && updates.password.length > 0) {
-      if (!updates.password.startsWith('$2')) {
-        updates.password = await bcrypt.hash(updates.password as string, 12);
+      if (updates.password.length < 8) {
+        return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
       }
+      updates.password = await bcrypt.hash(updates.password as string, 12);
     } else {
       delete updates.password;
     }
@@ -83,7 +85,6 @@ export async function PUT(
   }
 }
 
-// DELETE a worker — Admin only
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

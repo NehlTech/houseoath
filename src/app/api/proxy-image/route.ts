@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/apiAuth";
 
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_HOSTNAMES = new Set(["ik.imagekit.io", "uploadthing.com"]);
 
 const APP_ORIGIN =

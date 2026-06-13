@@ -10,7 +10,7 @@ import NewClientModal from '@/components/NewClientModal';
 import SettingsModal from '@/components/SettingsModal';
 
 export default function Dashboard() {
-  const { isAuthenticated, activeClient, setActiveClient } = useStudio();
+  const { isAuthenticated, sessionChecked, activeClient, setActiveClient } = useStudio();
   const router = useRouter();
   const [showNewClient, setShowNewClient] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -18,8 +18,8 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router]);
+    if (sessionChecked && !isAuthenticated) router.push('/login');
+  }, [isAuthenticated, sessionChecked, router]);
 
   // When a client becomes active (including via addClient in the modal),
   // always show the workspace — handles both sidebar tap and new-client flow.
@@ -37,7 +37,7 @@ export default function Dashboard() {
     setActiveClient(null);
   };
 
-  if (!isAuthenticated) return null;
+  if (!sessionChecked || !isAuthenticated) return null;
 
   return (
     <div className="relative flex w-full overflow-hidden bg-canvas" style={{ height: '100dvh' }}>

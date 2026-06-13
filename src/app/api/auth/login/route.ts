@@ -4,12 +4,23 @@ import { getIronSession } from 'iron-session';
 import bcrypt from 'bcryptjs';
 import clientPromise from '@/lib/mongodb';
 import { sessionOptions, type SessionData } from '@/lib/session';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 attempts per IP per 15 minutes
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const { ok, retryAfter } = checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+  if (!ok) {
+    return NextResponse.json(
+      { error: `Too many login attempts. Please try again in ${retryAfter} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
+  }
+
   try {
     const { email, password } = await request.json();
 
@@ -20,13 +31,28 @@ export async function POST(request: NextRequest) {
     const normalisedEmail = email.trim().toLowerCase();
 
     // ── Admin login ────────────────────────────────────────────────────────
-    const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@houseofoath.com').toLowerCase();
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH ?? '';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) {
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
 
-    if (normalisedEmail === adminEmail) {
-      const valid = adminPasswordHash
-        ? await bcrypt.compare(password, adminPasswordHash)
-        : password === process.env.ADMIN_PASSWORD; // plain-text fallback for initial setup
+    if (normalisedEmail === adminEmail.toLowerCase()) {
+      const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      let valid = false;
+      if (adminPasswordHash) {
+        valid = await bcrypt.compare(password, adminPasswordHash);
+      } else if (adminPassword) {
+        // Plain-text fallback — only active in development when ADMIN_PASSWORD_HASH is not set
+        if (process.env.NODE_ENV === 'production') {
+          console.error('SECURITY: ADMIN_PASSWORD_HASH must be set in production.');
+          return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+        }
+        valid = password === adminPassword;
+      } else {
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+      }
 
       if (!valid) {
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
@@ -57,10 +83,9 @@ export async function POST(request: NextRequest) {
     const storedPw: string = worker.password;
 
     if (storedPw.startsWith('$2')) {
-      // bcrypt hash
       valid = await bcrypt.compare(password, storedPw);
     } else {
-      // plain-text (legacy) — compare then upgrade
+      // Legacy plain-text — compare then upgrade to bcrypt
       valid = storedPw === password;
       if (valid) {
         const hash = await bcrypt.hash(password, 12);

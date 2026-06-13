@@ -203,6 +203,7 @@ interface StudioContextType {
   addProductionNote: (clientId: string, noteText: string) => void;
   addWorker: (name: string, email: string, password?: string) => void;
   removeWorker: (id: string) => void;
+  sessionChecked: boolean;
   apiError: boolean;
   isRetrying: boolean;
   retryLoad: () => void;
@@ -488,6 +489,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     { id: 'log-1', action: 'System Init', description: 'Application loaded successfully.', timestamp: new Date().toISOString() }
   ]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [useApi, setUseApi] = useState(true); // always attempt API writes; GET sync confirms availability
   const [apiError, setApiError] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -636,19 +638,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           const wData = await workerRes.json();
           if (Array.isArray(wData) && wData.length > 0) {
             setWorkers(wData);
-          } else {
-            setWorkers(prev => {
-              if (prev.length > 0) return prev;
-              const defaultWorker = { id: 'w-demo', name: 'Kwame (Tailor)', email: 'worker@houseofoath.com', avatar: null, role: 'Worker' as const };
-              fetch('/api/workers', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(defaultWorker),
-              });
-              return [defaultWorker];
-            });
           }
         }
         setIsLoaded(true); // success — reveal the app
@@ -781,7 +770,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       id: crypto.randomUUID(),
       name,
       email,
-      password: password || '123',
+      ...(password ? { password } : {}),
       avatar: null,
       role: 'Worker'
     };
@@ -1142,8 +1131,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(false);
           safeRemoveItem('studio_user');
         }
+        setSessionChecked(true);
       })
-      .catch(() => { /* keep optimistic state if server is unreachable */ });
+      .catch(() => {
+        // Keep optimistic state if server is unreachable; mark checked so redirect can proceed
+        setSessionChecked(true);
+      });
   }, []);
 
   // Cycle loading messages while the app initialises
@@ -1215,6 +1208,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       addProductionNote,
       addWorker,
       removeWorker,
+      sessionChecked,
       apiError,
       isRetrying,
       retryLoad,

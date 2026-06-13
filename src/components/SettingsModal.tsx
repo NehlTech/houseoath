@@ -51,29 +51,45 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     onClose();
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      alert('Please enter your current password.');
-      return;
-    }
-    if (currentPassword !== userProfile.password) {
-      alert('Current password is incorrect.');
-      return;
-    }
-    if (newPassword.length < 4) {
-      alert('Password must be at least 4 characters long.');
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match.');
+      setPasswordError('Passwords do not match.');
       return;
     }
-    updateUserProfile({ password: newPassword });
-    alert('Password updated successfully!');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+
+    setPasswordLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPasswordError(data.error || 'Failed to update password.');
+      } else {
+        setPasswordSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch {
+      setPasswordError('Network error. Please try again.');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleAddWorker = (e: React.FormEvent) => {
@@ -216,12 +232,13 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             {activeTab === 'security' && (
               <form onSubmit={handleUpdatePassword} className="space-y-6 animate-fade-in">
                 <div>
-                  <h4 className="font-display font-bold text-xl tracking-wide text-charcoal  pb-2 mb-4">Change Password</h4>
+                  <h4 className="font-display font-bold text-xl tracking-wide text-charcoal pb-2 mb-4">Change Password</h4>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">Current Password</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
+                        required
                         value={currentPassword}
                         onChange={e => setCurrentPassword(e.target.value)}
                         className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
@@ -229,8 +246,10 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">New Password</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
+                        required
+                        minLength={8}
                         value={newPassword}
                         onChange={e => setNewPassword(e.target.value)}
                         className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
@@ -238,18 +257,29 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">Confirm New Password</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
+                        required
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
                       />
                     </div>
                   </div>
+                  {passwordError && (
+                    <p className="mt-3 text-sm text-danger font-medium">{passwordError}</p>
+                  )}
+                  {passwordSuccess && (
+                    <p className="mt-3 text-sm text-green-600 font-medium">Password updated successfully.</p>
+                  )}
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <button type="submit" className="px-6 py-2.5 bg-primary text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg hover:bg-[#E5C04A] transition-all text-sm">
-                    Update Password
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="px-6 py-2.5 bg-primary text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg hover:bg-[#E5C04A] transition-all text-sm disabled:opacity-60"
+                  >
+                    {passwordLoading ? 'Updating…' : 'Update Password'}
                   </button>
                 </div>
               </form>
