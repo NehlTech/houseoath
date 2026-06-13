@@ -197,7 +197,7 @@ interface StudioContextType {
  updateFittings: (clientId: string, fittings: Fitting) => void;
  updateUserProfile: (updates: Partial<UserProfile>) => void;
  addAuditLog: (action: string, description: string) => void;
- login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+ login: (email: string, password: string, rememberMe?: boolean) => Promise<{ ok: boolean; message?: string; isInfo?: boolean }>;
  logout: () => void;
  getActiveClient: () => Client | undefined;
  filteredClients: Client[];
@@ -708,19 +708,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  }
  }, [startSilentBackgroundRetry, mergeWithLocal]);
 
- const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<boolean> => {
- if (!email || !password) return false;
+ const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<{ ok: boolean; message?: string; isInfo?: boolean }> => {
+ if (!email || !password) return { ok: false, message: 'Email and password are required' };
  try {
  const res = await fetch('/api/auth/login', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ email, password, rememberMe }),
  });
- if (!res.ok) return false;
+ const loginData = await res.json().catch(() => ({})) as Record<string, unknown>;
+ if (!res.ok) {
+ return { ok: false, message: (loginData.error as string) ?? 'Invalid email or password' };
+ }
+ // Soft success — sign-in link was sent, no session created
+ if (loginData.signInLinkSent) {
+ return { ok: false, message: loginData.message as string, isInfo: true };
+ }
  const sessionRes = await fetch('/api/auth/session');
- if (!sessionRes.ok) return false;
+ if (!sessionRes.ok) return { ok: false, message: 'Login failed' };
  const data = await sessionRes.json();
- if (!data?.isLoggedIn) return false;
+ if (!data?.isLoggedIn) return { ok: false, message: 'Login failed' };
  const profile: UserProfile = {
  id: data.userId,
  name: data.name,
@@ -745,9 +752,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  .then(r => r.ok ? r.json() : null)
  .then(d => { if (Array.isArray(d)) setWorkers(d); })
  .catch(() => {});
- return true;
+ return { ok: true };
  } catch {
- return false;
+ return { ok: false, message: 'Login failed' };
  }
  }, [addAuditLog, mergeWithLocal]);
 

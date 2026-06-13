@@ -10,6 +10,7 @@ export default function LoginPage() {
  const [showPassword, setShowPassword] = useState(false);
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState('');
+ const [infoMessage, setInfoMessage] = useState('');
  const [rememberMe, setRememberMe] = useState(false);
  const { login } = useStudio();
  const router = useRouter();
@@ -19,11 +20,15 @@ export default function LoginPage() {
  if (!email || !password) { setError('Please fill in all fields'); return; }
  setLoading(true);
  setError('');
- const success = await login(email, password, rememberMe);
- if (success) {
+ setInfoMessage('');
+ const result = await login(email, password, rememberMe);
+ if (result.ok) {
  router.push('/');
+ } else if (result.isInfo) {
+ setInfoMessage(result.message ?? 'Check your email for a sign-in link.');
+ setLoading(false);
  } else {
- setError('Invalid email or password. Please try again.');
+ setError(result.message ?? 'Invalid email or password. Please try again.');
  setLoading(false);
  }
  };
@@ -57,6 +62,12 @@ export default function LoginPage() {
 
  {error && (
  <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">{error}</div>
+ )}
+ {infoMessage && (
+ <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-start gap-3">
+ <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">mark_email_read</span>
+ <p className="text-sm text-charcoal leading-relaxed">{infoMessage}</p>
+ </div>
  )}
 
  <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
