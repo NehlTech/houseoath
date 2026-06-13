@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
 
-  const { ok, retryAfter } = checkRateLimit(`forgot:${email}`, 3, 60 * 60 * 1000);
+  const { ok, retryAfter } = await checkRateLimit(`forgot:${email}`, 3, 60 * 60 * 1000);
   if (!ok) {
     return NextResponse.json(
       { error: `Too many requests. Please try again in ${retryAfter} seconds.` },

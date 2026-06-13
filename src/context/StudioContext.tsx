@@ -553,11 +553,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  // Merge API data with any locally-saved clients the API doesn't know about
  // (POST failed or never reached the server). Reads from localStorage directly
  // to avoid React state-timing issues — the state updater stays pure.
- const mergeWithLocal = useCallback((apiData: Client[]) => {
+ const mergeWithLocal = useCallback((apiResponse: Client[] | { clients: Client[]; deletedIds?: string[] }) => {
+ const apiData = Array.isArray(apiResponse) ? apiResponse : apiResponse.clients;
+ const deletedSet = new Set<string>(
+ Array.isArray(apiResponse) ? [] : (apiResponse.deletedIds ?? []),
+ );
+
  // If the API responded successfully with zero clients the database was
  // intentionally cleared. Trust the server — wipe the local cache and
  // don't re-sync anything back, otherwise cleared data reappears.
- if (apiData.length === 0) {
+ if (apiData.length === 0 && deletedSet.size === 0) {
  setClients([]);
  safeSetItem('studio_clients', JSON.stringify([]));
  return;
@@ -574,7 +579,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  } catch { /* ignore */ }
 
  const apiIds = new Set(apiData.map(c => c.id));
- const unsynced = localClients.filter(c => !apiIds.has(c.id));
+ // Exclude clients the server has permanently deleted — don't re-POST them
+ const unsynced = localClients.filter(c => !apiIds.has(c.id) && !deletedSet.has(c.id));
 
  // Retry the POST for every client that didn't make it to MongoDB
  unsynced.forEach(c => {
@@ -607,7 +613,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  const data = await res.json();
  setUseApi(true);
  setApiError(false);
- if (Array.isArray(data)) mergeWithLocal(data);
+ mergeWithLocal(data);
  setIsLoaded(true); // data arrived — reveal the app (or update if already visible)
  } catch {
  // Still unreachable — try again in 5 s
@@ -634,7 +640,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  const data = await clientRes.json();
  setUseApi(true);
  setApiError(false);
- if (Array.isArray(data)) mergeWithLocal(data);
+ mergeWithLocal(data);
  } else {
  throw new Error('Client API returned non-ok');
  }
@@ -679,7 +685,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  description,
  timestamp: new Date().toISOString(),
  }, ...prev]);
- }, []);
+ // Persist to MongoDB — fire-and-forget, UI state is already updated
+ if (useApi) {
+ fetch('/api/audit-logs', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ action, description }),
+ }).catch(() => {});
+ }
+ }, [useApi]);
 
  const retryLoad = useCallback(async () => {
  setApiError(false);
@@ -695,7 +709,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  const data = await clientRes.json();
  setUseApi(true);
  setApiError(false);
- if (Array.isArray(data)) mergeWithLocal(data);
+ mergeWithLocal(data);
  setIsLoaded(true);
  } else {
  throw new Error('API non-ok');
@@ -746,7 +760,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  }
  fetch('/api/clients', { cache: 'no-store' })
  .then(r => r.ok ? r.json() : null)
- .then(d => { if (Array.isArray(d)) { mergeWithLocal(d); setApiError(false); } })
+ .then(d => { if (d && typeof d === 'object') { mergeWithLocal(d); setApiError(false); } })
  .catch(() => {});
  fetch('/api/workers', { cache: 'no-store' })
  .then(r => r.ok ? r.json() : null)
@@ -912,17 +926,35 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  });
  setActiveClientId(newClient.id);
 
- // Sync to MongoDB
  if (useApi) {
  fetch('/api/clients', {
  method: 'POST',
- headers: {
- 'Content-Type': 'application/json',
- },
+ headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(newClient),
- }).catch(e => console.warn('API Error:', e));
- }
+ }).then(res => {
+ if (res.ok) {
  addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
+ } else {
+ // Server rejected — roll back the optimistic add
+ setClients(prev => {
+ const rolled = prev.filter(c => c.id !== newClient.id);
+ safeSetItem('studio_clients', JSON.stringify(rolled));
+ return rolled;
+ });
+ setActiveClientId(null);
+ }
+ }).catch(() => {
+ // Network failure — roll back
+ setClients(prev => {
+ const rolled = prev.filter(c => c.id !== newClient.id);
+ safeSetItem('studio_clients', JSON.stringify(rolled));
+ return rolled;
+ });
+ setActiveClientId(null);
+ });
+ } else {
+ addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
+ }
  }, [useApi, addAuditLog]);
 
  const updateClient = useCallback((id: string, updates: Partial<Client>) => {
@@ -1115,15 +1147,35 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  }, [useApi, userProfile.name]);
 
  const deleteClient = useCallback((id: string) => {
- setClients(prev => prev.filter(c => c.id !== id));
+ let deletedClient: Client | undefined;
+ setClients(prev => {
+ deletedClient = prev.find(c => c.id === id);
+ return prev.filter(c => c.id !== id);
+ });
+ const prevActiveId = activeClientId;
  setActiveClientId(prev => prev === id ? null : prev);
+
  if (useApi) {
- fetch(`/api/clients/${id}`, {
- method: 'DELETE',
- }).catch(e => console.warn('API Error:', e));
- }
+ fetch(`/api/clients/${id}`, { method: 'DELETE' })
+ .then(res => {
+ if (res.ok) {
  addAuditLog('Client Deleted', 'A client record was permanently deleted.');
- }, [useApi, addAuditLog]);
+ } else if (deletedClient) {
+ // Server rejected — restore the client
+ setClients(prev => [...prev, deletedClient!]);
+ setActiveClientId(prevActiveId);
+ }
+ })
+ .catch(() => {
+ if (deletedClient) {
+ setClients(prev => [...prev, deletedClient!]);
+ setActiveClientId(prevActiveId);
+ }
+ });
+ } else {
+ addAuditLog('Client Deleted', 'A client record was permanently deleted.');
+ }
+ }, [useApi, addAuditLog, activeClientId]);
 
  const getActiveClient = useCallback(() => {
  return clients.find(c => c.id === activeClientId);
@@ -1226,7 +1278,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  ]);
  if (clientRes.ok) {
  const data = await clientRes.json();
- if (Array.isArray(data)) mergeWithLocal(data);
+ mergeWithLocal(data);
  }
  if (workerRes.ok) {
  const wData = await workerRes.json();

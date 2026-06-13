@@ -19,18 +19,20 @@ export async function GET(request: NextRequest) {
 
     const filter = session.role === 'Worker' ? { assignedWorker: session.name } : {};
 
-    const clients = await db.collection(COLLECTION)
-      .find(filter)
-      .sort({ lastActivity: -1 })
-      .toArray();
+    const [rawClients, tombstones] = await Promise.all([
+      db.collection(COLLECTION).find(filter).sort({ lastActivity: -1 }).toArray(),
+      db.collection('deleted_clients').find({}, { projection: { id: 1, _id: 0 } }).toArray(),
+    ]);
 
-    const formatted = clients.map((c) => ({
+    const formatted = rawClients.map((c) => ({
       ...c,
       id: (c.id as string | undefined) || c._id.toString(),
       _id: undefined,
     }));
 
-    return NextResponse.json(formatted);
+    const deletedIds = tombstones.map((t) => t.id as string);
+
+    return NextResponse.json({ clients: formatted, deletedIds });
   } catch {
     return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 });
   }

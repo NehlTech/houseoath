@@ -107,6 +107,13 @@ export async function DELETE(
     const result = await db.collection(COLLECTION).deleteOne(buildFilter(id));
     if (result.deletedCount === 0) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
+    // Record a tombstone so other devices don't re-sync this client from localStorage
+    await db.collection('deleted_clients').updateOne(
+      { id },
+      { $setOnInsert: { id, deletedAt: new Date() } },
+      { upsert: true },
+    );
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });

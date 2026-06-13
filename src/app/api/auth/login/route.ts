@@ -7,15 +7,17 @@ import { Resend } from 'resend';
 import clientPromise from '@/lib/mongodb';
 import { sessionOptions, type SessionData } from '@/lib/session';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { validateEnv } from '@/lib/validateEnv';
 
 export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
 
 export async function POST(request: NextRequest) {
+  validateEnv();
   // Rate limit: 5 attempts per IP per 15 minutes
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
-  const { ok, retryAfter } = checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+  const { ok, retryAfter } = await checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
   if (!ok) {
     return NextResponse.json(
       { error: `Too many login attempts. Please try again in ${retryAfter} seconds.` },
@@ -28,6 +30,9 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+    if (password.length > 128) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     const normalisedEmail = email.trim().toLowerCase();
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (worker.status === 'Archived') {
-      return NextResponse.json({ error: 'Your account has been deactivated. Contact your Admin.' }, { status: 403 });
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     const cookieStore = await cookies();
