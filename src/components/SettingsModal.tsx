@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStudio } from '@/context/StudioContext';
 import { getAvatarColor } from '@/lib/avatarColors';
 
@@ -55,6 +55,15 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'security' || isAdmin) return;
+    fetch('/api/auth/password-status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d !== null) setHasPassword(d.hasPassword); })
+      .catch(() => {});
+  }, [activeTab, isAdmin]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +76,10 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     }
     if (newPassword !== confirmPassword) {
       setPasswordError('Passwords do not match.');
+      return;
+    }
+    if (hasPassword && !currentPassword) {
+      setPasswordError('Current password is required.');
       return;
     }
 
@@ -82,6 +95,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         setPasswordError(data.error || 'Failed to update password.');
       } else {
         setPasswordSuccess(true);
+        setHasPassword(true);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -233,18 +247,25 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             {activeTab === 'security' && (
               <form onSubmit={handleUpdatePassword} className="space-y-6 animate-fade-in">
                 <div>
-                  <h4 className="font-display font-bold text-xl tracking-wide text-charcoal pb-2 mb-4">Change Password</h4>
+                  <h4 className="font-display font-bold text-xl tracking-wide text-charcoal pb-2 mb-1">
+                    {isAdmin || hasPassword ? 'Change Password' : hasPassword === false ? 'Set Your Password' : 'Password'}
+                  </h4>
+                  {hasPassword === false && (
+                    <p className="text-sm text-gray font-medium mb-4">You signed in via an invite link. Set a password to log in with email next time.</p>
+                  )}
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">Current Password</label>
-                      <input
-                        type="password"
-                        required
-                        value={currentPassword}
-                        onChange={e => setCurrentPassword(e.target.value)}
-                        className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
-                      />
-                    </div>
+                    {/* Current password only shown when a password already exists */}
+                    {(isAdmin || hasPassword) && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">Current Password</label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={e => setCurrentPassword(e.target.value)}
+                          className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray mb-2">New Password</label>
                       <input
@@ -271,16 +292,18 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     <p className="mt-3 text-sm text-danger font-medium">{passwordError}</p>
                   )}
                   {passwordSuccess && (
-                    <p className="mt-3 text-sm text-green-600 font-medium">Password updated successfully.</p>
+                    <p className="mt-3 text-sm text-green-600 font-medium">
+                      {hasPassword ? 'Password updated successfully.' : 'Password set successfully.'}
+                    </p>
                   )}
                 </div>
                 <div className="pt-4 flex justify-end">
                   <button
                     type="submit"
-                    disabled={passwordLoading}
+                    disabled={passwordLoading || hasPassword === null}
                     className="px-6 py-2.5 bg-primary text-white font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg hover:bg-[#E5C04A] transition-all text-sm disabled:opacity-60"
                   >
-                    {passwordLoading ? 'Updating…' : 'Update Password'}
+                    {passwordLoading ? 'Saving…' : (isAdmin || hasPassword) ? 'Update Password' : 'Set Password'}
                   </button>
                 </div>
               </form>

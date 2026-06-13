@@ -29,10 +29,7 @@ export async function POST(request: NextRequest) {
     const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
     const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Both current and new password are required' }, { status: 400 });
-    }
-    if (newPassword.length < 8) {
+    if (!newPassword || newPassword.length < 8) {
       return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
     }
 
@@ -40,10 +37,24 @@ export async function POST(request: NextRequest) {
     const db = client.db(DB_NAME);
     const worker = await db.collection('workers').findOne({ email: session.email });
 
-    if (!worker?.password) {
+    if (!worker) {
       return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
     }
 
+    // Invite-only worker setting their password for the first time
+    if (!worker.password) {
+      const hashed = await bcrypt.hash(newPassword, 12);
+      await db.collection('workers').updateOne(
+        { email: session.email },
+        { $set: { password: hashed } }
+      );
+      return NextResponse.json({ message: 'Password set successfully' });
+    }
+
+    // Existing password — require current password before changing
+    if (!currentPassword) {
+      return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
+    }
     const valid = await bcrypt.compare(currentPassword, worker.password);
     if (!valid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });

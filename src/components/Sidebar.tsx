@@ -471,8 +471,17 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
             )}
           </div>
 
-          <div className="md:hidden flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 mr-2 overflow-hidden bg-white">
-            <img src="/ho_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
+          <div className="md:hidden flex items-center gap-2 mr-2">
+            <div className="flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 overflow-hidden bg-white shrink-0">
+              <img src="/ho_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
+            </div>
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+              userProfile.role === 'Admin'
+                ? 'bg-primary text-black'
+                : 'bg-canvas text-gray border border-border'
+            }`}>
+              {userProfile.role}
+            </span>
           </div>
 
           {/* Search Bar */}
@@ -609,16 +618,18 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
           )}
         </div>
 
-        {/* FAB */}
-        <div className="fab-touch-visible absolute bottom-6 right-6 md:bottom-8 md:right-8 z-30 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-center md:opacity-0 md:scale-50 md:translate-y-4 md:pointer-events-none md:group-hover/list:opacity-100 md:group-hover/list:scale-100 md:group-hover/list:translate-y-0 md:group-hover/list:pointer-events-auto">
-          <button 
-            onClick={onNewClient}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:shadow-xl hover:bg-[#E5C04A] active:scale-90 transition-transform duration-200 outline-none focus:outline-none"
-            title="New Client"
-          >
-            <span className="material-symbols-outlined text-2xl font-medium">edit</span>
-          </button>
-        </div>
+        {/* FAB — Admin only; raised above the mobile bottom nav bar */}
+        {userProfile.role === 'Admin' && (
+          <div className="fab-touch-visible absolute bottom-[6.5rem] right-6 md:bottom-8 md:right-8 z-30 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-center md:opacity-0 md:scale-50 md:translate-y-4 md:pointer-events-none md:group-hover/list:opacity-100 md:group-hover/list:scale-100 md:group-hover/list:translate-y-0 md:group-hover/list:pointer-events-auto">
+            <button
+              onClick={onNewClient}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:shadow-xl hover:bg-[#E5C04A] active:scale-90 transition-transform duration-200 outline-none focus:outline-none"
+              title="New Client"
+            >
+              <span className="material-symbols-outlined text-2xl font-medium">edit</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── STATIC BOTTOM: always visible on mobile ── */}

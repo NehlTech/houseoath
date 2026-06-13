@@ -729,11 +729,24 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setUserProfile(profile);
       safeSetItem('studio_user', JSON.stringify(profile));
       addAuditLog('Login', `${data.name} logged in successfully.`);
+      // Cancel any pending background retry and immediately load fresh data for this session
+      if (silentRetryTimerRef.current) {
+        clearTimeout(silentRetryTimerRef.current);
+        silentRetryTimerRef.current = null;
+      }
+      fetch('/api/clients', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (Array.isArray(d)) { mergeWithLocal(d); setApiError(false); } })
+        .catch(() => {});
+      fetch('/api/workers', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (Array.isArray(d) && d.length > 0) setWorkers(d); })
+        .catch(() => {});
       return true;
     } catch {
       return false;
     }
-  }, [addAuditLog]);
+  }, [addAuditLog, mergeWithLocal]);
 
   const logout = useCallback(async () => {
     addAuditLog('Logout', 'User logged out.');
@@ -1141,6 +1154,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setSessionChecked(true);
       });
   }, []);
+
+  // ── Real-time background poll ─────────────────────────────────────────────
+  // Keeps the client list in sync when other admins add or update clients.
+  // Runs every 20 s while the user is authenticated; merges without overwriting
+  // local optimistic updates.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch('/api/clients', {
+          signal: AbortSignal.timeout(8000),
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data)) mergeWithLocal(data);
+      } catch { /* silent — user keeps their local state */ }
+    }, 20_000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, mergeWithLocal]);
 
   // Cycle loading messages while the app initialises
   useEffect(() => {

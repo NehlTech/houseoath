@@ -229,6 +229,8 @@ function EditableTextArea({ label, value, fieldKey, clientId }: { label: string;
 }
 
 export default function OverviewTab({ client }: OverviewTabProps) {
+  const { userProfile } = useStudio();
+  const isAdmin = userProfile.role === 'Admin';
   const amountPaid = client.payments.reduce((sum, p) => sum + p.amount, 0);
   const balance = client.totalCost - amountPaid;
   const daysToEvent = client.eventDate ? Math.max(0, Math.ceil((new Date(client.eventDate).getTime() - Date.now()) / 86400000)) : 0;
@@ -284,7 +286,14 @@ export default function OverviewTab({ client }: OverviewTabProps) {
             <EditableField label="Event Name" value={client.eventName} fieldKey="eventName" clientId={client.id} />
             <EditableDateField label="Event Date" value={client.eventDate} fieldKey="eventDate" clientId={client.id} />
              <EditableField label="Event Location" value={client.eventLocation} fieldKey="eventLocation" clientId={client.id} />
-            <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} clientId={client.id} />
+            {isAdmin ? (
+              <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} clientId={client.id} />
+            ) : (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-canvas shadow-sm border-none">
+                <span className="text-gray text-sm flex-shrink-0 mr-2">Assigned To</span>
+                <span className="text-sm font-medium text-charcoal text-right">{client.assignedWorker || 'Unassigned'}</span>
+              </div>
+            )}
             <EditableNumberField label="Total Cost" value={client.totalCost} fieldKey="totalCost" clientId={client.id} prefix="GHS " />
             <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10 mt-4">
               <span className="text-charcoal text-sm font-medium">Balance</span>
