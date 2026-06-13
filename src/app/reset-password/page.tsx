@@ -58,7 +58,7 @@ function ResetPasswordForm() {
             <div className="flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 overflow-hidden bg-white">
               <img src="/hoo_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
             </div>
-            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest uppercase ml-1">House of Oath Fashion</h2>
+            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest ml-1">House of Oath Fashion</h2>
           </div>
         </header>
 
@@ -75,7 +75,7 @@ function ResetPasswordForm() {
                 <p className="text-gray text-sm leading-relaxed mb-8">Your password has been reset successfully. Redirecting you to sign in...</p>
                 <Link
                   href="/login"
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold tracking-widest uppercase text-sm h-12 rounded-xl transition-all hover:bg-[#E5C04A]"
+                  className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold tracking-widest text-sm h-12 rounded-xl transition-all hover:bg-[#E5C04A]"
                 >
                   Sign In Now
                   <span className="material-symbols-outlined text-lg">arrow_forward</span>
@@ -97,7 +97,7 @@ function ResetPasswordForm() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
                   <div className="flex flex-col gap-2">
-                    <label className="text-gray text-xs font-bold uppercase tracking-wider">New Password</label>
+                    <label className="text-gray text-xs font-bold tracking-wider">New Password</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">lock</span>
                       <input
@@ -115,7 +115,7 @@ function ResetPasswordForm() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-gray text-xs font-bold uppercase tracking-wider">Confirm Password</label>
+                    <label className="text-gray text-xs font-bold tracking-wider">Confirm Password</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">lock_clock</span>
                       <input
@@ -132,7 +132,7 @@ function ResetPasswordForm() {
                   <button
                     type="submit"
                     disabled={loading || !token}
-                    className="w-full bg-primary text-white font-bold tracking-widest uppercase text-sm h-14 rounded-xl transition-all shadow-md hover:shadow-lg hover:bg-[#E5C04A] flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
+                    className="w-full bg-primary text-white font-bold tracking-widest text-sm h-14 rounded-xl transition-all shadow-md hover:shadow-lg hover:bg-[#E5C04A] flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
                   >
                     {loading ? 'Updating...' : 'Set New Password'}
                     {!loading && <span className="material-symbols-outlined">lock_open</span>}
@@ -152,12 +152,12 @@ function ResetPasswordForm() {
         </main>
 
         <footer className="px-6 py-8 flex flex-col items-center gap-4 text-muted relative z-10">
-          <div className="flex gap-6 text-xs font-bold uppercase tracking-wider">
+          <div className="flex gap-6 text-xs font-bold tracking-wider">
             <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
             <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
             <a className="hover:text-primary transition-colors" href="#">Contact Support</a>
           </div>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-muted">© 2026 House of Oath Fashion. All rights reserved.</p>
+          <p className="text-[10px] tracking-widest font-bold text-muted">© 2026 House of Oath Fashion. All rights reserved.</p>
         </footer>
       </div>
     </div>

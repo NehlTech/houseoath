@@ -38,7 +38,7 @@ export default function LoginPage() {
             <div className="flex items-center justify-center size-9 rounded-full border-2 border-charcoal/80 overflow-hidden bg-white">
               <img src="/hoo_logo.png" alt="House of Oath Logo" className="h-full w-full object-contain p-0.5" />
             </div>
-            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest uppercase ml-1">House of Oath Fashion</h2>
+            <h2 className="text-charcoal text-xl font-display font-bold leading-tight tracking-widest ml-1">House of Oath Fashion</h2>
           </div>
         </header>
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
               <div className="flex flex-col gap-2">
-                <label className="text-gray text-xs font-bold uppercase tracking-wider">Email Address</label>
+                <label className="text-gray text-xs font-bold tracking-wider">Email Address</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">mail</span>
                   <input
@@ -76,8 +76,8 @@ export default function LoginPage() {
 
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-gray text-xs font-bold uppercase tracking-wider">Password</label>
-                  <a className="text-primary text-xs font-bold uppercase tracking-wider hover:text-primary/70 transition-colors" href="/forgot-password">Forgot password?</a>
+                  <label className="text-gray text-xs font-bold tracking-wider">Password</label>
+                  <a className="text-primary text-xs font-bold tracking-wider hover:text-primary/70 transition-colors" href="/forgot-password">Forgot password?</a>
                 </div>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">lock</span>
@@ -97,17 +97,16 @@ export default function LoginPage() {
 
               <div className="flex items-center gap-2 mt-2">
                 <input className="rounded border-none text-primary focus:ring-primary bg-transparent" id="remember" type="checkbox" />
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray" htmlFor="remember">Keep me logged in</label>
+                <label className="text-[11px] font-bold tracking-wider text-gray" htmlFor="remember">Keep me logged in</label>
               </div>
 
               <button
                 id="login-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary text-white font-bold tracking-widest uppercase text-sm h-14 rounded-xl transition-all shadow-md hover:shadow-lg hover:bg-[#E5C04A] flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
+                className="w-full bg-primary text-white font-bold tracking-widest text-sm h-14 rounded-xl transition-all shadow-md hover:shadow-lg hover:bg-[#E5C04A] flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
-                {!loading && <span className="material-symbols-outlined">arrow_forward</span>}
               </button>
             </form>
 
@@ -115,12 +114,12 @@ export default function LoginPage() {
         </main>
 
         <footer className="px-6 py-8 flex flex-col items-center gap-4 text-muted relative z-10">
-          <div className="flex gap-6 text-xs font-bold uppercase tracking-wider">
+          <div className="flex gap-6 text-xs font-bold tracking-wider">
             <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
             <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
             <a className="hover:text-primary transition-colors" href="#">Contact Support</a>
           </div>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-muted">© 2026 House of Oath Fashion. All rights reserved.</p>
+          <p className="text-[10px] tracking-widest font-bold text-muted">© 2026 House of Oath Fashion. All rights reserved.</p>
         </footer>
       </div>
     </div>
