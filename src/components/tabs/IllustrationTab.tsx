@@ -10,7 +10,6 @@ interface IllustrationTabProps {
   setActiveTab: (tab: string) => void;
 }
 
-const DESIGN_COLORS = ['#d4af35', '#2c1810', '#f5e6d0', '#8b6914', '#1a1a2e'];
 
 function extractColorsFromImage(imgUrl: string): Promise<string[]> {
   return new Promise((resolve) => {
@@ -93,31 +92,6 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
   const [editVersion, setEditVersion] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editNotes, setEditNotes] = useState('');
-
-  useEffect(() => {
-    if (!client.illustrations || client.illustrations.length === 0) {
-      const initialIllustrations: DesignIllustration[] = [
-        {
-          id: 'ill-1', name: 'Evening Gala Gown Concept', version: 'v2.4', type: 'Sketch',
-          image: '/samples/gown_sketch.png', status: 'Current',
-          notes: 'Focus on the asymmetrical neckline. Ensure the fabric is cut at a 45° angle for the drape.',
-          colors: [...DESIGN_COLORS],
-          timeline: { start: 'Feb 12', lastRevised: 'Mar 8', revisions: 4 },
-          comments: [
-            { id: 'c1', authorName: 'Atelier Apprentice', authorInitials: 'AA', date: new Date().toISOString(), content: 'The neckline position is perfect! Can we have the same drape but even fuller at the bottom section?' }
-          ]
-        },
-        {
-          id: 'ill-2', name: 'Evening Gala Gown — Render', version: 'v2.0', type: 'Render',
-          image: '/samples/gown_render.png', status: 'Approved', notes: '',
-          colors: [...DESIGN_COLORS],
-          timeline: { start: 'Feb 10', lastRevised: 'Mar 1', revisions: 2 },
-          comments: []
-        },
-      ];
-      updateClient(client.id, { illustrations: initialIllustrations });
-    }
-  }, [client.id, client.illustrations, updateClient]);
 
   const illustrations = client.illustrations || [];
   const selected = illustrations[selectedIndex] || illustrations[0];
@@ -375,7 +349,25 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
   const openLightbox = () => { setCropMode(false); setCropBox({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }); setLightboxOpen(true); };
   const closeLightbox = () => { setLightboxOpen(false); setCropMode(false); setPdfRenderedUrl(null); };
 
-  if (!selected) return <div className="p-8 text-center animate-fade-in text-slate-500">Loading design studio...</div>;
+  if (!selected) return (
+    <div className="flex flex-col items-center justify-center gap-5 py-16 animate-fade-in">
+      <div className="flex items-center justify-center size-16 rounded-full bg-primary/8">
+        <span className="material-symbols-outlined text-[32px] text-primary/60">brush</span>
+      </div>
+      <div className="text-center space-y-1">
+        <p className="font-bold text-charcoal tracking-wide">No illustrations yet</p>
+        <p className="text-sm text-muted">Upload a sketch, render, or PDF to get started.</p>
+      </div>
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-charcoal font-bold text-sm tracking-wide rounded-xl shadow-md hover:bg-[#E5C04A] transition-all"
+      >
+        <span className="material-symbols-outlined text-[18px]">upload</span>
+        Upload illustration
+      </button>
+      <input ref={fileInputRef} type="file" className="hidden" accept="image/*,application/pdf,.pdf" multiple onChange={handleUpload} />
+    </div>
+  );
 
   // What to show in the crop image area
   const cropImgSrc = selected.type === 'PDF' ? pdfRenderedUrl : selected.image;
