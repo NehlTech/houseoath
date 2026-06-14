@@ -1,1393 +1,302 @@
-﻿'use client';
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, ReactNode, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 
-// Types
-export interface Payment {
- id: string;
- date: string;
- amount: number;
- method: string;
- receiptNumber?: string;
-}
+// ── Re-export all types for backward compat ──
+export type { AuditLog } from './AuditContext';
+export type { UserProfile } from './AuthContext';
+export type {
+  Payment,
+  Fitting,
+  TimelineEvent,
+  Measurements,
+  FabricItem,
+  FeedbackComment,
+  ProductionNote,
+  DesignIllustration,
+  Client,
+} from './ClientContext';
 
-export interface Fitting {
- startDate: string;
- firstFitting: string;
- secondFitting: string;
- finalFitting: string;
- deliveryDate: string;
-}
+import { AuditProvider, useAuditContext, type AuditLog } from './AuditContext';
+import { AuthProvider, useAuthContext, type UserProfile } from './AuthContext';
+import { WorkerProvider, useWorkerContext } from './WorkerContext';
+import {
+  ClientProvider,
+  useClientContext,
+  LOADING_MESSAGES,
+  type Client,
+  type Measurements,
+  type Fitting,
+  type Payment,
+} from './ClientContext';
 
-export interface TimelineEvent {
- id: string;
- date: string;
- action?: string;
- title?: string;
- type?: string;
- description: string;
-}
-
-export interface Measurements {
- bust: string;
- shoulder: string;
- shoulderToNipple: string;
- shoulderToWaist: string;
- blouseLength: string;
- waist: string;
- hip: string;
- thigh: string;
- knee: string;
- trouser: string;
- bass: string;
- dressLength: string;
- slitLength: string;
- sleeveLength: string;
- aroundArm: string;
- waistToHip: string;
- kabaLength: string;
- waistToKnee: string;
- underbust: string;
-}
-
-export interface FabricItem {
- id: string;
- name: string;
- vendor: string;
- type: string;
- description: string;
- image: string;
- addedAt: string;
- receivedDate?: string;
-}
-
-export interface UserProfile {
- id?: string;
- name: string;
- email: string;
- password?: string;
- avatar: string | null;
- role: 'Admin' | 'Worker';
- status?: 'Active' | 'Archived';
-}
-
-export interface AuditLog {
- id: string;
- action: string;
- description: string;
- timestamp: string;
-}
-
-export interface FeedbackComment {
- id: string;
- authorName: string;
- authorInitials: string;
- date: string;
- content: string;
-}
-
-export interface ProductionNote {
- id: string;
- author: string;
- text: string;
- timestamp: string;
-}
-
-export interface DesignIllustration {
- id: string;
- name: string;
- version: string;
- type: string;
- image: string;
- status: string;
- notes: string;
- colors: string[];
- timeline: { start: string; lastRevised: string; revisions: number };
- comments: FeedbackComment[];
-}
-
-export interface Client {
- id: string;
- // Client Information
- name: string;
- email: string;
- gender: string;
- dateOfBirth: string;
- phone: string;
- profession: string;
- address: string;
- state: string;
- country: string;
- // Event Information
- eventName: string;
- eventDate: string;
- eventLocation: string;
- eventMonth: string;
- // Vendor Information
- kenteVendor: string;
- fabricVendor: string;
- // Discovery
- howDidYouHear: string;
- referralSource: string;
- // Notes
- comments: string;
- notes: string;
- fabricNotes: string;
- // Uploads
- clientPhoto: string;
- fabricPhotos: string[];
- illustrations: DesignIllustration[];
- clientPhotos: string[];
- // Production
- measurements: Measurements;
- fittings: Fitting;
- payments: Payment[];
- totalCost: number;
- // Timeline
- timeline: TimelineEvent[];
- // Metadata
- status?: 'Active' | 'Completed' | 'Archived';
- createdAt: string;
- lastActivity: string;
- // Production Timeline
- startDate: string;
- nextFittingDate: string;
- deliveryDate: string;
- assignedWorker?: string;
- assignedWorkerId?: string;
- productionNotes: ProductionNote[];
- // Consultation
- consultationDone?: boolean;
- consultationNotes?: string;
- // Package tier
- clientPackage?: string;
- // Progress tracking
- measurementsTaken?: boolean;
- fabricReceived?: boolean;
- // Fabric items (replaces plain fabricPhotos URLs)
- fabrics?: FabricItem[];
- // Fitting tracking
- fittingDone?: boolean;
- noFitting?: boolean;
- fittingRescheduleHistory?: { id: string; date: string; note: string; newDate: string }[];
- // Delivery tracking
- delivered?: boolean;
- // Legacy/migration fields from external data sources
- updatedAt?: string;
- fullName?: string;
-}
-
+// ── Merged context type — identical to the original StudioContextType ──
 interface StudioContextType {
- clients: Client[];
- activeClient: Client | null;
- activeClientId: string | null;
- isAuthenticated: boolean;
- searchQuery: string;
- userProfile: UserProfile;
- auditLogs: AuditLog[];
- workers: UserProfile[];
- setSearchQuery: (query: string) => void;
- setActiveClient: (id: string | null) => void;
- setActiveClientId: (id: string | null) => void;
- addClient: (client: Omit<Client, 'id' | 'createdAt' | 'lastActivity' | 'timeline' | 'payments' | 'measurements' | 'fittings' | 'totalCost' | 'startDate' | 'nextFittingDate' | 'deliveryDate' | 'fabricPhotos' | 'illustrations' | 'clientPhotos' | 'productionNotes' | 'howDidYouHear' | 'comments' | 'dateOfBirth'>) => void;
- updateClient: (id: string, updates: Partial<Client>) => void;
- deleteClient: (id: string) => void;
- addPayment: (clientId: string, payment: Omit<Payment, 'id'>) => void;
- addTimelineEvent: (clientId: string, action: string, description: string) => void;
- updateMeasurements: (clientId: string, measurements: Measurements) => void;
- updateFittings: (clientId: string, fittings: Fitting) => void;
- updateUserProfile: (updates: Partial<UserProfile>) => void;
- addAuditLog: (action: string, description: string) => void;
- login: (email: string, password: string, rememberMe?: boolean) => Promise<{ ok: boolean; message?: string; isInfo?: boolean }>;
- logout: () => void;
- getActiveClient: () => Client | undefined;
- filteredClients: Client[];
- addProductionNote: (clientId: string, noteText: string) => void;
- addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => Promise<string | null>;
- removeWorker: (id: string) => void;
- archiveWorker: (id: string) => void;
- restoreWorker: (id: string) => void;
- sessionChecked: boolean;
- apiError: boolean;
- isRetrying: boolean;
- retryLoad: () => void;
+  clients: Client[];
+  activeClient: Client | null;
+  activeClientId: string | null;
+  isAuthenticated: boolean;
+  searchQuery: string;
+  userProfile: UserProfile;
+  auditLogs: AuditLog[];
+  workers: UserProfile[];
+  setSearchQuery: (query: string) => void;
+  setActiveClient: (id: string | null) => void;
+  setActiveClientId: (id: string | null) => void;
+  addClient: (
+    client: Omit<
+      Client,
+      | 'id'
+      | 'createdAt'
+      | 'lastActivity'
+      | 'timeline'
+      | 'payments'
+      | 'measurements'
+      | 'fittings'
+      | 'totalCost'
+      | 'startDate'
+      | 'nextFittingDate'
+      | 'deliveryDate'
+      | 'fabricPhotos'
+      | 'illustrations'
+      | 'clientPhotos'
+      | 'productionNotes'
+      | 'howDidYouHear'
+      | 'comments'
+      | 'dateOfBirth'
+    >,
+  ) => void;
+  updateClient: (id: string, updates: Partial<Client>) => void;
+  deleteClient: (id: string) => void;
+  addPayment: (clientId: string, payment: Omit<Payment, 'id'>) => void;
+  addTimelineEvent: (clientId: string, action: string, description: string) => void;
+  updateMeasurements: (clientId: string, measurements: Measurements) => void;
+  updateFittings: (clientId: string, fittings: Fitting) => void;
+  updateUserProfile: (updates: Partial<UserProfile>) => void;
+  addAuditLog: (action: string, description: string) => void;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<{ ok: boolean; message?: string; isInfo?: boolean }>;
+  logout: () => void;
+  getActiveClient: () => Client | undefined;
+  filteredClients: Client[];
+  addProductionNote: (clientId: string, noteText: string) => void;
+  addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => Promise<string | null>;
+  removeWorker: (id: string) => void;
+  archiveWorker: (id: string) => void;
+  restoreWorker: (id: string) => void;
+  sessionChecked: boolean;
+  apiError: boolean;
+  isRetrying: boolean;
+  retryLoad: () => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
-const defaultMeasurements: Measurements = {
- bust: '', shoulder: '', shoulderToNipple: '', shoulderToWaist: '',
- blouseLength: '', waist: '', hip: '', thigh: '', knee: '', trouser: '',
- bass: '', dressLength: '', slitLength: '', sleeveLength: '', aroundArm: '',
- waistToHip: '', kabaLength: '', waistToKnee: '', underbust: '',
-};
+// ── Loading screen (same markup as the original) ──
+function LoadingScreen({ loadingMsgIdx }: { loadingMsgIdx: number }) {
+  return (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-canvas gap-6 select-none">
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center justify-center size-16 rounded-2xl border-2 border-charcoal/80 bg-white shadow-md overflow-hidden">
+          <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-1" />
+        </div>
+        <p className="text-charcoal font-display font-bold text-lg tracking-wide">House of Oath</p>
+      </div>
 
-const defaultFittings: Fitting = {
- startDate: '', firstFitting: '', secondFitting: '', finalFitting: '', deliveryDate: '',
-};
+      <p
+        key={loadingMsgIdx}
+        className="loading-msg text-gray text-sm font-medium text-center px-8"
+      >
+        {LOADING_MESSAGES[loadingMsgIdx]}
+      </p>
 
-// (sample clients removed — production uses real MongoDB data)
-const _sampleClientsPlaceholder: Client[] = [
- {
- id: '1',
- name: 'Ama Serwaa Bonsu',
- email: 'ama.bonsu@email.com',
- gender: 'Female',
- dateOfBirth: '1990-05-15',
- phone: '+233 24 123 4567',
- profession: 'Lawyer',
- address: '12 Independence Ave',
- state: 'Greater Accra',
- country: 'Ghana',
- eventName: 'Wedding Reception',
- eventDate: '2026-06-20',
- eventLocation: 'Kempinski Hotel, Accra',
- eventMonth: 'June',
- kenteVendor: 'Bonwire Kente Weavers',
- fabricVendor: 'Woodin Fabrics',
- howDidYouHear: 'Instagram',
- referralSource: 'Instagram',
- comments: '',
- notes: 'Wants a modern twist on traditional Kente gown for her wedding reception.',
- fabricNotes: '',
- clientPhoto: '',
- fabricPhotos: [],
- fabrics: [],
- illustrations: [],
- clientPhotos: [],
- productionNotes: [],
- measurementsTaken: true,
- fabricReceived: false,
- measurements: { ...defaultMeasurements, bust: '92', waist: '72', hip: '98' },
- fittings: { ...defaultFittings, startDate: '2026-04-01', firstFitting: '2026-05-15', secondFitting: '2026-05-20', finalFitting: '2026-06-10', deliveryDate: '2026-06-18' },
- payments: [
- { id: 'p1', date: '2026-03-01', amount: 2000, method: 'Bank Transfer', receiptNumber: 'HOF-X7Y2B9' },
- { id: 'p2', date: '2026-04-15', amount: 1500, method: 'Mobile Money', receiptNumber: 'HOF-A1Q8F4' },
- ],
- totalCost: 5000,
- clientPackage: 'Lux',
- consultationDone: true,
- consultationNotes: 'Client prefers a modern silhouette with traditional Kente panels. Discussed colour palette — gold and burgundy. Noted shoulder measurements should account for posture.',
- fittingDone: false,
- noFitting: false,
- fittingRescheduleHistory: [],
- delivered: false,
- timeline: [
- { id: 't1', date: '2026-03-01', action: 'Booking', description: 'New client booked for wedding reception gown.' },
- { id: 't2', date: '2026-03-01', action: 'Payment Recorded', description: 'Initial deposit of GH₵2,000 received.' },
- { id: 't3', date: '2026-03-15', action: 'Measurements Added', description: 'Body measurements taken at studio.' },
- ],
- status: 'Active',
- createdAt: '2026-03-01T10:00:00Z',
- lastActivity: '2026-03-15T14:30:00Z',
- startDate: '2026-04-01',
- nextFittingDate: '2026-05-15',
- deliveryDate: '2026-05-14',
- },
- {
- id: '2',
- name: 'Nana Akua Mensah',
- email: 'nana.mensah@email.com',
- gender: 'Female',
- dateOfBirth: '1988-11-23',
- phone: '+233 20 987 6543',
- profession: 'Doctor',
- address: '45 Ring Road Central',
- state: 'Ashanti',
- country: 'Ghana',
- eventName: 'Engagement Ceremony',
- eventDate: '2026-08-12',
- eventLocation: 'Golden Tulip, Kumasi',
- eventMonth: 'August',
- kenteVendor: 'Adanwomase Weavers',
- fabricVendor: 'GTP Fabrics',
- howDidYouHear: 'Referral',
- referralSource: 'Referral',
- comments: '',
- notes: 'Elegant engagement ceremony outfit with gold Kente accents.',
- fabricNotes: '',
- clientPhoto: '',
- fabricPhotos: [],
- fabrics: [],
- illustrations: [],
- clientPhotos: [],
- productionNotes: [],
- measurementsTaken: false,
- fabricReceived: false,
- fittingDone: false,
- noFitting: false,
- fittingRescheduleHistory: [],
- delivered: false,
- measurements: { ...defaultMeasurements },
- fittings: defaultFittings,
- payments: [
- { id: 'p3', date: '2026-03-10', amount: 3000, method: 'Bank Transfer', receiptNumber: 'HOF-M4K9P2' },
- ],
- totalCost: 7500,
- clientPackage: 'Classic',
- consultationDone: false,
- consultationNotes: '',
- timeline: [
- { id: 't4', date: '2026-03-10', action: 'Booking', description: 'New client booked for engagement ceremony.' },
- { id: 't5', date: '2026-03-10', action: 'Payment Recorded', description: 'Initial deposit of GH₵3,000 received.' },
- ],
- status: 'Active',
- createdAt: '2026-03-10T09:00:00Z',
- lastActivity: '2026-03-10T09:00:00Z',
- startDate: '',
- nextFittingDate: '',
- deliveryDate: '',
- },
- {
- id: '3',
- name: 'Efua Darkwah',
- email: 'efua.d@email.com',
- gender: 'Female',
- dateOfBirth: '1995-02-08',
- phone: '+233 55 444 3210',
- profession: 'Entrepreneur',
- address: '8 Ocean Drive',
- state: 'Western',
- country: 'Ghana',
- eventName: 'Naming Ceremony',
- eventDate: '2026-05-30',
- eventLocation: 'Cape Coast Castle Gardens',
- eventMonth: 'May',
- kenteVendor: 'Bonwire Kente Weavers',
- fabricVendor: 'ATL Fabrics',
- howDidYouHear: 'Website',
- referralSource: 'Website',
- comments: '',
- notes: 'Traditional naming ceremony look with rich Kente patterns.',
- fabricNotes: '',
- clientPhoto: '',
- fabricPhotos: [],
- fabrics: [],
- illustrations: [],
- clientPhotos: [],
- productionNotes: [],
- measurementsTaken: false,
- fabricReceived: false,
- fittingDone: false,
- noFitting: false,
- fittingRescheduleHistory: [],
- delivered: false,
- measurements: { ...defaultMeasurements, bust: '88', waist: '68', hip: '94' },
- fittings: { ...defaultFittings, startDate: '2026-03-20', firstFitting: '2026-04-15' },
- payments: [],
- totalCost: 4000,
- clientPackage: 'Essential',
- consultationDone: false,
- consultationNotes: '',
- timeline: [
- { id: 't6', date: '2026-03-12', action: 'Booking', description: 'New client booked for naming ceremony.' },
- ],
- status: 'Completed',
- createdAt: '2026-03-12T11:00:00Z',
- lastActivity: '2026-03-12T11:00:00Z',
- startDate: '2026-03-20',
- nextFittingDate: '2026-04-15',
- deliveryDate: '2026-05-28',
- },
- {
- id: '4',
- name: 'Abena Kyei Ofori',
- email: 'abena.kyei@email.com',
- gender: 'Female',
- dateOfBirth: '1993-07-22',
- phone: '+233 50 234 5678',
- profession: 'Teacher',
- address: '3 Link Road, Tema',
- state: 'Greater Accra',
- country: 'Ghana',
- eventName: 'Outdooring Ceremony',
- eventDate: '2026-05-16',
- eventLocation: 'Tema Community Centre',
- eventMonth: 'May',
- kenteVendor: 'Kente Masters',
- fabricVendor: 'ABC Fabrics',
- howDidYouHear: 'Friend',
- referralSource: 'Friend',
- comments: '',
- notes: 'Rush order — event in 3 days. Final adjustments needed urgently.',
- fabricNotes: '',
- clientPhoto: '',
- fabricPhotos: [],
- fabrics: [],
- illustrations: [],
- clientPhotos: [],
- productionNotes: [],
- measurementsTaken: true,
- fabricReceived: true,
- fittingDone: false,
- noFitting: false,
- fittingRescheduleHistory: [],
- delivered: false,
- measurements: { ...defaultMeasurements, bust: '90', waist: '70', hip: '96', sleeveLength: '22' },
- fittings: { ...defaultFittings, startDate: '2026-05-10', firstFitting: '2026-05-14' },
- payments: [
- { id: 'p5', date: '2026-05-01', amount: 1500, method: 'MoMo Pay', receiptNumber: 'HOF-ABK991' },
- ],
- totalCost: 3000,
- clientPackage: 'Classic',
- consultationDone: true,
- consultationNotes: 'Simple traditional dress with gold trim. Prefers loose fitting around waist.',
- timeline: [
- { id: 't7', date: '2026-05-01', action: 'Booking', description: 'Rush booking for outdooring ceremony.' },
- { id: 't8', date: '2026-05-01', action: 'Consultation Done', description: 'Consultation completed.' },
- { id: 't9', date: '2026-05-02', action: 'Measurements Taken', description: 'Body measurements recorded.' },
- { id: 't10', date: '2026-05-05', action: 'Fabric Received', description: 'Fabric from Kente Masters received.' },
- ],
- status: 'Active',
- createdAt: '2026-05-01T08:00:00Z',
- lastActivity: '2026-05-05T10:00:00Z',
- startDate: '2026-05-10',
- nextFittingDate: '2026-05-14',
- deliveryDate: '2026-05-15',
- },
-];
-
-
-
-// Safe localStorage wrappers — iOS private browsing throws on access
-function safeGetItem(key: string): string | null {
- try { return localStorage.getItem(key); } catch { return null; }
-}
-function safeSetItem(key: string, value: string): void {
- try { localStorage.setItem(key, value); } catch { /* ignore */ }
-}
-function safeRemoveItem(key: string): void {
- try { localStorage.removeItem(key); } catch { /* ignore */ }
+      <div className="flex items-center gap-2">
+        {[0, 1, 2, 3, 4].map(i => (
+          <span
+            key={i}
+            className="loading-dot inline-block w-2.5 h-2.5 rounded-full bg-primary"
+            style={{ animationDelay: `${i * 180}ms` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-const LOADING_MESSAGES = [
- 'Threading the needle…',
- 'Pressing the fabric…',
- 'Measuring twice, cutting once…',
- 'Laying out the patterns…',
- 'Checking client fittings…',
- 'Ironing out the details…',
- 'Setting up the studio…',
- 'Welcoming clients in…',
- 'Sharpening the scissors…',
- 'Pinning the seams…',
- 'Chalking the lines…',
- 'Hanging the garments…',
- 'Stitching it all together…',
- 'Getting everything ready for you…',
-];
+// ── Inner coordinator — lives INSIDE all 4 providers ──
+function StudioFacadeProvider({ children }: { children: ReactNode }) {
+  const auth = useAuthContext();
+  const audit = useAuditContext();
+  const workerCtx = useWorkerContext();
+  const clientCtx = useClientContext();
+
+  // ── Background poll — keeps clients and workers in sync ──
+  useEffect(() => {
+    if (!auth.isAuthenticated) return;
+    const id = setInterval(async () => {
+      try {
+        const [clientRes, workerRes] = await Promise.all([
+          fetch('/api/clients', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+          fetch('/api/workers', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
+        ]);
+        if (clientRes.ok) clientCtx.mergeWithLocal(await clientRes.json());
+        if (workerRes.ok) {
+          const d = await workerRes.json();
+          if (Array.isArray(d)) workerCtx.setWorkers(d);
+        }
+      } catch { /* silent */ }
+    }, 20_000);
+    return () => clearInterval(id);
+  }, [auth.isAuthenticated, clientCtx, workerCtx]);
+
+  // ── Composed login: auth + audit + data refresh ──
+  const login = useCallback(
+    async (
+      email: string,
+      password: string,
+      rememberMe?: boolean,
+    ): Promise<{ ok: boolean; message?: string; isInfo?: boolean }> => {
+      const result = await auth.rawLogin(email, password, rememberMe);
+      if (result.ok) {
+        audit.addAuditLog('Login', `${result.sessionName ?? email} logged in successfully.`);
+        fetch('/api/clients', { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => {
+            if (d) {
+              clientCtx.mergeWithLocal(d);
+              auth.setApiError(false);
+            }
+          })
+          .catch(() => {});
+        fetch('/api/workers', { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => {
+            if (Array.isArray(d)) workerCtx.setWorkers(d);
+          })
+          .catch(() => {});
+      }
+      return { ok: result.ok, message: result.message, isInfo: result.isInfo };
+    },
+    [auth, audit, clientCtx, workerCtx],
+  );
+
+  // ── Composed logout: audit + server logout ──
+  const logout = useCallback(async () => {
+    audit.addAuditLog('Logout', 'User logged out.');
+    await auth.rawLogout();
+  }, [audit, auth]);
+
+  // ── Composed updateUserProfile: auth state + workers array ──
+  const updateUserProfile = useCallback(
+    (updates: Partial<UserProfile>) => {
+      auth.rawUpdateUserProfile(updates, workerCtx.setWorkers);
+    },
+    [auth, workerCtx.setWorkers],
+  );
+
+  // ── Composed removeWorker: cascade to clients + API call ──
+  const removeWorker = useCallback(
+    (id: string) => {
+      const worker = workerCtx.workers.find(w => w.id === id);
+      clientCtx.cascadeWorkerRemoval(id, worker?.name ?? '');
+      workerCtx.rawRemoveWorker(id);
+    },
+    [workerCtx, clientCtx],
+  );
+
+  if (!clientCtx.isLoaded) {
+    return <LoadingScreen loadingMsgIdx={clientCtx.loadingMsgIdx} />;
+  }
+
+  return (
+    <StudioContext.Provider
+      value={{
+        // Auth
+        isAuthenticated: auth.isAuthenticated,
+        sessionChecked: auth.sessionChecked,
+        userProfile: auth.userProfile,
+        apiError: auth.apiError,
+        isRetrying: auth.isRetrying,
+        login,
+        logout,
+        updateUserProfile,
+        // Audit
+        auditLogs: audit.auditLogs,
+        addAuditLog: audit.addAuditLog,
+        // Workers
+        workers: workerCtx.workers,
+        addWorker: workerCtx.addWorker,
+        removeWorker,
+        archiveWorker: workerCtx.archiveWorker,
+        restoreWorker: workerCtx.restoreWorker,
+        // Clients
+        clients: clientCtx.clients,
+        activeClient: clientCtx.activeClient,
+        activeClientId: clientCtx.activeClientId,
+        searchQuery: clientCtx.searchQuery,
+        filteredClients: clientCtx.filteredClients,
+        setSearchQuery: clientCtx.setSearchQuery,
+        setActiveClient: clientCtx.setActiveClientId,
+        setActiveClientId: clientCtx.setActiveClientId,
+        addClient: clientCtx.addClient,
+        updateClient: clientCtx.updateClient,
+        deleteClient: clientCtx.deleteClient,
+        addPayment: clientCtx.addPayment,
+        addTimelineEvent: clientCtx.addTimelineEvent,
+        updateMeasurements: clientCtx.updateMeasurements,
+        updateFittings: clientCtx.updateFittings,
+        addProductionNote: clientCtx.addProductionNote,
+        getActiveClient: clientCtx.getActiveClient,
+        retryLoad: clientCtx.retryLoad,
+      }}
+    >
+      {children}
+    </StudioContext.Provider>
+  );
+}
+
+// ── Inner bridge that wires onWorkersData from WorkerContext into ClientProvider ──
+function WorkerClientBridge({ children }: { children: ReactNode }) {
+  const workerCtx = useWorkerContext();
+
+  const handleWorkersData = useCallback((workers: UserProfile[]) => {
+    workerCtx.setWorkers(workers);
+  }, [workerCtx]);
+
+  return (
+    <ClientProvider onWorkersData={handleWorkersData}>
+      <StudioFacadeProvider>
+        {children}
+      </StudioFacadeProvider>
+    </ClientProvider>
+  );
+}
 
 export function StudioProvider({ children }: { children: ReactNode }) {
- const [clients, setClients] = useState<Client[]>([]);
- const [activeClientId, setActiveClientId] = useState<string | null>(null);
- const [isAuthenticated, setIsAuthenticated] = useState(false);
- const [searchQuery, setSearchQuery] = useState('');
- const [userProfile, setUserProfile] = useState<UserProfile>({
- name: 'Admin',
- email: 'admin@houseofoath.com',
- avatar: null,
- role: 'Admin'
- });
- const [workers, setWorkers] = useState<UserProfile[]>([]);
- const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
- { id: 'log-1', action: 'System Init', description: 'Application loaded successfully.', timestamp: new Date().toISOString() }
- ]);
- const [isLoaded, setIsLoaded] = useState(false);
- const [sessionChecked, setSessionChecked] = useState(false);
- const [useApi, setUseApi] = useState(true); // always attempt API writes; GET sync confirms availability
- const [apiError, setApiError] = useState(false);
- const [isRetrying, setIsRetrying] = useState(false);
- const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-
- const layoutInit = useRef(false);
- const hasFetched = useRef(false);
- const hasLocalDataRef = useRef(false);
- const silentRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
- // ── Effect 1: Synchronous localStorage restore (runs before first paint) ──
- // useLayoutEffect fires synchronously after DOM mutations but before the browser
- // paints, so returning users never see a loading flash — their cached data is
- // already in state when the screen is drawn for the first time.
- useLayoutEffect(() => {
- if (layoutInit.current) return;
- layoutInit.current = true;
-
- try {
- const savedUser = safeGetItem('studio_user');
- if (savedUser) {
- try {
- const parsed = JSON.parse(savedUser);
- if (parsed.email) {
- // Optimistically assume session cookie is still valid; async check below corrects if expired
- setIsAuthenticated(true);
- setUserProfile(prev => ({ ...prev, ...parsed }));
- }
- } catch { /* corrupt */ }
- }
- } catch { /* ignore */ }
-
- let hasLocalClients = false;
- try {
- const savedClients = safeGetItem('studio_clients');
- if (savedClients) {
- const parsed = JSON.parse(savedClients);
- if (Array.isArray(parsed) && parsed.length > 0) {
- setClients(parsed);
- hasLocalClients = true;
- }
- }
- const savedWorkers = safeGetItem('studio_workers');
- if (savedWorkers) {
- const parsed = JSON.parse(savedWorkers);
- if (Array.isArray(parsed) && parsed.length > 0) setWorkers(parsed);
- }
- } catch { /* ignore */ }
-
- // Returning users (have cached data): reveal the UI instantly — no loading screen.
- // First-time / cleared-cache users: keep the loading screen until the API responds.
- if (hasLocalClients) {
- hasLocalDataRef.current = true;
- setIsLoaded(true);
- }
- }, []);
-
- // Merge API data with any locally-saved clients the API doesn't know about
- // (POST failed or never reached the server). Reads from localStorage directly
- // to avoid React state-timing issues — the state updater stays pure.
- const mergeWithLocal = useCallback((apiResponse: Client[] | { clients: Client[]; deletedIds?: string[] }) => {
- const apiData = Array.isArray(apiResponse) ? apiResponse : apiResponse.clients;
- const deletedSet = new Set<string>(
- Array.isArray(apiResponse) ? [] : (apiResponse.deletedIds ?? []),
- );
-
- // If the API responded successfully with zero clients the database was
- // intentionally cleared. Trust the server — wipe the local cache and
- // don't re-sync anything back, otherwise cleared data reappears.
- if (apiData.length === 0 && deletedSet.size === 0) {
- setClients([]);
- safeSetItem('studio_clients', JSON.stringify([]));
- return;
- }
-
- // Read the ground-truth local copy straight from storage
- let localClients: Client[] = [];
- try {
- const saved = safeGetItem('studio_clients');
- if (saved) {
- const parsed = JSON.parse(saved);
- if (Array.isArray(parsed)) localClients = parsed;
- }
- } catch { /* ignore */ }
-
- const apiIds = new Set(apiData.map(c => c.id));
- // Exclude clients the server has permanently deleted — don't re-POST them
- const unsynced = localClients.filter(c => !apiIds.has(c.id) && !deletedSet.has(c.id));
-
- // Retry the POST for every client that didn't make it to MongoDB
- unsynced.forEach(c => {
- fetch('/api/clients', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(c),
- }).catch(() => {});
- });
-
- const merged = [...apiData, ...unsynced];
- setClients(merged);
- }, []);
-
- // ── Silent background retry — keeps trying until the API comes back ─────
- // Defined before Effect 2 so syncFromApi can reference it.
- const startSilentBackgroundRetry = useCallback(() => {
- if (silentRetryTimerRef.current) return; // already scheduled
- const doRetry = async () => {
- silentRetryTimerRef.current = null;
- try {
- const controller = new AbortController();
- const timeoutId = setTimeout(() => controller.abort(), 8000);
- const res = await fetch('/api/clients', {
- signal: controller.signal,
- cache: 'no-store',
- });
- clearTimeout(timeoutId);
- if (!res.ok) throw new Error('non-ok');
- const data = await res.json();
- setUseApi(true);
- setApiError(false);
- mergeWithLocal(data);
- setIsLoaded(true); // data arrived — reveal the app (or update if already visible)
- } catch {
- // Still unreachable — try again in 5 s
- silentRetryTimerRef.current = setTimeout(doRetry, 5000);
- }
- };
- silentRetryTimerRef.current = setTimeout(doRetry, 5000);
- }, [mergeWithLocal]);
-
- // ── Effect 2: Background MongoDB sync ────────────────────────────────────
- useEffect(() => {
- if (hasFetched.current) return;
- hasFetched.current = true;
-
- const syncFromApi = async () => {
- const controller = new AbortController();
- const timeoutId = setTimeout(() => controller.abort(), 8000);
- try {
- const clientRes = await fetch('/api/clients', {
- signal: controller.signal,
- cache: 'no-store',
- });
- if (clientRes.ok) {
- const data = await clientRes.json();
- setUseApi(true);
- setApiError(false);
- mergeWithLocal(data);
- } else {
- throw new Error('Client API returned non-ok');
- }
-
- const workerRes = await fetch('/api/workers', {
- signal: controller.signal,
- cache: 'no-store',
- });
- if (workerRes.ok) {
- const wData = await workerRes.json();
- if (Array.isArray(wData)) {
- setWorkers(wData);
- }
- }
- setIsLoaded(true); // success — reveal the app
- } catch (err) {
- console.warn('API unreachable on initial load:', err);
- // Show the UI immediately — don't trap the user on the splash screen.
- // The silent retry will populate clients when MongoDB becomes available.
- setIsLoaded(true);
- startSilentBackgroundRetry();
- } finally {
- clearTimeout(timeoutId);
- }
- };
- syncFromApi();
- }, [startSilentBackgroundRetry, mergeWithLocal]);
-
- // Save to localStorage as backup (always) — strip passwords before persisting
- useEffect(() => {
- if (isLoaded) {
- safeSetItem('studio_clients', JSON.stringify(clients));
- const workersToStore = workers.map(({ password: _pw, ...w }) => w);
- safeSetItem('studio_workers', JSON.stringify(workersToStore));
- }
- }, [clients, workers, isLoaded]);
-
- const addAuditLog = useCallback((action: string, description: string) => {
- setAuditLogs(prev => [{
- id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
- action,
- description,
- timestamp: new Date().toISOString(),
- }, ...prev]);
- // Persist to MongoDB — fire-and-forget, UI state is already updated
- if (useApi) {
- fetch('/api/audit-logs', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ action, description }),
- }).catch(() => {});
- }
- }, [useApi]);
-
- const retryLoad = useCallback(async () => {
- setApiError(false);
- setIsRetrying(true);
- try {
- const controller = new AbortController();
- const timeoutId = setTimeout(() => controller.abort(), 8000);
- const clientRes = await fetch('/api/clients', {
- signal: controller.signal,
- });
- clearTimeout(timeoutId);
- if (clientRes.ok) {
- const data = await clientRes.json();
- setUseApi(true);
- setApiError(false);
- mergeWithLocal(data);
- setIsLoaded(true);
- } else {
- throw new Error('API non-ok');
- }
- } catch {
- // Silent failure — schedule background retry, never show error to user
- startSilentBackgroundRetry();
- } finally {
- setIsRetrying(false);
- }
- }, [startSilentBackgroundRetry, mergeWithLocal]);
-
- const login = useCallback(async (email: string, password: string, rememberMe = false): Promise<{ ok: boolean; message?: string; isInfo?: boolean }> => {
- if (!email || !password) return { ok: false, message: 'Email and password are required' };
- try {
- const res = await fetch('/api/auth/login', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ email, password, rememberMe }),
- });
- const loginData = await res.json().catch(() => ({})) as Record<string, unknown>;
- if (!res.ok) {
- return { ok: false, message: (loginData.error as string) ?? 'Invalid email or password' };
- }
- // Soft success — sign-in link was sent, no session created
- if (loginData.signInLinkSent) {
- return { ok: false, message: loginData.message as string, isInfo: true };
- }
- const sessionRes = await fetch('/api/auth/session');
- if (!sessionRes.ok) return { ok: false, message: 'Login failed' };
- const data = await sessionRes.json();
- if (!data?.isLoggedIn) return { ok: false, message: 'Login failed' };
- const profile: UserProfile = {
- id: data.userId,
- name: data.name,
- email: data.email,
- avatar: null,
- role: data.role,
- };
- setIsAuthenticated(true);
- setUserProfile(profile);
- safeSetItem('studio_user', JSON.stringify(profile));
- addAuditLog('Login', `${data.name} logged in successfully.`);
- // Cancel any pending background retry and immediately load fresh data for this session
- if (silentRetryTimerRef.current) {
- clearTimeout(silentRetryTimerRef.current);
- silentRetryTimerRef.current = null;
- }
- fetch('/api/clients', { cache: 'no-store' })
- .then(r => r.ok ? r.json() : null)
- .then(d => { if (d && typeof d === 'object') { mergeWithLocal(d); setApiError(false); } })
- .catch(() => {});
- fetch('/api/workers', { cache: 'no-store' })
- .then(r => r.ok ? r.json() : null)
- .then(d => { if (Array.isArray(d)) setWorkers(d); })
- .catch(() => {});
- return { ok: true };
- } catch {
- return { ok: false, message: 'Login failed' };
- }
- }, [addAuditLog, mergeWithLocal]);
-
- const logout = useCallback(async () => {
- addAuditLog('Logout', 'User logged out.');
- try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
- safeRemoveItem('studio_user');
- window.location.replace('/login');
- }, [addAuditLog]);
-
- const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
- setUserProfile(prev => {
- const newProfile = { ...prev, ...updates };
- 
- // If a worker updates their profile, update it in the workers array too.
- if (newProfile.role === 'Worker' && newProfile.id) {
- setWorkers(workersList => workersList.map(w => 
- w.id === newProfile.id ? { ...w, ...updates } : w
- ));
-
- if (useApi) {
- fetch(`/api/workers/${newProfile.id}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify(updates),
- }).catch(e => console.warn('API Error:', e));
- }
- }
-
- // Persist profile without password
- const { password: _pw, ...profileToStore } = newProfile;
- safeSetItem('studio_user', JSON.stringify(profileToStore));
- addAuditLog('Profile Updated', 'User profile details were modified.');
- return newProfile;
- });
- }, [useApi, addAuditLog]);
-
- const addWorker = useCallback(async (name: string, email: string, role: 'Worker' | 'Admin' = 'Worker'): Promise<string | null> => {
- const emailLower = email.trim().toLowerCase();
-
- // Client-side duplicate guard
- const duplicate = workers.some(w => w.email.toLowerCase() === emailLower);
- if (duplicate) return 'A team member with this email already exists';
-
- const tempId = crypto.randomUUID();
- const newWorker: UserProfile = { id: tempId, name, email: emailLower, avatar: null, role, status: 'Active' };
- setWorkers(prev => [...prev, newWorker]);
-
- if (useApi) {
- try {
- const res = await fetch('/api/workers', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ name, email: emailLower, role }),
- });
- if (!res.ok) {
- setWorkers(prev => prev.filter(w => w.id !== tempId));
- const data = await res.json().catch(() => ({}));
- return (data as { error?: string }).error ?? 'Failed to add team member';
- }
- } catch {
- setWorkers(prev => prev.filter(w => w.id !== tempId));
- return 'Network error — please try again';
- }
- }
-
- addAuditLog('Team Member Added', `${role} ${name} (${email}) was added to the team.`);
- return null;
- }, [useApi, addAuditLog, workers]);
-
- const removeWorker = useCallback((id: string) => {
- const workerName = workers.find(w => w.id === id)?.name ?? '';
- setWorkers(prev => prev.filter(w => w.id !== id));
- // Cascade: clear both assignedWorker and assignedWorkerId on locally cached clients
- setClients(prev => prev.map(c =>
- (c.assignedWorkerId === id || (workerName && c.assignedWorker === workerName))
- ? { ...c, assignedWorker: '', assignedWorkerId: undefined }
- : c
- ));
- if (useApi) {
- fetch(`/api/workers/${id}`, {
- method: 'DELETE',
- }).catch(e => console.warn('API Error:', e));
- }
- addAuditLog('Team Member Removed', `${workerName || 'A worker'} was permanently removed from the team.`);
- }, [useApi, addAuditLog, workers]);
-
- const archiveWorker = useCallback((id: string) => {
- const worker = workers.find(w => w.id === id);
- setWorkers(prev => prev.map(w => w.id === id ? { ...w, status: 'Archived' as const } : w));
- if (useApi) {
- fetch(`/api/workers/${id}`, {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ status: 'Archived' }),
- }).catch(e => console.warn('API Error:', e));
- }
- addAuditLog('Worker Archived', `${worker?.name ?? 'A worker'} was archived and can no longer log in.`);
- }, [useApi, addAuditLog, workers]);
-
- const restoreWorker = useCallback((id: string) => {
- const worker = workers.find(w => w.id === id);
- setWorkers(prev => prev.map(w => w.id === id ? { ...w, status: 'Active' as const } : w));
- if (useApi) {
- fetch(`/api/workers/${id}`, {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ status: 'Active' }),
- }).catch(e => console.warn('API Error:', e));
- }
- addAuditLog('Worker Restored', `${worker?.name ?? 'A worker'} was restored and can log in again.`);
- }, [useApi, addAuditLog, workers]);
-
- const addClient = useCallback((clientData: Omit<Client, 'id' | 'createdAt' | 'lastActivity' | 'timeline' | 'payments' | 'measurements' | 'fittings' | 'totalCost' | 'startDate' | 'nextFittingDate' | 'deliveryDate' | 'fabricPhotos' | 'illustrations' | 'clientPhotos' | 'productionNotes' | 'howDidYouHear' | 'comments' | 'dateOfBirth'>) => {
- const now = new Date().toISOString();
- const newClient: Client = {
- ...clientData,
- id: crypto.randomUUID(),
- measurements: defaultMeasurements,
- fittings: defaultFittings,
- payments: [],
- clientPhoto: clientData.clientPhoto || '',
- fabricPhotos: [],
- illustrations: [],
- clientPhotos: [],
- productionNotes: [],
- howDidYouHear: '',
- comments: '',
- dateOfBirth: '',
- totalCost: 0,
- timeline: [
- { id: `t-${Date.now()}`, date: now, action: 'Booking', description: `${clientData.name} was booked as a new client.` },
- ],
- status: 'Active',
- createdAt: now,
- lastActivity: now,
- startDate: '',
- nextFittingDate: '',
- deliveryDate: '',
- consultationDone: false,
- consultationNotes: '',
- clientPackage: clientData.clientPackage || '',
- measurementsTaken: false,
- fabricReceived: false,
- fabrics: [],
- };
- setClients(prev => {
- const next = [newClient, ...prev];
- // Write to localStorage immediately so mergeWithLocal sees it even if
- // the component re-renders before the async save-effect fires.
- safeSetItem('studio_clients', JSON.stringify(next));
- return next;
- });
- setActiveClientId(newClient.id);
-
- if (useApi) {
- fetch('/api/clients', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(newClient),
- }).then(res => {
- if (res.ok) {
- addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
- } else {
- // Server rejected — roll back the optimistic add
- setClients(prev => {
- const rolled = prev.filter(c => c.id !== newClient.id);
- safeSetItem('studio_clients', JSON.stringify(rolled));
- return rolled;
- });
- setActiveClientId(null);
- }
- }).catch(() => {
- // Network failure — roll back
- setClients(prev => {
- const rolled = prev.filter(c => c.id !== newClient.id);
- safeSetItem('studio_clients', JSON.stringify(rolled));
- return rolled;
- });
- setActiveClientId(null);
- });
- } else {
- addAuditLog('Client Added', `Created new client record for ${newClient.name}.`);
- }
- }, [useApi, addAuditLog]);
-
- const updateClient = useCallback((id: string, updates: Partial<Client>) => {
- const now = new Date().toISOString();
- let prevClient: Client | undefined;
- setClients(prev => {
- prevClient = prev.find(c => c.id === id);
- return prev.map(c => c.id === id ? { ...c, ...updates, lastActivity: now } : c);
- });
-
- if (useApi && prevClient) {
- const captured = prevClient;
- fetch(`/api/clients/${id}`, {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ ...updates, lastActivity: now }),
- }).then(res => {
- if (res.ok) {
- addAuditLog('Client Updated', `Modified record for ${captured.name || 'a client'}.`);
- } else {
- setClients(prev => prev.map(c => c.id === id ? captured : c));
- }
- }).catch(() => {
- setClients(prev => prev.map(c => c.id === id ? captured : c));
- });
- } else if (!useApi && prevClient) {
- addAuditLog('Client Updated', `Modified record for ${prevClient.name || 'a client'}.`);
- }
- }, [useApi, addAuditLog]);
-
- const addPayment = useCallback((clientId: string, payment: Omit<Payment, 'id' | 'receiptNumber'>) => {
- const randomHash = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
- const receiptNumber = `HOF-${randomHash}`;
- const paymentWithId: Payment = { ...payment, id: `pay-${Date.now()}`, receiptNumber };
- const now = new Date().toISOString();
-
- // Capture old state for rollback, compute new state outside the updater
- let prevClient: Client | undefined;
- let newUpdates: Partial<Client> | undefined;
-
- setClients(prev => prev.map(c => {
- if (c.id !== clientId) return c;
- prevClient = c;
-
- const newTimelineEvent: TimelineEvent = {
- id: `t-${Date.now()}`,
- date: now,
- action: 'Payment Recorded',
- description: `Payment of GH₵${payment.amount.toLocaleString()} via ${payment.method}.`,
- };
- const updatedTimeline = [...c.timeline, newTimelineEvent];
- const newTotalPaid = [...c.payments, paymentWithId].reduce((sum, p) => sum + p.amount, 0);
- if (newTotalPaid >= c.totalCost && (newTotalPaid - payment.amount) < c.totalCost) {
- updatedTimeline.push({
- id: `t-${Date.now()}-cleared`,
- date: now,
- action: 'Paid in Full',
- description: 'Client balance cleared. Garment ready for final delivery.',
- });
- }
- newUpdates = { payments: [...c.payments, paymentWithId], timeline: updatedTimeline, lastActivity: now };
- return { ...c, ...newUpdates };
- }));
-
- if (useApi && prevClient && newUpdates) {
- const captured = prevClient;
- const updates = newUpdates;
- fetch(`/api/clients/${clientId}`, {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(updates),
- }).then(res => {
- if (res.ok) {
- addAuditLog('Payment Added', `Recorded payment of GH₵${payment.amount} for a client.`);
- } else {
- setClients(prev => prev.map(c => c.id === clientId ? captured : c));
- }
- }).catch(() => {
- setClients(prev => prev.map(c => c.id === clientId ? captured : c));
- });
- } else if (!useApi) {
- addAuditLog('Payment Added', `Recorded payment of GH₵${payment.amount} for a client.`);
- }
- }, [useApi, addAuditLog]);
-
- const addTimelineEvent = useCallback((clientId: string, action: string, description: string) => {
- const now = new Date().toISOString();
- const event: TimelineEvent = {
- id: `t-${Date.now()}`,
- date: now,
- action,
- description,
- };
- setClients(prev => prev.map(c => {
- if (c.id === clientId) {
- const updatedTimeline = [...c.timeline, event];
- if (useApi) {
- fetch(`/api/clients/${clientId}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({ timeline: updatedTimeline, lastActivity: now }),
- }).catch(e => console.warn('API Error:', e));
- }
- return { ...c, timeline: updatedTimeline, lastActivity: now };
- }
- return c;
- }));
- }, [useApi]);
-
- const updateMeasurements = useCallback((clientId: string, measurements: Measurements) => {
- const now = new Date().toISOString();
- setClients(prev => prev.map(c => {
- if (c.id === clientId) {
- const isFirst = !c.measurementsTaken;
- const newTimelineEvent: TimelineEvent = {
- id: `t-${Date.now()}`,
- date: now,
- action: isFirst ? 'Measurements Taken' : 'Measurements Updated',
- description: isFirst ? 'Client measurements recorded.' : 'Client measurements were updated.',
- };
- const updatedTimeline = [...c.timeline, newTimelineEvent];
- const updates = { measurements, timeline: updatedTimeline, lastActivity: now, measurementsTaken: true };
- if (useApi) {
- fetch(`/api/clients/${clientId}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify(updates),
- }).catch(e => console.warn('API Error:', e));
- }
- return { ...c, ...updates };
- }
- return c;
- }));
- addAuditLog('Measurements Updated', `Updated measurements for a client.`);
- }, [useApi, addAuditLog]);
-
- const updateFittings = useCallback((clientId: string, fittings: Fitting) => {
- const now = new Date().toISOString();
- setClients(prev => prev.map(c => {
- if (c.id === clientId) {
- const newTimelineEvent: TimelineEvent = {
- id: `t-${Date.now()}`,
- date: now,
- action: 'Fitting Scheduled',
- description: 'Fitting schedule was updated.',
- };
- const updatedTimeline = [...c.timeline, newTimelineEvent];
- if (useApi) {
- fetch(`/api/clients/${clientId}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({ fittings, timeline: updatedTimeline, lastActivity: now }),
- }).catch(e => console.warn('API Error:', e));
- }
- return {
- ...c,
- fittings,
- timeline: updatedTimeline,
- lastActivity: now,
- };
- }
- return c;
- }));
- addAuditLog('Fitting Updated', `Updated fitting schedule for a client.`);
- }, [useApi, addAuditLog]);
-
- const addProductionNote = useCallback((clientId: string, noteText: string) => {
- const now = new Date().toISOString();
- setClients(prev => prev.map(c => {
- if (c.id === clientId) {
- const newNote: ProductionNote = {
- id: `n-${Date.now()}`,
- author: userProfile.name,
- text: noteText,
- timestamp: now
- };
- const updatedNotes = [...(c.productionNotes || []), newNote];
- if (useApi) {
- fetch(`/api/clients/${clientId}`, {
- method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({ productionNotes: updatedNotes, lastActivity: now }),
- }).catch(e => console.warn('API Error:', e));
- }
- return {
- ...c,
- productionNotes: updatedNotes,
- lastActivity: now
- };
- }
- return c;
- }));
- }, [useApi, userProfile.name]);
-
- const deleteClient = useCallback((id: string) => {
- let deletedClient: Client | undefined;
- setClients(prev => {
- deletedClient = prev.find(c => c.id === id);
- return prev.filter(c => c.id !== id);
- });
- const prevActiveId = activeClientId;
- setActiveClientId(prev => prev === id ? null : prev);
-
- if (useApi) {
- fetch(`/api/clients/${id}`, { method: 'DELETE' })
- .then(res => {
- if (res.ok) {
- addAuditLog('Client Deleted', 'A client record was permanently deleted.');
- } else if (deletedClient) {
- // Server rejected — restore the client
- setClients(prev => [...prev, deletedClient!]);
- setActiveClientId(prevActiveId);
- }
- })
- .catch(() => {
- if (deletedClient) {
- setClients(prev => [...prev, deletedClient!]);
- setActiveClientId(prevActiveId);
- }
- });
- } else {
- addAuditLog('Client Deleted', 'A client record was permanently deleted.');
- }
- }, [useApi, addAuditLog, activeClientId]);
-
- const getActiveClient = useCallback(() => {
- return clients.find(c => c.id === activeClientId);
- }, [clients, activeClientId]);
-
- const filteredClients = clients.filter(c => {
- // Role-based filtering — prefer ID match, fall back to name for legacy records
- if (userProfile.role === 'Worker') {
- const matchesById = userProfile.id && c.assignedWorkerId === userProfile.id;
- const matchesByName = !c.assignedWorkerId && c.assignedWorker === userProfile.name;
- if (!matchesById && !matchesByName) return false;
- }
-
- const nameStr = (c.name || c.fullName || '').toLowerCase();
- const emailStr = (c.email || '').toLowerCase();
- const eventMonthStr = (c.eventMonth || '').toLowerCase();
- const searchStr = searchQuery.toLowerCase();
- 
- return nameStr.includes(searchStr) || 
- emailStr.includes(searchStr) || 
- eventMonthStr.includes(searchStr);
- });
-
- // ── Keyboard scroll fix (iOS Safari + Chrome mobile) ────────────────────
- // When a virtual keyboard appears the browser forcibly scrolls window even
- // though body has overflow:hidden. It never restores the scroll position
- // after the keyboard is dismissed, leaving content stuck behind the status
- // bar. We detect keyboard dismissal via visualViewport (viewport grows) and
- // reset the window scroll to 0.
- useEffect(() => {
- const resetScroll = () => window.scrollTo(0, 0);
-
- // Primary: visualViewport fires on every keyboard show/hide.
- // Only reset when the viewport GROWS (keyboard dismissed, not appeared).
- let prevVpHeight = window.visualViewport?.height ?? 0;
- const handleVpResize = () => {
- const h = window.visualViewport?.height ?? 0;
- if (h > prevVpHeight) resetScroll();
- prevVpHeight = h;
- };
- window.visualViewport?.addEventListener('resize', handleVpResize);
-
- // Fallback for browsers without visualViewport: reset once the keyboard
- // is fully gone (i.e. no editable element is focused after a short delay).
- let blurTimer: ReturnType<typeof setTimeout>;
- const handleFocusOut = () => {
- clearTimeout(blurTimer);
- blurTimer = setTimeout(() => {
- const a = document.activeElement;
- const isEditable = a && (
- a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT'
- );
- if (!isEditable) resetScroll();
- }, 150);
- };
- document.addEventListener('focusout', handleFocusOut);
-
- return () => {
- window.visualViewport?.removeEventListener('resize', handleVpResize);
- document.removeEventListener('focusout', handleFocusOut);
- clearTimeout(blurTimer);
- };
- }, []);
-
- // ── Session verification: correct the optimistic auth state ─────────────
- useEffect(() => {
- fetch('/api/auth/session')
- .then(res => res.ok ? res.json() : null)
- .then(data => {
- if (data?.isLoggedIn) {
- setIsAuthenticated(true);
- setUserProfile(prev => ({
- ...prev,
- id: data.userId,
- name: data.name,
- email: data.email,
- role: data.role,
- }));
- } else {
- setIsAuthenticated(false);
- safeRemoveItem('studio_user');
- }
- setSessionChecked(true);
- })
- .catch(() => {
- // Keep optimistic state if server is unreachable; mark checked so redirect can proceed
- setSessionChecked(true);
- });
- }, []);
-
- // ── Real-time background poll ─────────────────────────────────────────────
- // Keeps the client list in sync when other admins add or update clients.
- // Runs every 20 s while the user is authenticated; merges without overwriting
- // local optimistic updates.
- useEffect(() => {
- if (!isAuthenticated) return;
- const id = setInterval(async () => {
- try {
- const [clientRes, workerRes] = await Promise.all([
- fetch('/api/clients', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
- fetch('/api/workers', { signal: AbortSignal.timeout(8000), cache: 'no-store' }),
- ]);
- if (clientRes.ok) {
- const data = await clientRes.json();
- mergeWithLocal(data);
- }
- if (workerRes.ok) {
- const wData = await workerRes.json();
- if (Array.isArray(wData)) setWorkers(wData);
- }
- } catch { /* silent — user keeps their local state */ }
- }, 20_000);
- return () => clearInterval(id);
- }, [isAuthenticated, mergeWithLocal]);
-
- // Cycle loading messages while the app initialises
- useEffect(() => {
- if (isLoaded) return;
- const t = setInterval(() => setLoadingMsgIdx(i => (i + 1) % LOADING_MESSAGES.length), 2200);
- return () => clearInterval(t);
- }, [isLoaded]);
-
- if (!isLoaded) {
- return (
- <div className="flex h-screen w-full flex-col items-center justify-center bg-canvas gap-6 select-none">
- {/* Logo */}
- <div className="flex flex-col items-center gap-3">
- <div className="flex items-center justify-center size-16 rounded-2xl border-2 border-charcoal/80 bg-white shadow-md overflow-hidden">
- <img src="/ho_logo.png" alt="House of Oath" className="h-full w-full object-contain p-1" />
- </div>
- <p className="text-charcoal font-display font-bold text-lg tracking-wide">House of Oath</p>
- </div>
-
- {/* Cycling message — keyed so it re-mounts and replays the fade-in */}
- <p
- key={loadingMsgIdx}
- className="loading-msg text-gray text-sm font-medium text-center px-8"
- >
- {LOADING_MESSAGES[loadingMsgIdx]}
- </p>
-
- {/* Windows-style wave dots */}
- <div className="flex items-center gap-2">
- {[0, 1, 2, 3, 4].map(i => (
- <span
- key={i}
- className="loading-dot inline-block w-2.5 h-2.5 rounded-full bg-primary"
- style={{ animationDelay: `${i * 180}ms` }}
- />
- ))}
- </div>
- </div>
- );
- }
-
- return (
- <StudioContext.Provider value={{
- clients,
- activeClient: getActiveClient() || null,
- activeClientId,
- isAuthenticated,
- searchQuery,
- userProfile,
- auditLogs,
- workers,
- setSearchQuery,
- setActiveClient: setActiveClientId,
- setActiveClientId,
- addClient,
- updateClient,
- deleteClient,
- addPayment,
- addTimelineEvent,
- updateMeasurements,
- updateFittings,
- updateUserProfile,
- addAuditLog,
- login,
- logout,
- getActiveClient,
- filteredClients,
- addProductionNote,
- addWorker,
- removeWorker,
- archiveWorker,
- restoreWorker,
- sessionChecked,
- apiError,
- isRetrying,
- retryLoad,
- }}>
- {children}
- </StudioContext.Provider>
- );
+  return (
+    <AuditProvider>
+      <AuthProvider>
+        <WorkerProvider>
+          <WorkerClientBridge>
+            {children}
+          </WorkerClientBridge>
+        </WorkerProvider>
+      </AuthProvider>
+    </AuditProvider>
+  );
 }
 
 export function useStudio() {
- const context = useContext(StudioContext);
- if (!context) {
- throw new Error('useStudio must be used within a StudioProvider');
- }
- return context;
+  const ctx = useContext(StudioContext);
+  if (!ctx) throw new Error('useStudio must be used within a StudioProvider');
+  return ctx;
 }
