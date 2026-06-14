@@ -70,7 +70,7 @@ export function WorkerProvider({ children }: { children: ReactNode }) {
           }
         } catch {
           setWorkers(prev => prev.filter(w => w.id !== tempId));
-          return 'Network error — please try again';
+          return 'Network error. Please try again.';
         }
       }
 

@@ -139,7 +139,7 @@ function buildInviteEmail(name: string, role: string, inviteUrl: string): string
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 16px;color:#2d2d2d;font-size:16px;">Hi ${name},</p>
               <p style="margin:0 0 28px;color:#555555;font-size:15px;line-height:1.6;">
-                You have been added to the <strong>House of Oath Fashion Studio</strong> as a <strong>${role}</strong>. Click the button below to access your account — no password needed.
+                You have been added to the <strong>House of Oath Fashion Studio</strong> as a <strong>${role}</strong>. Click the button below to access your account. No password needed.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>

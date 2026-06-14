@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: `House of Oath <${fromAddress}>`,
           to: normalisedEmail,
-          subject: 'Your sign-in link — House of Oath',
+          subject: 'Your sign-in link for House of Oath',
           html: buildSignInLinkEmail(worker.name ?? 'Team Member', resetUrl),
         });
       } catch {

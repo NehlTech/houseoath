@@ -194,7 +194,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  }
  const newIll: DesignIllustration = {
  id: `ill-${Date.now()}-${index}`,
- name: isPdf ? `PDF Design — ${file.name.replace(/\.pdf$/i, '')}` : 'Custom Design Concept',
+ name: isPdf ? `PDF Design: ${file.name.replace(/\.pdf$/i, '')}` : 'Custom Design Concept',
  version: 'v1.0',
  type: isPdf ? 'PDF' : 'Upload',
  image: result.url,
@@ -364,8 +364,8 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
 
  // Add as a new illustration — original is preserved
  const cropLabel = selected.type === 'PDF'
- ? `${selected.name} — Crop (p.${pdfPage})`
- : `${selected.name} — Cropped`;
+ ? `${selected.name} (Crop p.${pdfPage})`
+ : `${selected.name} (Cropped)`;
  const autoColors = await extractColorsFromImage(result.url).catch(() => selected.colors || []);
  const newIll: DesignIllustration = {
  id: `ill-${Date.now()}`,
@@ -409,7 +409,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  </div>
  <div className="text-center space-y-1">
  <p className="font-bold text-charcoal tracking-wide">No illustrations yet</p>
- <p className="text-sm text-muted">Upload a sketch, render, or PDF — or start a blank concept.</p>
+ <p className="text-sm text-muted">Upload a sketch, render, or PDF, or start a blank concept.</p>
  </div>
  <div className="flex items-center gap-3">
  <button
@@ -629,7 +629,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  ) : (
  <div className="flex gap-2 flex-wrap">
  {(selected.colors || []).map(color => (
- <div key={color} className="w-8 h-8 rounded-lg shadow-sm cursor-pointer hover:scale-110 transition-transform relative group" style={{ background: color }} onClick={() => removeColor(color)} title={`${color} — click to remove`}>
+ <div key={color} className="w-8 h-8 rounded-lg shadow-sm cursor-pointer hover:scale-110 transition-transform relative group" style={{ background: color }} onClick={() => removeColor(color)} title={`${color}: click to remove`}>
  <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full size-4 flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm transition-opacity">
  <span className="material-symbols-outlined text-[10px] font-bold">close</span>
  </div>
@@ -638,7 +638,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  {!(selected.colors?.length) && (
  <div className="w-full">
  <span className="text-xs text-slate-400 italic block mb-1">
- {selected.image && selected.type !== 'PDF' ? 'Tap the colorize icon to extract colors from the image' : 'No colors yet — use + to add manually'}
+ {selected.image && selected.type !== 'PDF' ? 'Tap the colorize icon to extract colors from the image' : 'No colors yet. Use + to add manually.'}
  </span>
  </div>
  )}
@@ -708,7 +708,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  <p style={{ color: '#fff', fontWeight: 700, fontSize: 13, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.name}</p>
  <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0 }}>
  {selected.version} · {selected.type}
- {cropMode && (selected.type === 'PDF' ? ` · Page ${pdfPage}/${pdfTotalPages} — drag handles to adjust` : ' — drag handles to adjust')}
+ {cropMode && (selected.type === 'PDF' ? ` · Page ${pdfPage}/${pdfTotalPages}: drag handles to adjust` : ': drag handles to adjust')}
  </p>
  </div>
 
@@ -862,7 +862,7 @@ export default function IllustrationTab({ client, setActiveTab: _setActiveTab }:
  {cropMode && !pdfLoading && cropImgSrc && (
  <div style={{ padding: '10px 16px', textAlign: 'center', flexShrink: 0, background: 'rgba(0,0,0,0.5)' }}>
  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: 0 }}>
- Drag the box to move · Drag handles to resize · Crop is saved as a new illustration — original is kept
+ Drag the box to move · Drag handles to resize · Crop saves as a new illustration, original is kept
  </p>
  </div>
  )}

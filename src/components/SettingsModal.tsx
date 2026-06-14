@@ -162,18 +162,18 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  onChange={e => setNewWorkerRole(e.target.value as 'Worker' | 'Admin')}
  className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none"
  >
- <option value="Worker">Worker — sees only assigned clients</option>
- <option value="Admin">Admin — full access</option>
+ <option value="Worker">Worker: sees only assigned clients</option>
+ <option value="Admin">Admin: full access</option>
  </select>
  </div>
  <div className="bg-primary/8 rounded-xl px-4 py-3 flex items-start gap-3">
  <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">mail</span>
- <p className="text-xs text-gray leading-relaxed">An invite link will be emailed to this person. They click it to access the studio — no password needed. They can set one in their Profile afterwards.</p>
+ <p className="text-xs text-gray leading-relaxed">An invite link will be emailed to this person. They click it to access the studio. No password needed. They can set one in their Profile afterwards.</p>
  </div>
  {inviteSent && (
  <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
  <span className="material-symbols-outlined text-green-600 text-lg shrink-0">check_circle</span>
- <p className="text-xs text-green-700 font-semibold">Team member added — invite email sent!</p>
+ <p className="text-xs text-green-700 font-semibold">Team member added! Invite email sent.</p>
  </div>
  )}
  {addWorkerError && (
@@ -247,7 +247,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  Archive {worker.name}?
  {clientCount > 0 && (
  <span className="font-normal text-gray ml-1">
- They have {clientCount} assigned client{clientCount !== 1 ? 's' : ''} — assignments will stay but they won&apos;t be able to log in.
+ They have {clientCount} assigned client{clientCount !== 1 ? 's' : ''}. Their assignments will stay but they won&apos;t be able to log in.
  </span>
  )}
  {clientCount === 0 && <span className="font-normal text-gray ml-1">They won&apos;t be able to log in. You can restore them later.</span>}

@@ -36,7 +36,7 @@ export default function OnboardingTour({ userId, role }: OnboardingTourProps) {
           element: '#tour-search',
           popover: {
             title: 'Search Clients',
-            description: 'Find any client by name, phone number, event, package, or status — all in one bar.',
+            description: 'Find any client by name, phone number, event, package, or status.',
             side: 'bottom' as const,
             align: 'start' as const,
           },
@@ -57,7 +57,7 @@ export default function OnboardingTour({ userId, role }: OnboardingTourProps) {
                 popover: {
                   title: 'Settings & Team',
                   description:
-                    'Manage your team from here — add tailors, archive them, and view the full activity log.',
+                    'Manage your team from here. Add tailors, archive them, or view the full activity log.',
                   side: 'right' as const,
                   align: 'start' as const,
                 },
@@ -69,7 +69,7 @@ export default function OnboardingTour({ userId, role }: OnboardingTourProps) {
           popover: {
             title: 'Add a New Client',
             description:
-              'Tap here to register a new client order — measurements, event date, and tailor assignment.',
+              'Tap here to register a new client order: measurements, event date, and tailor assignment.',
             side: 'left' as const,
             align: 'end' as const,
           },
@@ -78,7 +78,7 @@ export default function OnboardingTour({ userId, role }: OnboardingTourProps) {
           element: '#tour-profile-card',
           popover: {
             title: 'Your Profile',
-            description: "Update your name, photo, or password here. That's it — enjoy the studio!",
+            description: "Update your name, photo, or password here. Enjoy the studio!",
             side: 'top' as const,
             align: 'start' as const,
           },
@@ -118,7 +118,7 @@ export default function OnboardingTour({ userId, role }: OnboardingTourProps) {
           popover: {
             title: 'Your Profile',
             description:
-              'Set or update your password here — we recommend doing this on your very first login.',
+              'Set or update your password here. We recommend doing this on your very first login.',
             side: 'top' as const,
             align: 'start' as const,
           },

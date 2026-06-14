@@ -12,7 +12,7 @@ function InviteVerifier() {
  const token = searchParams.get('token');
  if (!token) {
  setStatus('error');
- setMessage('This invite link is invalid — no token found.');
+ setMessage('This invite link is invalid. No token found.');
  return;
  }
 
@@ -34,7 +34,7 @@ function InviteVerifier() {
  })
  .catch(() => {
  setStatus('error');
- setMessage('Network error — please check your connection and try again.');
+ setMessage('Network error. Please check your connection and try again.');
  });
  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

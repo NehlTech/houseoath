@@ -31,7 +31,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
  Something went wrong
  </h1>
  <p className="text-sm text-gray leading-relaxed">
- An unexpected error occurred. Your data is safe — please try again.
+ An unexpected error occurred. Your data is safe. Please try again.
  </p>
  </div>
 

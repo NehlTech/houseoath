@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: `House of Oath <${fromAddress}>`,
       to: email,
-      subject: 'Reset your password — House of Oath',
+      subject: 'Reset your password for House of Oath',
       html: buildResetEmail(worker.name ?? 'Team Member', resetUrl),
     });
 

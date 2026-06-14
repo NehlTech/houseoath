@@ -19,7 +19,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
  <head>
  <meta charSet="UTF-8" />
  <meta name="viewport" content="width=device-width, initial-scale=1" />
- <title>Error — House of Oath</title>
+ <title>Error | House of Oath</title>
  <style>{`
  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
  body {

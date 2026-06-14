@@ -58,7 +58,7 @@ export default function ConsultationModal({ client, onClose }: ConsultationModal
  {client.consultationDone && (
  <div className="flex items-center gap-2 mb-4 p-3 bg-success/10 rounded-lg">
  <span className="material-symbols-outlined text-success text-[18px]">check_circle</span>
- <span className="text-success text-sm font-semibold">Consultation already completed — you can update the notes below.</span>
+ <span className="text-success text-sm font-semibold">Consultation already completed. You can update the notes below.</span>
  </div>
  )}
  <label className="block text-xs font-bold tracking-wider text-gray mb-2">
@@ -86,7 +86,7 @@ export default function ConsultationModal({ client, onClose }: ConsultationModal
  onClick={handleSave}
  className="px-5 py-2.5 rounded-lg bg-primary text-white font-bold text-sm hover:bg-[#E5C04A] transition-colors shadow-sm"
  >
- {client.consultationDone ? 'Update Notes' : 'Done — Mark Consulted'}
+ {client.consultationDone ? 'Update Notes' : 'Done: Mark Consulted'}
  </button>
  </div>
  </div>

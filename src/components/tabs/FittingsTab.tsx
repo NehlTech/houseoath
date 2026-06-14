@@ -59,7 +59,7 @@ export default function FittingsTab({ client }: FittingsTabProps) {
 
  const handleNoFitting = () => {
  updateClient(client.id, { noFitting: true });
- addTimelineEvent(client.id, 'No Fitting — Client Opted Out', 'Client does not require a fitting session.');
+ addTimelineEvent(client.id, 'No Fitting: Client Opted Out', 'Client does not require a fitting session.');
  };
 
  const inputCls = 'w-full border border-border/60 rounded-lg h-10 px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all';

@@ -308,7 +308,7 @@ export default function FabricTab({ client }: FabricTabProps) {
  <div>
  <label className="block text-xs font-bold tracking-wider text-gray mb-1.5">
  Received Date
- <span className="ml-1 normal-case font-normal text-muted text-[10px]">(optional — marks fabric as received)</span>
+ <span className="ml-1 normal-case font-normal text-muted text-[10px]">(optional, marks fabric as received)</span>
  </label>
  <input
  type="date"
@@ -378,7 +378,7 @@ export default function FabricTab({ client }: FabricTabProps) {
  <div style={{ minWidth: 0, flex: 1 }}>
  <p style={{ color: '#fff', fontWeight: 700, fontSize: 13, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lightboxFabric.name}</p>
  <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, margin: 0 }}>
- {lightboxFabric.type}{cropMode ? ' — drag handles to adjust' : ' · Tap outside to close'}
+ {lightboxFabric.type}{cropMode ? ': drag handles to adjust' : ' · Tap outside to close'}
  </p>
  </div>
  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>

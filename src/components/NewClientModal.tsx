@@ -268,7 +268,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  <div>
  <label className={labelCls}>Package <span className="text-primary">*</span></label>
  <select className={inputCls} value={form.clientPackage} onChange={(e) => handleChange('clientPackage', e.target.value)}>
- <option value="">— Select package —</option>
+ <option value="">Select a package</option>
  <option>Lux</option>
  <option>Classic</option>
  <option>Essential</option>
@@ -319,7 +319,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  <div>
  <label className={labelCls}>Assigned Tailor / Worker</label>
  <select className={inputCls} value={form.assignedWorkerId} onChange={(e) => handleChange('assignedWorkerId', e.target.value)}>
- <option value="">— Select tailor —</option>
+ <option value="">Select a tailor</option>
  {workers.filter(w => w.status !== 'Archived').map(w => (
  <option key={w.id} value={w.id}>{w.name}</option>
  ))}
