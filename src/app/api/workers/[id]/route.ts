@@ -9,6 +9,7 @@ import { deepStripMongoOperators } from '@/lib/mongoSanitize';
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'workers';
 const MAX_BODY_BYTES = 1_048_576;
+const BCRYPT_ROUNDS = Math.min(Math.max(parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10), 10), 14);
 
 function buildFilter(id: string): Filter<Document> {
   return {
@@ -66,10 +67,10 @@ export async function PUT(
     const { id: _omitId, _id: _omitMongoId, ...updates } = cleaned;
 
     if (typeof updates.password === 'string' && updates.password.length > 0) {
-      if (updates.password.length < 8) {
-        return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+      if (updates.password.length < 8 || updates.password.length > 128) {
+        return NextResponse.json({ error: 'Password must be between 8 and 128 characters' }, { status: 400 });
       }
-      updates.password = await bcrypt.hash(updates.password as string, 12);
+      updates.password = await bcrypt.hash(updates.password as string, BCRYPT_ROUNDS);
     } else {
       delete updates.password;
     }

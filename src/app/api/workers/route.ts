@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     let inviteToken: string | null = null;
 
-    if (typeof body.password === 'string' && body.password.length >= 8) {
+    if (typeof body.password === 'string' && body.password.length >= 8 && body.password.length <= 128) {
       body.password = await bcrypt.hash(body.password, BCRYPT_ROUNDS);
     } else {
       delete body.password;
