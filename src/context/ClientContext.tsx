@@ -824,11 +824,15 @@ export function ClientProvider({ children, onWorkersData }: ClientProviderProps)
 
   const cascadeWorkerRemoval = useCallback((workerId: string, workerName: string) => {
     setClients(prev =>
-      prev.map(c =>
-        c.assignedWorkerId === workerId || (workerName && c.assignedWorker === workerName)
-          ? { ...c, assignedWorker: '', assignedWorkerId: undefined }
-          : c,
-      ),
+      prev.map(c => {
+        // Only clear assignment on Active clients — Completed/Archived keep the
+        // historical record of who made the garment.
+        if (c.status === 'Completed' || c.status === 'Archived') return c;
+        if (c.assignedWorkerId === workerId || (workerName && c.assignedWorker === workerName)) {
+          return { ...c, assignedWorker: '', assignedWorkerId: undefined };
+        }
+        return c;
+      }),
     );
   }, []);
 

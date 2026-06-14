@@ -105,9 +105,14 @@ export async function DELETE(
     const worker = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { name: 1, id: 1 } });
     if (!worker) return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
 
-    // Cascade: unassign this worker from all client records (both ID and name fields)
+    // Cascade: unassign this worker from Active clients only.
+    // Completed and Archived clients keep the assignment as a historical record
+    // of who made the garment.
     await db.collection('clients').updateMany(
-      { $or: [{ assignedWorkerId: id }, ...(worker.name ? [{ assignedWorker: worker.name }] : [])] },
+      {
+        status: { $nin: ['Completed', 'Archived'] },
+        $or: [{ assignedWorkerId: id }, ...(worker.name ? [{ assignedWorker: worker.name }] : [])],
+      },
       { $set: { assignedWorker: '', assignedWorkerId: '' } }
     );
 
