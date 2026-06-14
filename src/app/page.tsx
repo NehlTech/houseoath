@@ -10,9 +10,10 @@ import NewClientModal from '@/components/NewClientModal';
 import SettingsModal from '@/components/SettingsModal';
 import ProfileModal from '@/components/ProfileModal';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
+import OnboardingTour from '@/components/OnboardingTour';
 
 export default function Dashboard() {
- const { isAuthenticated, sessionChecked, activeClient, setActiveClient } = useStudio();
+ const { isAuthenticated, sessionChecked, activeClient, setActiveClient, userProfile } = useStudio();
  const router = useRouter();
  const [showNewClient, setShowNewClient] = useState(false);
  const [showSettings, setShowSettings] = useState(false);
@@ -122,6 +123,8 @@ export default function Dashboard() {
  {showNewClient && <NewClientModal onClose={() => setShowNewClient(false)} />}
  {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
  {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+ <OnboardingTour userId={userProfile.id ?? userProfile.email} role={userProfile.role} />
 
  {/* Inactivity warning banner */}
  {inactiveSecsLeft > 0 && (

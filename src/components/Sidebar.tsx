@@ -416,7 +416,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  {/* ── STATIC TOP: always visible ── */}
  <div className="bg-card" style={{ minHeight: 0 }}>
  {/* Top Header */}
- <div className="flex items-center gap-3 p-3">
+ <div id="tour-sidebar-header" className="flex items-center gap-3 p-3">
  {/* Hamburger — toggles sidebar drawer (desktop only) */}
  <button
  onClick={onToggleSidebar}
@@ -429,6 +429,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  {/* Options menu — Archive, Settings, Logout (desktop only) */}
  <div className="relative hidden md:block" ref={menuRef}>
  <button
+ id="tour-options-menu"
  onClick={() => setDesktopMenuOpen(!desktopMenuOpen)}
  className="flex h-10 w-10 items-center justify-center rounded-full text-gray hover:bg-canvas transition-colors"
  title="More options"
@@ -479,7 +480,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  </div>
 
  {/* Search Bar */}
- <div className="flex-1 relative">
+ <div id="tour-search" className="flex-1 relative">
  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted text-[20px]">search</span>
  <input
  className="h-10 w-full rounded-full shadow-sm border-none bg-canvas pl-10 pr-4 text-sm text-charcoal focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder-muted font-medium outline-none"
@@ -507,7 +508,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  </button>
  </div>
  ) : (
- <div className="flex px-2 w-full overflow-x-auto no-scrollbar ">
+ <div id="tour-client-tabs" className="flex px-2 w-full overflow-x-auto no-scrollbar ">
  <button
  onClick={() => setActiveTab('all')}
  className={`group relative flex-1 flex items-center justify-center gap-2 p-3 font-semibold transition-all min-w-[max-content] ${
@@ -615,7 +616,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
 
  {/* FAB — Admin only; raised above the mobile bottom nav bar */}
  {userProfile.role === 'Admin' && (
- <div className="fab-touch-visible absolute bottom-[6.5rem] right-6 md:bottom-8 md:right-8 z-30 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-center md:opacity-0 md:scale-50 md:translate-y-4 md:pointer-events-none md:group-hover/list:opacity-100 md:group-hover/list:scale-100 md:group-hover/list:translate-y-0 md:group-hover/list:pointer-events-auto">
+ <div id="tour-fab" className="fab-touch-visible absolute bottom-[6.5rem] right-6 md:bottom-8 md:right-8 z-30 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-center md:opacity-0 md:scale-50 md:translate-y-4 md:pointer-events-none md:group-hover/list:opacity-100 md:group-hover/list:scale-100 md:group-hover/list:translate-y-0 md:group-hover/list:pointer-events-auto">
  <button
  onClick={onNewClient}
  className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:shadow-xl hover:bg-[#E5C04A] active:scale-90 transition-transform duration-200 outline-none focus:outline-none"
@@ -630,6 +631,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  {/* ── PROFILE CARD: always visible, sits above the mobile nav ── */}
  <div className="bg-card border-t border-border/40 pb-[72px] md:pb-0">
  <button
+ id="tour-profile-card"
  onClick={onOpenProfile}
  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-canvas transition-colors text-left"
  >

@@ -183,6 +183,62 @@ summary {
   animation: slide-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* ── Driver.js Onboarding Tour — Brand Overrides ── */
+.driver-popover {
+  border-radius: 16px !important;
+  border: none !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18) !important;
+  font-family: "Manrope", sans-serif !important;
+  max-width: 300px !important;
+  padding: 20px !important;
+}
+.driver-popover-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 6px !important;
+}
+.driver-popover-description {
+  font-size: 13px !important;
+  color: #495057 !important;
+  line-height: 1.65 !important;
+}
+.driver-popover-footer {
+  margin-top: 16px !important;
+  gap: 6px !important;
+}
+.driver-popover-footer button {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 6px 14px !important;
+}
+.driver-popover-next-btn {
+  background: #d4af35 !important;
+  color: #000 !important;
+  border: none !important;
+  text-shadow: none !important;
+}
+.driver-popover-next-btn:hover {
+  background: #e5c04a !important;
+}
+.driver-popover-prev-btn {
+  background: transparent !important;
+  border: 1px solid #dee2e6 !important;
+  color: #495057 !important;
+  text-shadow: none !important;
+}
+.driver-popover-prev-btn:hover {
+  background: #f8f9fa !important;
+}
+.driver-popover-close-btn {
+  color: #adb5bd !important;
+}
+.driver-popover-progress-text {
+  font-size: 11px !important;
+  color: #adb5bd !important;
+}
+
 /* Print Isolation Styles */
 @media print {
   @page {
