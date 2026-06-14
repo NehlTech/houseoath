@@ -41,6 +41,30 @@ export default function Dashboard() {
  if (activeClient) setMobileShowWorkspace(true);
  }, [activeClient?.id]);
 
+ // Push a history entry when the workspace opens so the phone's back button
+ // navigates back inside the app instead of leaving to the previous URL.
+ useEffect(() => {
+ if (mobileShowWorkspace) {
+   history.pushState({ view: 'workspace' }, '');
+ }
+ }, [mobileShowWorkspace]);
+
+ // Intercept the browser back gesture while in workspace view.
+ useEffect(() => {
+ const handlePop = (e: PopStateEvent) => {
+   // Only intercept when we're showing the workspace on mobile.
+   // On desktop both panels are visible side-by-side — do nothing.
+   const isMobile = window.innerWidth < 768;
+   if (isMobile && mobileShowWorkspace) {
+     e.preventDefault?.();
+     setMobileShowWorkspace(false);
+     setActiveClient(null);
+   }
+ };
+ window.addEventListener('popstate', handlePop);
+ return () => window.removeEventListener('popstate', handlePop);
+ }, [mobileShowWorkspace, setActiveClient]);
+
  const handleSelectClient = (id: string) => {
  setActiveClient(id);
  setMobileShowWorkspace(true);

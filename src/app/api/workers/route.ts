@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
 const COLLECTION = 'workers';
+const BCRYPT_ROUNDS = Math.min(Math.max(parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10), 10), 14);
 const MAX_BODY_BYTES = 1_048_576;
 
 export async function GET(request: NextRequest) {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     let inviteToken: string | null = null;
 
     if (typeof body.password === 'string' && body.password.length >= 8) {
-      body.password = await bcrypt.hash(body.password, 12);
+      body.password = await bcrypt.hash(body.password, BCRYPT_ROUNDS);
     } else {
       delete body.password;
       inviteToken = crypto.randomBytes(32).toString('hex');

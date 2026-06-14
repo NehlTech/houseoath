@@ -12,6 +12,7 @@ import { validateEnv } from '@/lib/validateEnv';
 export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
+const BCRYPT_ROUNDS = Math.min(Math.max(parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10), 10), 14);
 
 export async function POST(request: NextRequest) {
   validateEnv();
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
       // Legacy plain-text — compare then upgrade to bcrypt
       valid = storedPw === password;
       if (valid) {
-        const hash = await bcrypt.hash(password, 12);
+        const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
         await db.collection('workers').updateOne({ _id: worker._id }, { $set: { password: hash } });
       }
     }

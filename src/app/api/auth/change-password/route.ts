@@ -8,6 +8,7 @@ import { sessionOptions, type SessionData } from '@/lib/session';
 export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
+const BCRYPT_ROUNDS = Math.min(Math.max(parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10), 10), 14);
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Invite-only worker setting their password for the first time
     if (!worker.password) {
-      const hashed = await bcrypt.hash(newPassword, 12);
+      const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
       await db.collection('workers').updateOne(
         { email: session.email },
         { $set: { password: hashed } }
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
     }
 
-    const hashed = await bcrypt.hash(newPassword, 12);
+    const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await db.collection('workers').updateOne(
       { email: session.email },
       { $set: { password: hashed } }

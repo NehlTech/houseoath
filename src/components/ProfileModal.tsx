@@ -46,6 +46,12 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
  useEffect(() => {
+   const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+   document.addEventListener('keydown', handleKeyDown);
+   return () => document.removeEventListener('keydown', handleKeyDown);
+ }, [onClose]);
+
+ useEffect(() => {
  if (isAdmin) { setHasPassword(true); return; }
  fetch('/api/auth/password-status')
  .then(r => r.ok ? r.json() : null)
@@ -88,8 +94,12 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  <div
  className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 md:bg-black/40 backdrop-blur-sm animate-fade-in"
  onClick={onClose}
+ aria-hidden="true"
  >
  <div
+ role="dialog"
+ aria-modal="true"
+ aria-label={`Profile — ${userProfile.name}`}
  className="bg-card rounded-t-2xl md:rounded-2xl shadow-2xl w-full md:max-w-md max-h-[92vh] flex flex-col overflow-hidden"
  onClick={e => e.stopPropagation()}
  >
@@ -126,7 +136,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  <button
  onClick={e => { e.stopPropagation(); setPhotoUrl(''); }}
  className="absolute -top-1 -left-1 h-4 w-4 bg-danger rounded-full flex items-center justify-center shadow-sm"
- title="Remove photo"
+ aria-label="Remove photo"
  >
  <span className="material-symbols-outlined text-[10px] text-white">close</span>
  </button>
@@ -145,9 +155,10 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  </div>
  <button
  onClick={onClose}
+ aria-label="Close"
  className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg hover:bg-canvas text-muted hover:text-charcoal transition-colors"
  >
- <span className="material-symbols-outlined text-[20px]">close</span>
+ <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
  </button>
  </div>
 

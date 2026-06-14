@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStudio } from '@/context/StudioContext';
 import { validateImageFile } from '@/lib/validateImage';
 
@@ -64,6 +64,12 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  const { addClient, workers } = useStudio();
  const fileInputRef = useRef<HTMLInputElement>(null);
  const [photoError, setPhotoError] = useState('');
+
+ useEffect(() => {
+   const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+   document.addEventListener('keydown', handleKeyDown);
+   return () => document.removeEventListener('keydown', handleKeyDown);
+ }, [onClose]);
 
  const [form, setForm] = useState({
  name: '', countryCode: '+233', localPhone: '', email: '',
@@ -146,14 +152,14 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  const labelCls = 'block text-xs font-bold tracking-wider text-gray mb-2';
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
- <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-none" onClick={(e) => e.stopPropagation()}>
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose} aria-hidden="true">
+ <div role="dialog" aria-modal="true" aria-labelledby="new-client-modal-title" className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-none" onClick={(e) => e.stopPropagation()}>
 
  {/* Header */}
  <div className="sticky top-0 bg-card/90 backdrop-blur-md px-6 py-4 flex items-center justify-between z-10">
- <h2 className="text-2xl font-display font-bold tracking-wide text-charcoal">New Client Onboarding</h2>
- <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-canvas transition-colors">
- <span className="material-symbols-outlined text-muted">close</span>
+ <h2 id="new-client-modal-title" className="text-2xl font-display font-bold tracking-wide text-charcoal">New Client Onboarding</h2>
+ <button onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-canvas transition-colors">
+ <span className="material-symbols-outlined text-muted" aria-hidden="true">close</span>
  </button>
  </div>
 

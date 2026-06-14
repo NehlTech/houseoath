@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const DB_NAME = 'kente-couture';
 const MAX_PASSWORD_LENGTH = 128;
+const BCRYPT_ROUNDS = Math.min(Math.max(parseInt(process.env.BCRYPT_ROUNDS ?? '12', 10), 10), 14);
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash before the DB round-trip so we hold the token open for minimum time
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const client = await clientPromise;
     const db = client.db(DB_NAME);

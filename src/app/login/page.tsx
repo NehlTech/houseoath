@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudio } from '@/context/StudioContext';
 
@@ -12,8 +12,13 @@ export default function LoginPage() {
  const [error, setError] = useState('');
  const [infoMessage, setInfoMessage] = useState('');
  const [rememberMe, setRememberMe] = useState(false);
- const { login } = useStudio();
+ const { login, isAuthenticated, sessionChecked } = useStudio();
  const router = useRouter();
+
+ // If already authenticated, skip login page entirely
+ useEffect(() => {
+   if (sessionChecked && isAuthenticated) router.replace('/');
+ }, [isAuthenticated, sessionChecked, router]);
 
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -23,7 +28,7 @@ export default function LoginPage() {
  setInfoMessage('');
  const result = await login(email, password, rememberMe);
  if (result.ok) {
- router.push('/');
+ router.replace('/');
  } else if (result.isInfo) {
  setInfoMessage(result.message ?? 'Check your email for a sign-in link.');
  setLoading(false);
@@ -72,7 +77,7 @@ export default function LoginPage() {
 
  <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
  <div className="flex flex-col gap-2">
- <label className="text-gray text-xs font-bold tracking-wider">Email Address</label>
+ <label htmlFor="login-email" className="text-gray text-xs font-bold tracking-wider">Email Address</label>
  <div className="relative">
  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-xl">mail</span>
  <input
@@ -88,7 +93,7 @@ export default function LoginPage() {
 
  <div className="flex flex-col gap-2">
  <div className="flex justify-between items-center">
- <label className="text-gray text-xs font-bold tracking-wider">Password</label>
+ <label htmlFor="login-password" className="text-gray text-xs font-bold tracking-wider">Password</label>
  <a className="text-primary text-xs font-bold tracking-wider hover:text-primary/70 transition-colors" href="/forgot-password">Forgot password?</a>
  </div>
  <div className="relative">
@@ -101,8 +106,8 @@ export default function LoginPage() {
  value={password}
  onChange={(e) => setPassword(e.target.value)}
  />
- <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors">
- <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
+ <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors">
+ <span className="material-symbols-outlined text-xl" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span>
  </button>
  </div>
  </div>
