@@ -90,7 +90,7 @@ interface StudioContextType {
   filteredClients: Client[];
   addProductionNote: (clientId: string, noteText: string) => void;
   addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => Promise<string | null>;
-  removeWorker: (id: string) => void;
+  removeWorker: (id: string) => Promise<void>;
   archiveWorker: (id: string) => void;
   restoreWorker: (id: string) => void;
   sessionChecked: boolean;
@@ -203,12 +203,13 @@ function StudioFacadeProvider({ children }: { children: ReactNode }) {
     [auth, workerCtx.setWorkers],
   );
 
-  // ── Composed removeWorker: cascade to clients + API call ──
+  // ── Composed removeWorker: delete confirmed by server before cascading clients ──
   const removeWorker = useCallback(
-    (id: string) => {
+    async (id: string): Promise<void> => {
       const worker = workerCtx.workers.find(w => w.id === id);
-      clientCtx.cascadeWorkerRemoval(id, worker?.name ?? '');
-      workerCtx.rawRemoveWorker(id);
+      const ok = await workerCtx.rawRemoveWorker(id);
+      // Only clear client assignments if the server actually deleted the worker
+      if (ok) clientCtx.cascadeWorkerRemoval(id, worker?.name ?? '');
     },
     [workerCtx, clientCtx],
   );

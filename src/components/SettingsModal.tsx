@@ -193,7 +193,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  <div className="space-y-3">
  <h5 className="font-bold tracking-wide text-charcoal">Current Team ({activeWorkers.length})</h5>
  {activeWorkers.length > 0 ? activeWorkers.map(worker => {
- const isConfirming = confirmAction?.id === worker.id;
+ const isConfirming = confirmAction !== null && confirmAction.id === worker.id;
  const clientCount = assignedCount(worker);
  return (
  <div key={worker.id} className="rounded-xl bg-canvas transition-colors group overflow-hidden">

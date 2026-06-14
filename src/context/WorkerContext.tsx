@@ -9,7 +9,7 @@ interface WorkerContextType {
   workers: UserProfile[];
   setWorkers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
   addWorker: (name: string, email: string, role?: 'Worker' | 'Admin') => Promise<string | null>;
-  rawRemoveWorker: (id: string) => void;
+  rawRemoveWorker: (id: string) => Promise<boolean>;
   archiveWorker: (id: string) => void;
   restoreWorker: (id: string) => void;
 }
@@ -81,20 +81,33 @@ export function WorkerProvider({ children }: { children: ReactNode }) {
   );
 
   const rawRemoveWorker = useCallback(
-    (id: string) => {
+    async (id: string): Promise<boolean> => {
       const worker = workers.find(w => w.id === id);
       const workerName = worker?.name ?? '';
+
+      // Optimistic remove
       setWorkers(prev => prev.filter(w => w.id !== id));
 
       if (useApi) {
-        fetch(`/api/workers/${id}`, { method: 'DELETE' }).catch(e =>
-          console.warn('API Error:', e),
-        );
+        try {
+          const res = await fetch(`/api/workers/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            // Server rejected — restore the worker
+            if (worker) setWorkers(prev => [...prev, worker]);
+            return false;
+          }
+        } catch {
+          // Network failure — restore the worker
+          if (worker) setWorkers(prev => [...prev, worker]);
+          return false;
+        }
       }
+
       addAuditLog(
         'Team Member Removed',
         `${workerName || 'A worker'} was permanently removed from the team.`,
       );
+      return true;
     },
     [useApi, addAuditLog, workers],
   );

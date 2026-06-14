@@ -101,8 +101,8 @@ export async function DELETE(
     const client = await clientPromise;
     const db = client.db(DB_NAME);
 
-    // Get worker name before deleting so we can cascade-clear client assignments
-    const worker = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { name: 1 } });
+    // Get worker name + id before deleting for cascade + session revocation
+    const worker = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { name: 1, id: 1 } });
     if (!worker) return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
 
     // Cascade: unassign this worker from all client records (both ID and name fields)
@@ -112,6 +112,16 @@ export async function DELETE(
     );
 
     await db.collection(COLLECTION).deleteOne(buildFilter(id));
+
+    // Revoke active session so the deleted worker can't keep using the app.
+    // The session userId matches worker.id (UUID) if set, otherwise the _id string.
+    const sessionUserId = (worker.id as string | undefined) ?? worker._id.toString();
+    await db.collection('revoked_sessions').insertOne({ userId: sessionUserId, revokedAt: new Date() });
+    // TTL index — auto-removes entries after 30 days (max session lifetime). No-op if already exists.
+    db.collection('revoked_sessions')
+      .createIndex({ revokedAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 })
+      .catch(() => {});
+
     return NextResponse.json({ message: 'Worker removed successfully' });
   } catch {
     return NextResponse.json({ error: 'Failed to remove worker' }, { status: 500 });

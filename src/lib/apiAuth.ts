@@ -2,6 +2,9 @@
 import { cookies } from 'next/headers';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, type SessionData } from './session';
+import clientPromise from './mongodb';
+
+const DB_NAME = 'kente-couture';
 
 type AuthResult =
  | { error: NextResponse; session: null }
@@ -31,6 +34,24 @@ export async function requireApiAuth(_request: Request): Promise<AuthResult> {
  error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
  session: null,
  };
+ }
+
+ // Check if this worker's session was revoked (e.g. deleted by admin).
+ // Skip for admin — admin is env-var based and can never be deleted.
+ if (session.userId && session.userId !== 'admin') {
+ try {
+   const mongo = await clientPromise;
+   const db = mongo.db(DB_NAME);
+   const revoked = await db.collection('revoked_sessions').findOne({ userId: session.userId });
+   if (revoked) {
+     return {
+       error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+       session: null,
+     };
+   }
+ } catch {
+   // Fail open — don't block auth if DB is temporarily unreachable
+ }
  }
 
  return { error: null, session };
