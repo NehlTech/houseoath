@@ -318,14 +318,14 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
  <p>Account Name: House of Oath</p>
  </div>
  <div className="flex flex-col gap-1.5">
- <p className="font-bold text-[#1a0f08]">MoMo Pay</p>
+ <p className="font-bold text-[#1a0f08]">Mobile Money</p>
  <p>0545124346</p>
  <p>House of Oath</p>
  </div>
  <div className="flex flex-col sm:items-end gap-1.5 text-left sm:text-right max-w-xs">
  <p className="font-bold text-[#1a0f08]">Payment Terms</p>
  <p>{form.terms || 'Payment due before delivery.'}</p>
- <p>Bank or MoMo payments accepted.</p>
+ <p>Bank or Mobile Money payments accepted.</p>
  </div>
  </div>
 

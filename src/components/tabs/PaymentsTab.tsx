@@ -102,7 +102,7 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
  className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
  >
  <option>Bank Transfer</option>
- <option>MoMo Pay</option>
+
  <option>Mobile Money</option>
  <option>Cash</option>
  </select>
@@ -174,7 +174,7 @@ export default function PaymentsTab({ client }: PaymentsTabProps) {
  className="w-full bg-white border border-border/60 rounded-lg h-12 px-4 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
  >
  <option>Bank Transfer</option>
- <option>MoMo Pay</option>
+
  <option>Mobile Money</option>
  <option>Cash</option>
  </select>
