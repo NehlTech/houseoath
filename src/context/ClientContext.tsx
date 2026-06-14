@@ -843,15 +843,17 @@ export function ClientProvider({ children, onWorkersData }: ClientProviderProps)
       if (!matchesById && !matchesByName) return false;
     }
 
-    const nameStr = (c.name || c.fullName || '').toLowerCase();
-    const emailStr = (c.email || '').toLowerCase();
-    const eventMonthStr = (c.eventMonth || '').toLowerCase();
-    const searchStr = searchQuery.toLowerCase();
-
+    if (!searchQuery) return true;
+    const s = searchQuery.toLowerCase();
     return (
-      nameStr.includes(searchStr) ||
-      emailStr.includes(searchStr) ||
-      eventMonthStr.includes(searchStr)
+      (c.name || c.fullName || '').toLowerCase().includes(s) ||
+      (c.email || '').toLowerCase().includes(s) ||
+      (c.phone || '').toLowerCase().includes(s) ||
+      (c.eventName || '').toLowerCase().includes(s) ||
+      (c.eventMonth || '').toLowerCase().includes(s) ||
+      (c.clientPackage || '').toLowerCase().includes(s) ||
+      (c.status || '').toLowerCase().includes(s) ||
+      (c.assignedWorker || '').toLowerCase().includes(s)
     );
   });
 

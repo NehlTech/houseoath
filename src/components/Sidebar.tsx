@@ -321,12 +321,7 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
 
  const isNearlyDue = (client: Client) => getDaysUntilDue(client) !== null;
 
- const searchedClients = filteredClients.filter(c =>
- (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
- (c.eventName || '').toLowerCase().includes(searchQuery.toLowerCase())
- );
-
- const categorizedClients = searchedClients.filter(c => {
+ const categorizedClients = filteredClients.filter(c => {
  if (activeTab === 'all') return c.status !== 'Archived';
  if (activeTab === 'due') return isNearlyDue(c) && c.status !== 'Archived';
  if (activeTab === 'completed') return c.status === 'Completed';
@@ -334,10 +329,10 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  return true;
  });
 
- const dueCount = searchedClients.filter(c => isNearlyDue(c) && c.status !== 'Archived').length;
- const completedCount = searchedClients.filter(c => c.status === 'Completed').length;
- const archivedCount = searchedClients.filter(c => c.status === 'Archived').length;
- const allCount = searchedClients.filter(c => c.status !== 'Archived').length;
+ const dueCount = filteredClients.filter(c => isNearlyDue(c) && c.status !== 'Archived').length;
+ const completedCount = filteredClients.filter(c => c.status === 'Completed').length;
+ const archivedCount = filteredClients.filter(c => c.status === 'Archived').length;
+ const allCount = filteredClients.filter(c => c.status !== 'Archived').length;
 
  // Selection helpers (defined after categorizedClients so handleSelectAll can reference it)
  const handleLongPressClient = (id: string) => setSelectedIds(prev => new Set([...prev, id]));
