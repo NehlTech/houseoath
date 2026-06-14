@@ -96,14 +96,18 @@ function EditableNumberField({ label, value, fieldKey, clientId, prefix }: { lab
  );
 }
 
-function WorkerSelectField({ label, value, clientId }: { label: string; value: string; clientId: string }) {
+function WorkerSelectField({ label, value, workerId, clientId }: { label: string; value: string; workerId?: string; clientId: string }) {
  const { updateClient, workers } = useStudio();
  const activeWorkers = workers.filter(w => w.status !== 'Archived');
  const [editing, setEditing] = useState(false);
 
- const handleSave = (workerName: string) => {
+ const handleSave = (selectedId: string) => {
  setEditing(false);
- updateClient(clientId, { assignedWorker: workerName });
+ const worker = activeWorkers.find(w => w.id === selectedId);
+ updateClient(clientId, {
+ assignedWorker: worker?.name || '',
+ assignedWorkerId: selectedId || undefined,
+ });
  };
 
  if (editing) {
@@ -113,13 +117,13 @@ function WorkerSelectField({ label, value, clientId }: { label: string; value: s
  <select
  autoFocus
  className="text-sm font-medium text-charcoal text-right bg-transparent border-none outline-none flex-1 min-w-0 appearance-none"
- value={value}
+ value={workerId || ''}
  onChange={(e) => handleSave(e.target.value)}
  onBlur={() => setEditing(false)}
  >
  <option value="">Unassigned</option>
  {activeWorkers.map(w => (
- <option key={w.id} value={w.name}>{w.name}</option>
+ <option key={w.id} value={w.id}>{w.name}</option>
  ))}
  </select>
  </div>
@@ -288,7 +292,7 @@ export default function OverviewTab({ client }: OverviewTabProps) {
  <EditableDateField label="Event Date" value={client.eventDate} fieldKey="eventDate" clientId={client.id} />
  <EditableField label="Event Location" value={client.eventLocation} fieldKey="eventLocation" clientId={client.id} />
  {isAdmin ? (
- <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} clientId={client.id} />
+ <WorkerSelectField label="Assigned To" value={client.assignedWorker || ''} workerId={client.assignedWorkerId} clientId={client.id} />
  ) : (
  <div className="flex items-center justify-between p-3 rounded-lg bg-canvas shadow-sm border-none">
  <span className="text-gray text-sm flex-shrink-0 mr-2">Assigned To</span>

@@ -26,7 +26,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
  const activeWorkers = workers.filter(w => w.status !== 'Archived');
  const archivedWorkers = workers.filter(w => w.status === 'Archived');
- const assignedCount = (workerName: string) => clients.filter(c => c.assignedWorker === workerName).length;
+ const assignedCount = (worker: { id?: string; name: string }) =>
+ clients.filter(c => (worker.id && c.assignedWorkerId === worker.id) || (!c.assignedWorkerId && c.assignedWorker === worker.name)).length;
 
  // Workers only see a minimal empty state — their entry point is Profile
  if (!isAdmin) {
@@ -180,7 +181,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  <h5 className="font-bold tracking-wide text-charcoal">Current Team ({activeWorkers.length})</h5>
  {activeWorkers.length > 0 ? activeWorkers.map(worker => {
  const isConfirming = confirmAction?.id === worker.id;
- const clientCount = assignedCount(worker.name);
+ const clientCount = assignedCount(worker);
  return (
  <div key={worker.id} className="rounded-xl bg-canvas transition-colors group overflow-hidden">
  {/* Worker info row */}

@@ -49,8 +49,36 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
  return response;
 }
 
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+// Public auth endpoints are allowed from any origin (login forms, email links)
+const CSRF_EXEMPT_PATHS = [
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-invite',
+];
+
 export async function middleware(request: NextRequest) {
  const { pathname } = request.nextUrl;
+
+ // CSRF: reject mutating API requests whose Origin doesn't match the app URL.
+ // SameSite=Strict already covers most browsers; this catches edge cases.
+ if (
+ pathname.startsWith('/api/') &&
+ !CSRF_SAFE_METHODS.has(request.method) &&
+ !CSRF_EXEMPT_PATHS.some(p => pathname.startsWith(p))
+ ) {
+ const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+ const origin = request.headers.get('origin');
+ if (appUrl && origin) {
+ try {
+ const expectedOrigin = new URL(appUrl).origin;
+ if (origin !== expectedOrigin) {
+ return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+ }
+ } catch { /* invalid URL in env — skip check */ }
+ }
+ }
 
  const isPublic =
  PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||

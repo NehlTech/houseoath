@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStudio } from '@/context/StudioContext';
 import { getAvatarColor } from '@/lib/avatarColors';
+import { validateImageFile } from '@/lib/validateImage';
 
 interface ProfileModalProps {
  onClose: () => void;
@@ -14,18 +15,20 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
  const [name, setName] = useState(userProfile.name);
  const [photoUrl, setPhotoUrl] = useState(userProfile.avatar || '');
+ const [photoError, setPhotoError] = useState('');
  const initials = userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2);
  const profileFileRef = useRef<HTMLInputElement>(null);
 
- const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
  const file = e.target.files?.[0];
  if (!file) return;
- if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
- if (file.size > 10 * 1024 * 1024) { alert('Image must be less than 10MB.'); return; }
+ e.target.value = '';
+ setPhotoError('');
+ const err = await validateImageFile(file);
+ if (err) { setPhotoError(err); return; }
  const reader = new FileReader();
  reader.onload = ev => setPhotoUrl(ev.target?.result as string);
  reader.readAsDataURL(file);
- e.target.value = '';
  };
 
  const handleSaveProfile = () => {
@@ -132,6 +135,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  <div>
  <p className="font-display font-bold text-base text-charcoal tracking-wide leading-tight">{userProfile.name}</p>
  <p className="text-xs text-muted font-medium truncate max-w-[180px]">{userProfile.email}</p>
+ {photoError && <p className="text-xs text-danger mt-1">{photoError}</p>}
  <span className={`inline-block mt-1 text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
  isAdmin ? 'bg-primary text-black' : 'bg-canvas text-gray border border-border'
  }`}>

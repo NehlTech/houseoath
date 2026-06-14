@@ -51,10 +51,11 @@ export default function Dashboard() {
  setActiveClient(null);
  };
 
- // Don't block on sessionChecked — the StudioContext loading screen already
- // covers the initial load, and the middleware enforces auth server-side.
- // Waiting for sessionChecked here causes a blank flash after the spinner.
- if (!isAuthenticated) return null;
+ // Wait for the server session check before rendering the dashboard.
+ // The StudioContext spinner covers this period, so the user never sees a blank.
+ // Without this check, a stale localStorage profile could flash the admin UI
+ // briefly before the session-expired redirect fires.
+ if (!sessionChecked || !isAuthenticated) return null;
 
  return (
  <div className="relative flex w-full overflow-hidden bg-canvas" style={{ height: '100dvh' }}>

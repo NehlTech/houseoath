@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useStudio } from '@/context/StudioContext';
+import { validateImageFile } from '@/lib/validateImage';
 
 interface NewClientModalProps {
  onClose: () => void;
@@ -62,6 +63,7 @@ function formatLocalPhone(digits: string): string {
 export default function NewClientModal({ onClose }: NewClientModalProps) {
  const { addClient, workers } = useStudio();
  const fileInputRef = useRef<HTMLInputElement>(null);
+ const [photoError, setPhotoError] = useState('');
 
  const [form, setForm] = useState({
  name: '', countryCode: '+233', localPhone: '', email: '',
@@ -69,7 +71,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  address: '', state: '', country: 'Ghana',
  clientPackage: '',
  eventName: '', eventDate: '', eventMonth: '', eventLocation: '',
- assignedWorker: '',
+ assignedWorkerId: '',
  fabricVendor: '', kenteVendor: '',
  referralSource: '', notes: '',
  clientPhoto: '',
@@ -100,15 +102,16 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
 
  const handlePhotoClick = () => fileInputRef.current?.click();
 
- const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
  const file = e.target.files?.[0];
  if (!file) return;
- if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
- if (file.size > 10 * 1024 * 1024) { alert('Image must be less than 10MB.'); return; }
+ e.target.value = '';
+ setPhotoError('');
+ const err = await validateImageFile(file);
+ if (err) { setPhotoError(err); return; }
  const reader = new FileReader();
  reader.onload = (ev) => handleChange('clientPhoto', ev.target?.result as string);
  reader.readAsDataURL(file);
- e.target.value = '';
  };
 
  const handleRemovePhoto = (e: React.MouseEvent) => {
@@ -121,13 +124,15 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  const phone = form.localPhone
  ? `${form.countryCode} ${form.localPhone}`
  : '';
+ const selectedWorker = workers.find(w => w.id === form.assignedWorkerId);
  addClient({
  name: form.name, phone, email: form.email,
  gender: form.gender, profession: form.profession,
  address: form.address, state: form.state, country: form.country,
  eventName: form.eventName, eventDate: form.eventDate,
  eventMonth: form.eventMonth, eventLocation: form.eventLocation,
- assignedWorker: form.assignedWorker,
+ assignedWorker: selectedWorker?.name || '',
+ assignedWorkerId: form.assignedWorkerId || undefined,
  fabricVendor: form.fabricVendor, kenteVendor: form.kenteVendor,
  referralSource: form.referralSource, notes: form.notes,
  fabricNotes: '',
@@ -181,6 +186,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  <p className="mt-4 text-[10px] font-semibold text-muted tracking-normal">
  {form.clientPhoto ? 'Client Photo Set' : 'Tap to capture or upload photo'}
  </p>
+ {photoError && <p className="text-xs text-danger mt-1 text-center">{photoError}</p>}
  </div>
 
  {/* Client Information */}
@@ -306,10 +312,10 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
  {/* Assigned Worker dropdown */}
  <div>
  <label className={labelCls}>Assigned Tailor / Worker</label>
- <select className={inputCls} value={form.assignedWorker} onChange={(e) => handleChange('assignedWorker', e.target.value)}>
+ <select className={inputCls} value={form.assignedWorkerId} onChange={(e) => handleChange('assignedWorkerId', e.target.value)}>
  <option value="">— Select tailor —</option>
  {workers.filter(w => w.status !== 'Archived').map(w => (
- <option key={w.id} value={w.name}>{w.name}</option>
+ <option key={w.id} value={w.id}>{w.name}</option>
  ))}
  </select>
  </div>

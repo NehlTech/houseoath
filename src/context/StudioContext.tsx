@@ -154,6 +154,7 @@ export interface Client {
  nextFittingDate: string;
  deliveryDate: string;
  assignedWorker?: string;
+ assignedWorkerId?: string;
  productionNotes: ProductionNote[];
  // Consultation
  consultationDone?: boolean;
@@ -844,12 +845,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  const removeWorker = useCallback((id: string) => {
  const workerName = workers.find(w => w.id === id)?.name ?? '';
  setWorkers(prev => prev.filter(w => w.id !== id));
- // Cascade: clear assignedWorker on locally cached clients
- if (workerName) {
+ // Cascade: clear both assignedWorker and assignedWorkerId on locally cached clients
  setClients(prev => prev.map(c =>
- c.assignedWorker === workerName ? { ...c, assignedWorker: '' } : c
+ (c.assignedWorkerId === id || (workerName && c.assignedWorker === workerName))
+ ? { ...c, assignedWorker: '', assignedWorkerId: undefined }
+ : c
  ));
- }
  if (useApi) {
  fetch(`/api/workers/${id}`, {
  method: 'DELETE',
@@ -959,44 +960,54 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
  const updateClient = useCallback((id: string, updates: Partial<Client>) => {
  const now = new Date().toISOString();
- setClients(prev => prev.map(c =>
- c.id === id ? { ...c, ...updates, lastActivity: now } : c
- ));
+ let prevClient: Client | undefined;
+ setClients(prev => {
+ prevClient = prev.find(c => c.id === id);
+ return prev.map(c => c.id === id ? { ...c, ...updates, lastActivity: now } : c);
+ });
 
- // Sync to MongoDB
- if (useApi) {
+ if (useApi && prevClient) {
+ const captured = prevClient;
  fetch(`/api/clients/${id}`, {
  method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
+ headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ ...updates, lastActivity: now }),
- }).catch(e => console.warn('API Error:', e));
+ }).then(res => {
+ if (res.ok) {
+ addAuditLog('Client Updated', `Modified record for ${captured.name || 'a client'}.`);
+ } else {
+ setClients(prev => prev.map(c => c.id === id ? captured : c));
  }
- const updatedClientName = clients.find(c => c.id === id)?.name || 'a client';
- addAuditLog('Client Updated', `Modified record for ${updatedClientName}.`);
- }, [useApi, clients, addAuditLog]);
+ }).catch(() => {
+ setClients(prev => prev.map(c => c.id === id ? captured : c));
+ });
+ } else if (!useApi && prevClient) {
+ addAuditLog('Client Updated', `Modified record for ${prevClient.name || 'a client'}.`);
+ }
+ }, [useApi, addAuditLog]);
 
  const addPayment = useCallback((clientId: string, payment: Omit<Payment, 'id' | 'receiptNumber'>) => {
- // Generate a unique, unguessable receipt number (e.g. HOF-A4X9B2)
  const randomHash = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
  const receiptNumber = `HOF-${randomHash}`;
- 
  const paymentWithId: Payment = { ...payment, id: `pay-${Date.now()}`, receiptNumber };
  const now = new Date().toISOString();
 
+ // Capture old state for rollback, compute new state outside the updater
+ let prevClient: Client | undefined;
+ let newUpdates: Partial<Client> | undefined;
+
  setClients(prev => prev.map(c => {
- if (c.id === clientId) {
+ if (c.id !== clientId) return c;
+ prevClient = c;
+
  const newTimelineEvent: TimelineEvent = {
  id: `t-${Date.now()}`,
  date: now,
  action: 'Payment Recorded',
  description: `Payment of GH₵${payment.amount.toLocaleString()} via ${payment.method}.`,
  };
- 
  const updatedTimeline = [...c.timeline, newTimelineEvent];
  const newTotalPaid = [...c.payments, paymentWithId].reduce((sum, p) => sum + p.amount, 0);
-
  if (newTotalPaid >= c.totalCost && (newTotalPaid - payment.amount) < c.totalCost) {
  updatedTimeline.push({
  id: `t-${Date.now()}-cleared`,
@@ -1005,28 +1016,29 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  description: 'Client balance cleared. Garment ready for final delivery.',
  });
  }
+ newUpdates = { payments: [...c.payments, paymentWithId], timeline: updatedTimeline, lastActivity: now };
+ return { ...c, ...newUpdates };
+ }));
 
- const updates = {
- payments: [...c.payments, paymentWithId],
- timeline: updatedTimeline,
- lastActivity: now,
- };
-
- if (useApi) {
+ if (useApi && prevClient && newUpdates) {
+ const captured = prevClient;
+ const updates = newUpdates;
  fetch(`/api/clients/${clientId}`, {
  method: 'PUT',
- headers: {
- 'Content-Type': 'application/json',
- },
+ headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(updates),
- }).catch(e => console.warn('API Error:', e));
- }
-
- return { ...c, ...updates };
- }
- return c;
- }));
+ }).then(res => {
+ if (res.ok) {
  addAuditLog('Payment Added', `Recorded payment of GH₵${payment.amount} for a client.`);
+ } else {
+ setClients(prev => prev.map(c => c.id === clientId ? captured : c));
+ }
+ }).catch(() => {
+ setClients(prev => prev.map(c => c.id === clientId ? captured : c));
+ });
+ } else if (!useApi) {
+ addAuditLog('Payment Added', `Recorded payment of GH₵${payment.amount} for a client.`);
+ }
  }, [useApi, addAuditLog]);
 
  const addTimelineEvent = useCallback((clientId: string, action: string, description: string) => {
@@ -1182,9 +1194,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
  }, [clients, activeClientId]);
 
  const filteredClients = clients.filter(c => {
- // Role-based filtering
- if (userProfile.role === 'Worker' && c.assignedWorker !== userProfile.name) {
- return false;
+ // Role-based filtering — prefer ID match, fall back to name for legacy records
+ if (userProfile.role === 'Worker') {
+ const matchesById = userProfile.id && c.assignedWorkerId === userProfile.id;
+ const matchesByName = !c.assignedWorkerId && c.assignedWorker === userProfile.name;
+ if (!matchesById && !matchesByName) return false;
  }
 
  const nameStr = (c.name || c.fullName || '').toLowerCase();

@@ -33,9 +33,13 @@ export async function GET(
     const doc = await db.collection(COLLECTION).findOne(buildFilter(id));
     if (!doc) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
-    // Workers can only read clients assigned to them
-    if (session.role !== 'Admin' && doc.assignedWorker !== session.name) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Workers can only read clients assigned to them — check ID first, fall back to name for legacy records
+    if (session.role !== 'Admin') {
+      const matchesById = doc.assignedWorkerId === session.userId;
+      const matchesByName = !doc.assignedWorkerId && doc.assignedWorker === session.name;
+      if (!matchesById && !matchesByName) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     return NextResponse.json({ ...doc, id: doc.id || doc._id.toString(), _id: undefined });
@@ -66,17 +70,22 @@ export async function PUT(
     if (!existing) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
     // Workers can only update clients assigned to them
-    if (session.role !== 'Admin' && existing.assignedWorker !== session.name) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (session.role !== 'Admin') {
+      const matchesById = existing.assignedWorkerId === session.userId;
+      const matchesByName = !existing.assignedWorkerId && existing.assignedWorker === session.name;
+      if (!matchesById && !matchesByName) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
-    // Workers cannot change the assignedWorker field
+    // Workers cannot change assignment fields
     const raw = await request.json();
     const cleaned = deepStripMongoOperators(raw) as Record<string, unknown>;
     const { id: _omitId, _id: _omitMongoId, ...updates } = cleaned;
 
     if (session.role !== 'Admin') {
       delete updates.assignedWorker;
+      delete updates.assignedWorkerId;
     }
 
     const result = await db.collection(COLLECTION).updateOne(buildFilter(id), { $set: updates });

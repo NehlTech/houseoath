@@ -105,13 +105,11 @@ export async function DELETE(
     const worker = await db.collection(COLLECTION).findOne(buildFilter(id), { projection: { name: 1 } });
     if (!worker) return NextResponse.json({ error: 'Worker not found' }, { status: 404 });
 
-    // Cascade: unassign this worker from all client records
-    if (worker.name) {
-      await db.collection('clients').updateMany(
-        { assignedWorker: worker.name },
-        { $set: { assignedWorker: '' } }
-      );
-    }
+    // Cascade: unassign this worker from all client records (both ID and name fields)
+    await db.collection('clients').updateMany(
+      { $or: [{ assignedWorkerId: id }, ...(worker.name ? [{ assignedWorker: worker.name }] : [])] },
+      { $set: { assignedWorker: '', assignedWorkerId: '' } }
+    );
 
     await db.collection(COLLECTION).deleteOne(buildFilter(id));
     return NextResponse.json({ message: 'Worker removed successfully' });

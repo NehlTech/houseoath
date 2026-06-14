@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db(DB_NAME);
 
-    const filter = session.role === 'Worker' ? { assignedWorker: session.name } : {};
+    // Dual filter during migration: new records use assignedWorkerId, legacy records use assignedWorker name
+    const filter = session.role === 'Worker'
+      ? { $or: [{ assignedWorkerId: session.userId }, { assignedWorker: session.name, assignedWorkerId: { $exists: false } }] }
+      : {};
 
     const [rawClients, tombstones] = await Promise.all([
       db.collection(COLLECTION).find(filter).sort({ lastActivity: -1 }).toArray(),
