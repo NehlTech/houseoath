@@ -8,6 +8,7 @@ import clientPromise from '@/lib/mongodb';
 import { sessionOptions, type SessionData } from '@/lib/session';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { validateEnv } from '@/lib/validateEnv';
+import { getAdminSettings } from '@/lib/adminSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,22 +51,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
-    if (normalisedEmail === adminEmail.toLowerCase()) {
-      const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-      const adminPassword = process.env.ADMIN_PASSWORD;
+    const dbClientForAdmin = await clientPromise;
+    const adminSettings = await getAdminSettings(dbClientForAdmin.db(DB_NAME));
 
+    const effectiveAdminEmail = adminSettings?.email ?? adminEmail;
+
+    if (normalisedEmail === effectiveAdminEmail.toLowerCase()) {
       let valid = false;
-      if (adminPasswordHash) {
-        valid = await bcrypt.compare(password, adminPasswordHash);
-      } else if (adminPassword) {
-        // Plain-text fallback — only active in development when ADMIN_PASSWORD_HASH is not set
-        if (process.env.NODE_ENV === 'production') {
-          console.error('SECURITY: ADMIN_PASSWORD_HASH must be set in production.');
+
+      if (adminSettings?.passwordHash) {
+        valid = await bcrypt.compare(password, adminSettings.passwordHash);
+      } else {
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (adminPasswordHash) {
+          valid = await bcrypt.compare(password, adminPasswordHash);
+        } else if (adminPassword) {
+          // Plain-text fallback — only active in development when ADMIN_PASSWORD_HASH is not set
+          if (process.env.NODE_ENV === 'production') {
+            console.error('SECURITY: ADMIN_PASSWORD_HASH must be set in production.');
+            return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+          }
+          valid = password === adminPassword;
+        } else {
           return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
         }
-        valid = password === adminPassword;
-      } else {
-        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
       }
 
       if (!valid) {

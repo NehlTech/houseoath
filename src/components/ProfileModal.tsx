@@ -36,7 +36,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  onClose();
  };
 
- // ── Password ──────────────────────────────────────────────────────────────
+ // ── Password (Worker) ────────────────────────────────────────────────────────
  const [currentPassword, setCurrentPassword] = useState('');
  const [newPassword, setNewPassword] = useState('');
  const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,6 +44,15 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  const [passwordSuccess, setPasswordSuccess] = useState(false);
  const [passwordLoading, setPasswordLoading] = useState(false);
  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+
+ // ── Account Settings (Admin only: email + password together) ───────────────
+ const [adminNewEmail, setAdminNewEmail] = useState(userProfile.email);
+ const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
+ const [adminNewPassword, setAdminNewPassword] = useState('');
+ const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+ const [adminError, setAdminError] = useState('');
+ const [adminSuccess, setAdminSuccess] = useState(false);
+ const [adminLoading, setAdminLoading] = useState(false);
 
  useEffect(() => {
    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -87,6 +96,59 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  setPasswordError('Network error. Please try again.');
  } finally {
  setPasswordLoading(false);
+ }
+ };
+
+ const handleUpdateAdminAccount = async (e: React.FormEvent) => {
+ e.preventDefault();
+ setAdminError('');
+ setAdminSuccess(false);
+
+ const trimmedEmail = adminNewEmail.trim().toLowerCase();
+ const emailChanged = trimmedEmail !== userProfile.email.trim().toLowerCase();
+ const wantsPasswordChange = adminNewPassword.length > 0;
+
+ if (!emailChanged && !wantsPasswordChange) {
+ setAdminError('Change the email or password before saving.');
+ return;
+ }
+ if (!adminCurrentPassword) {
+ setAdminError('Current password is required.');
+ return;
+ }
+ if (wantsPasswordChange) {
+ if (adminNewPassword.length < 8) { setAdminError('New password must be at least 8 characters.'); return; }
+ if (adminNewPassword !== adminConfirmPassword) { setAdminError('Passwords do not match.'); return; }
+ }
+
+ setAdminLoading(true);
+ try {
+ const res = await fetch('/api/auth/admin-settings', {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ currentPassword: adminCurrentPassword,
+ ...(emailChanged && { newEmail: trimmedEmail }),
+ ...(wantsPasswordChange && { newPassword: adminNewPassword }),
+ }),
+ });
+ const data = await res.json();
+ if (!res.ok) {
+ setAdminError(data.error || 'Failed to update account settings.');
+ } else {
+ setAdminSuccess(true);
+ setAdminCurrentPassword('');
+ setAdminNewPassword('');
+ setAdminConfirmPassword('');
+ if (data.email) {
+ updateUserProfile({ email: data.email });
+ setAdminNewEmail(data.email);
+ }
+ }
+ } catch {
+ setAdminError('Network error. Please try again.');
+ } finally {
+ setAdminLoading(false);
  }
  };
 
@@ -183,7 +245,9 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  disabled
  className="w-full bg-canvas shadow-sm border-none text-muted rounded-xl h-12 px-4 cursor-not-allowed outline-none"
  />
- <p className="text-[10px] tracking-wider font-bold text-muted mt-2">Contact support to change your email.</p>
+ <p className="text-[10px] tracking-wider font-bold text-muted mt-2">
+ {isAdmin ? 'Update your email in Account Settings below.' : 'Contact support to change your email.'}
+ </p>
  </div>
  <div className="flex justify-end">
  <button
@@ -197,10 +261,71 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
  <div className="h-px bg-border/60" />
 
- {/* ── Password ────────────────────────────────────────────────────── */}
+ {isAdmin ? (
+ /* ── Account Settings (Admin: email + password together) ────────── */
+ <form onSubmit={handleUpdateAdminAccount} className="space-y-4">
+ <p className="text-[10px] font-bold tracking-normal text-muted">Account Settings</p>
+ <div>
+ <label htmlFor="admin-new-email" className="block text-xs font-bold tracking-wider text-gray mb-2">Email Address</label>
+ <input
+ id="admin-new-email"
+ type="email"
+ value={adminNewEmail}
+ onChange={e => setAdminNewEmail(e.target.value)}
+ className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none"
+ />
+ </div>
+ <div>
+ <label htmlFor="admin-current-password" className="block text-xs font-bold tracking-wider text-gray mb-2">Current Password</label>
+ <input
+ id="admin-current-password"
+ type="password"
+ value={adminCurrentPassword}
+ onChange={e => setAdminCurrentPassword(e.target.value)}
+ className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none"
+ />
+ </div>
+ <div>
+ <label htmlFor="admin-new-password" className="block text-xs font-bold tracking-wider text-gray mb-2">New Password</label>
+ <input
+ id="admin-new-password"
+ type="password"
+ minLength={8}
+ placeholder="Leave blank to keep current password"
+ value={adminNewPassword}
+ onChange={e => setAdminNewPassword(e.target.value)}
+ className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none placeholder-muted"
+ />
+ </div>
+ {adminNewPassword.length > 0 && (
+ <div>
+ <label htmlFor="admin-confirm-password" className="block text-xs font-bold tracking-wider text-gray mb-2">Confirm New Password</label>
+ <input
+ id="admin-confirm-password"
+ type="password"
+ value={adminConfirmPassword}
+ onChange={e => setAdminConfirmPassword(e.target.value)}
+ className="w-full bg-canvas shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none"
+ />
+ </div>
+ )}
+ {adminError && <p className="text-sm text-danger font-medium">{adminError}</p>}
+ {adminSuccess && <p className="text-sm text-green-600 font-medium">Account settings updated successfully.</p>}
+ <div className="flex justify-end">
+ <button
+ type="submit"
+ disabled={adminLoading}
+ className="px-6 py-2.5 bg-canvas text-charcoal font-bold tracking-wide rounded-xl shadow-sm hover:bg-border/50 transition-all text-sm disabled:opacity-60"
+ >
+ {adminLoading ? 'Saving…' : 'Save Account Settings'}
+ </button>
+ </div>
+ </form>
+ ) : (
+ /* ── Password (Worker) ───────────────────────────────────────────── */
  <form onSubmit={handleUpdatePassword} className="space-y-4">
  <p className="text-[10px] font-bold tracking-normal text-muted">
- {isAdmin || hasPassword ? 'Change Password' : hasPassword === false ? 'Set Your Password' : 'Password'}
+ {hasPassword ? 'Change Password' : hasPassword === false ? 'Set Your Password' : 'Password'}
  </p>
  {hasPassword === false && (
  <div className="bg-primary/8 rounded-xl px-4 py-3 flex items-start gap-3">
@@ -208,7 +333,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  <p className="text-xs text-gray leading-relaxed">You signed in via an invite link. Set a password so you can also log in with your email and password.</p>
  </div>
  )}
- {(isAdmin || hasPassword) && (
+ {hasPassword && (
  <div>
  <label className="block text-xs font-bold tracking-wider text-gray mb-2">Current Password</label>
  <input
@@ -249,13 +374,14 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  <div className="flex justify-end">
  <button
  type="submit"
- disabled={passwordLoading || (!isAdmin && hasPassword === null)}
+ disabled={passwordLoading || hasPassword === null}
  className="px-6 py-2.5 bg-canvas text-charcoal font-bold tracking-wide rounded-xl shadow-sm hover:bg-border/50 transition-all text-sm disabled:opacity-60"
  >
- {passwordLoading ? 'Saving…' : (isAdmin || hasPassword) ? 'Update Password' : 'Set Password'}
+ {passwordLoading ? 'Saving…' : hasPassword ? 'Update Password' : 'Set Password'}
  </button>
  </div>
  </form>
+ )}
  </div>
 
  <input ref={profileFileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
