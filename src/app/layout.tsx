@@ -28,8 +28,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
  <link rel="apple-touch-icon" href="/ho_logo.png" />
  {/* Preload the workspace header image so it is fetched at top priority before the app renders */}
  <link rel="preload" as="image" href="/workerspaceheader-bg.jpg" />
+ {/* Connect early — the font CSS + the actual font files come from two different origins */}
+ <link rel="preconnect" href="https://fonts.googleapis.com" />
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" crossOrigin="anonymous" />
- <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" crossOrigin="anonymous" />
+ {/* display=block (not swap) — icon glyphs are ligature text under the hood ("lock_open" etc.),
+ so swap would render that literal text until the font loads. Block shows nothing instead. */}
+ <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet" crossOrigin="anonymous" />
  </head>
  <body
  className="bg-canvas text-charcoal min-h-screen font-display selection:bg-primary/30 selection:text-white"
