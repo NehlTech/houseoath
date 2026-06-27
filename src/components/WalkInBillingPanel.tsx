@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Client, Payment } from '@/context/StudioContext';
+import { useRef, useState } from 'react';
+import { Client, DesignIllustration, Payment } from '@/context/StudioContext';
 import { defaultMeasurements, defaultFittings } from '@/context/ClientContext';
+import { validateImageFile } from '@/lib/validateImage';
 import ReceiptPreviewModal from '@/components/tabs/ReceiptPreviewModal';
 import InvoicePreviewModal from '@/components/tabs/InvoicePreviewModal';
 
@@ -15,8 +16,23 @@ function buildWalkInClient(fields: {
   eventName: string;
   fabricVendor: string;
   notes: string;
+  watermarkImage: string;
 }): Client {
   const now = new Date().toISOString();
+  const illustrations: DesignIllustration[] = fields.watermarkImage
+    ? [{
+        id: `walkin-illust-${Date.now()}`,
+        name: 'Walk-in Reference Image',
+        version: '1',
+        type: 'Reference',
+        image: fields.watermarkImage,
+        status: 'Approved',
+        notes: '',
+        colors: [],
+        timeline: { start: now, lastRevised: now, revisions: 0 },
+        comments: [],
+      }]
+    : [];
   return {
     id: `walkin-${crypto.randomUUID()}`,
     name: fields.name.trim(),
@@ -41,7 +57,7 @@ function buildWalkInClient(fields: {
     fabricNotes: '',
     clientPhoto: '',
     fabricPhotos: [],
-    illustrations: [],
+    illustrations,
     clientPhotos: [],
     measurements: defaultMeasurements,
     fittings: defaultFittings,
@@ -72,11 +88,27 @@ export default function WalkInBillingPanel() {
   const [paymentDate, setPaymentDate] = useState(todayIso());
   const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
 
+  const [watermarkImage, setWatermarkImage] = useState('');
+  const [imageError, setImageError] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const [docToShow, setDocToShow] = useState<'receipt' | 'invoice' | null>(null);
   const [stubClient, setStubClient] = useState<Client | null>(null);
   const [stubPayment, setStubPayment] = useState<Payment | null>(null);
 
-  const sharedFields = { name, phone, email, eventName, fabricVendor, notes };
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImageError('');
+    const err = await validateImageFile(file);
+    if (err) { setImageError(err); return; }
+    const reader = new FileReader();
+    reader.onload = ev => setWatermarkImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const sharedFields = { name, phone, email, eventName, fabricVendor, notes, watermarkImage };
   const nameValid = name.trim().length > 0;
   const totalCostNum = parseFloat(totalCost) || 0;
   const previouslyPaidNum = parseFloat(previouslyPaid) || 0;
@@ -201,6 +233,42 @@ export default function WalkInBillingPanel() {
               placeholder="Optional"
               className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl px-4 py-3 resize-none focus:ring-1 focus:ring-primary transition-all outline-none placeholder-muted"
             />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold tracking-wider text-gray mb-2">Background Image (watermark)</label>
+            <p className="text-xs text-muted mb-3">
+              Same faint background image used on a real client&apos;s receipt/invoice — upload a design sketch, render, or any reference image.
+            </p>
+            <div className="flex items-center gap-4">
+              {watermarkImage ? (
+                <div className="relative shrink-0">
+                  <img src={watermarkImage} alt="Watermark preview" className="h-16 w-16 rounded-xl object-cover shadow-sm" />
+                  <button
+                    onClick={() => setWatermarkImage('')}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-danger rounded-full flex items-center justify-center shadow-sm"
+                    aria-label="Remove image"
+                  >
+                    <span className="material-symbols-outlined text-[10px] text-white">close</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="h-16 w-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-colors shrink-0"
+                  aria-label="Upload background image"
+                >
+                  <span className="material-symbols-outlined text-[22px]">add_photo_alternate</span>
+                </button>
+              )}
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                className="px-4 py-2 bg-white border border-border rounded-lg text-xs font-bold text-charcoal hover:bg-border/30 transition-colors"
+              >
+                {watermarkImage ? 'Replace Image' : 'Upload Image'}
+              </button>
+            </div>
+            {imageError && <p className="text-xs text-danger mt-2">{imageError}</p>}
+            <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
           </div>
         </div>
 
