@@ -19,9 +19,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.role === 'Admin') {
+    // Only the superuser's password is env/admin_settings-managed. A team
+    // member holding the Admin role still has a real workers-collection
+    // record and changes their password the same way a Worker does.
+    if (session.userId === 'admin') {
       return NextResponse.json(
-        { error: 'Admin password is managed through server environment variables.' },
+        { error: 'This account\'s password is managed from Account Settings.' },
         { status: 400 }
       );
     }

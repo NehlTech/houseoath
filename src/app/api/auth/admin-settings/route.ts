@@ -17,7 +17,9 @@ export async function PUT(request: NextRequest) {
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
 
-    if (!session.isLoggedIn || session.role !== 'Admin') {
+    // Scoped to the superuser account specifically — a team member holding the
+    // Admin role (a workers-collection record) must not be able to touch this.
+    if (!session.isLoggedIn || session.role !== 'Admin' || session.userId !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -17,8 +17,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Admin password lives in env vars — treat as always having a password
-    if (session.role === 'Admin') {
+    // Only the superuser's password lives outside the workers collection
+    // (env vars / admin_settings) — a team member with the Admin role still
+    // has a real workers record and is checked the same way as a Worker.
+    if (session.userId === 'admin') {
       return NextResponse.json({ hasPassword: true });
     }
 

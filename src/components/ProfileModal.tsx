@@ -12,6 +12,9 @@ interface ProfileModalProps {
 export default function ProfileModal({ onClose }: ProfileModalProps) {
  const { userProfile, updateUserProfile } = useStudio();
  const isAdmin = userProfile.role === 'Admin';
+ // The one env/admin_settings-managed superuser account, as opposed to a
+ // team member who merely holds the Admin role (a real workers record).
+ const isSuperuser = userProfile.id === 'admin';
 
  const [name, setName] = useState(userProfile.name);
  const [photoUrl, setPhotoUrl] = useState(userProfile.avatar || '');
@@ -61,12 +64,12 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  }, [onClose]);
 
  useEffect(() => {
- if (isAdmin) { setHasPassword(true); return; }
+ if (isSuperuser) { setHasPassword(true); return; }
  fetch('/api/auth/password-status')
  .then(r => r.ok ? r.json() : null)
  .then(d => { if (d !== null) setHasPassword(d.hasPassword); })
  .catch(() => {});
- }, [isAdmin]);
+ }, [isSuperuser]);
 
  const handleUpdatePassword = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -246,7 +249,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
  className="w-full bg-canvas shadow-sm border-none text-muted rounded-xl h-12 px-4 cursor-not-allowed outline-none"
  />
  <p className="text-[10px] tracking-wider font-bold text-muted mt-2">
- {isAdmin ? 'Update your email in Account Settings below.' : 'Contact support to change your email.'}
+ {isSuperuser ? 'Update your email in Account Settings below.' : 'Contact support to change your email.'}
  </p>
  </div>
  <div className="flex justify-end">
@@ -261,8 +264,8 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
  <div className="h-px bg-border/60" />
 
- {isAdmin ? (
- /* ── Account Settings (Admin: email + password together) ────────── */
+ {isSuperuser ? (
+ /* ── Account Settings (Superuser: email + password together) ────── */
  <form onSubmit={handleUpdateAdminAccount} className="space-y-4">
  <p className="text-[10px] font-bold tracking-normal text-muted">Account Settings</p>
  <div>
