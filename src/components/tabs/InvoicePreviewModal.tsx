@@ -338,8 +338,8 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
 
  // ── FORM STEP ───────────────────────────────────────────────────────────────
  const formContent = (
- <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-0 sm:p-6 overflow-y-auto">
- <div className="bg-canvas w-full max-w-2xl min-h-screen sm:min-h-0 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+ <div className="fixed inset-0 z-[100] bg-black/80 flex items-start sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
+ <div className="bg-canvas w-full max-w-2xl min-h-dvh sm:min-h-0 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
  {/* Form header */}
  <div className="sticky top-0 z-10 bg-white border-b border-border/60 px-5 py-4 flex items-center justify-between shrink-0">
  <div>
