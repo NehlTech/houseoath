@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Client, DesignIllustration, Payment } from '@/context/StudioContext';
+import { Client, DesignIllustration, Payment, useStudio } from '@/context/StudioContext';
 import { defaultMeasurements, defaultFittings } from '@/context/ClientContext';
 import { validateImageFile } from '@/lib/validateImage';
 import ReceiptPreviewModal from '@/components/tabs/ReceiptPreviewModal';
@@ -75,6 +75,8 @@ function buildWalkInClient(fields: {
 }
 
 export default function WalkInBillingPanel() {
+  const { addAuditLog } = useStudio();
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -119,6 +121,7 @@ export default function WalkInBillingPanel() {
     if (!nameValid) return;
     setStubClient(buildWalkInClient(sharedFields));
     setDocToShow('invoice');
+    addAuditLog('Walk-in Invoice Prepared', `Invoice prepared for ${name.trim()} (not added as a client).`);
   };
 
   const handleGenerateReceipt = () => {
@@ -143,6 +146,10 @@ export default function WalkInBillingPanel() {
     setStubClient(client);
     setStubPayment(payment);
     setDocToShow('receipt');
+    addAuditLog(
+      'Walk-in Receipt Prepared',
+      `Receipt prepared for ${name.trim()}: GHS ${amountPaidNum.toLocaleString()} received of GHS ${totalCostNum.toLocaleString()} total (not added as a client).`,
+    );
   };
 
   const closeDoc = () => {
