@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useStudio } from '@/context/StudioContext';
 import { getAvatarColor } from '@/lib/avatarColors';
+import WalkInBillingPanel from '@/components/WalkInBillingPanel';
 
 interface SettingsModalProps {
  onClose: () => void;
@@ -11,8 +12,11 @@ interface SettingsModalProps {
 export default function SettingsModal({ onClose }: SettingsModalProps) {
  const { userProfile, auditLogs, workers, clients, addWorker, removeWorker, archiveWorker, restoreWorker } = useStudio();
  const isAdmin = userProfile.role === 'Admin';
+ // The superuser specifically — walk-in billing must not be available to a
+ // team member who merely holds the Admin role.
+ const isSuperuser = userProfile.id === 'admin';
 
- const [activeTab, setActiveTab] = useState<'team' | 'audit'>('team');
+ const [activeTab, setActiveTab] = useState<'team' | 'audit' | 'billing'>('team');
  const [newWorkerName, setNewWorkerName] = useState('');
  const [newWorkerEmail, setNewWorkerEmail] = useState('');
  const [newWorkerRole, setNewWorkerRole] = useState<'Worker' | 'Admin'>('Worker');
@@ -115,6 +119,18 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  Audit Logs
  {activeTab === 'audit' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-t-full" />}
  </button>
+ {isSuperuser && (
+ <button
+ onClick={() => setActiveTab('billing')}
+ className={`flex items-center gap-2 px-4 py-2.5 font-bold text-[12px] tracking-wider transition-colors relative ${
+ activeTab === 'billing' ? 'text-primary' : 'text-muted hover:text-gray'
+ }`}
+ >
+ <span className="material-symbols-outlined text-[17px]">receipt_long</span>
+ Walk-in Billing
+ {activeTab === 'billing' && <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-t-full" />}
+ </button>
+ )}
  </div>
 
  {/* Content */}
@@ -376,6 +392,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
  </div>
  </div>
  )}
+
+ {/* Walk-in Billing Tab — superuser only */}
+ {activeTab === 'billing' && isSuperuser && <WalkInBillingPanel />}
  </div>
  </div>
  </div>
