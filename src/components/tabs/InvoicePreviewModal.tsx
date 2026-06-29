@@ -124,7 +124,9 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  // Toggling zoom unmounts/remounts this node, so a click right after that
  // can fire before layout finishes — offsetWidth/scrollHeight read 0 and
  // html2canvas rejects with "Dimensions must be positive". Poll briefly
- // for a real size instead of trusting the fixed delay above.
+ // for a real size, and fall back to getBoundingClientRect (which reflects
+ // final painted geometry even in flex/percentage-height edge cases where
+ // offsetWidth/scrollHeight can misbehave).
  let width = element.offsetWidth;
  let height = element.scrollHeight;
  for (let attempts = 0; (width <= 0 || height <= 0) && attempts < 10; attempts++) {
@@ -133,7 +135,29 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  height = element.scrollHeight;
  }
  if (width <= 0 || height <= 0) {
- throw new Error('Invoice has no visible size yet — please try again.');
+ const rect = element.getBoundingClientRect();
+ width = Math.round(rect.width);
+ height = Math.round(Math.max(rect.height, element.scrollHeight));
+ }
+ if (width <= 0 || height <= 0) {
+ const parent = element.parentElement;
+ const cs = window.getComputedStyle(element);
+ const rect = element.getBoundingClientRect();
+ const diagnostics = {
+ offsetWidth: element.offsetWidth,
+ offsetHeight: element.offsetHeight,
+ scrollHeight: element.scrollHeight,
+ rectWidth: Math.round(rect.width),
+ rectHeight: Math.round(rect.height),
+ display: cs.display,
+ position: cs.position,
+ visibility: cs.visibility,
+ parentTag: parent?.tagName,
+ parentDisplay: parent ? window.getComputedStyle(parent).display : null,
+ visibilityState: document.visibilityState,
+ };
+ console.error('Invoice capture diagnostics:', diagnostics);
+ throw new Error(`Invoice has no visible size yet — ${JSON.stringify(diagnostics)}`);
  }
 
  const canvas = await html2canvas(element, {

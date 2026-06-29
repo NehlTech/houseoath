@@ -88,7 +88,29 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  height = element.scrollHeight;
  }
  if (width <= 0 || height <= 0) {
- throw new Error('Receipt has no visible size yet — please try again.');
+ const rect = element.getBoundingClientRect();
+ width = Math.round(rect.width);
+ height = Math.round(Math.max(rect.height, element.scrollHeight));
+ }
+ if (width <= 0 || height <= 0) {
+ const parent = element.parentElement;
+ const cs = window.getComputedStyle(element);
+ const rect = element.getBoundingClientRect();
+ const diagnostics = {
+ offsetWidth: element.offsetWidth,
+ offsetHeight: element.offsetHeight,
+ scrollHeight: element.scrollHeight,
+ rectWidth: Math.round(rect.width),
+ rectHeight: Math.round(rect.height),
+ display: cs.display,
+ position: cs.position,
+ visibility: cs.visibility,
+ parentTag: parent?.tagName,
+ parentDisplay: parent ? window.getComputedStyle(parent).display : null,
+ visibilityState: document.visibilityState,
+ };
+ console.error('Receipt capture diagnostics:', diagnostics);
+ throw new Error(`Receipt has no visible size yet — ${JSON.stringify(diagnostics)}`);
  }
 
  const canvas = await html2canvas(element, {
