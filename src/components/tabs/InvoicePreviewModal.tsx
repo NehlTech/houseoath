@@ -120,14 +120,30 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  try {
  const element = invoiceRef.current;
  await new Promise(resolve => setTimeout(resolve, 500));
+
+ // Toggling zoom unmounts/remounts this node, so a click right after that
+ // can fire before layout finishes — offsetWidth/scrollHeight read 0 and
+ // html2canvas rejects with "Dimensions must be positive". Poll briefly
+ // for a real size instead of trusting the fixed delay above.
+ let width = element.offsetWidth;
+ let height = element.scrollHeight;
+ for (let attempts = 0; (width <= 0 || height <= 0) && attempts < 10; attempts++) {
+ await new Promise(resolve => setTimeout(resolve, 100));
+ width = element.offsetWidth;
+ height = element.scrollHeight;
+ }
+ if (width <= 0 || height <= 0) {
+ throw new Error('Invoice has no visible size yet — please try again.');
+ }
+
  const canvas = await html2canvas(element, {
  scale: 2,
  backgroundColor: '#fdfcfb',
  useCORS: true,
  allowTaint: false,
  logging: false,
- width: element.offsetWidth,
- height: element.scrollHeight,
+ width,
+ height,
  });
  return canvas.toDataURL('image/png', 1.0);
  } catch (err) {
