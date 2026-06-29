@@ -46,6 +46,13 @@ function newItem(): InvoiceLineItem {
  return { id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, description: '', qty: '1', rate: '' };
 }
 
+function downloadDataUrl(dataUrl: string, filename: string) {
+ const link = document.createElement('a');
+ link.download = filename;
+ link.href = dataUrl;
+ link.click();
+}
+
 export default function InvoicePreviewModal({ client, onClose, requireDueDate = true, preserveWatermarkColor = false }: InvoicePreviewModalProps) {
  const invoiceRef = useRef<HTMLDivElement>(null);
  const [mounted, setMounted] = useState(false);
@@ -53,6 +60,7 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  const [isZoomed, setIsZoomed] = useState(false);
  const [isGenerating, setIsGenerating] = useState(false);
  const [cachedDataUrl, setCachedDataUrl] = useState<string | null>(null);
+ const [cachedFile, setCachedFile] = useState<File | null>(null);
 
  const todayIso = new Date().toISOString().split('T')[0];
 
@@ -185,75 +193,88 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  }, []);
 
  // Pre-render the document as soon as it's visible, instead of waiting for
- // the user to click Share/Download — keeps the capture off the critical
- // path of the click so the OS share sheet still sees a fresh user gesture.
+ // the user to click Share/Download. iOS Safari requires navigator.share()
+ // to be called synchronously inside the click handler — any await before
+ // it (even a fast one) loses the gesture and share() silently fails. So we
+ // build the File object ahead of time too, not just the data URL, letting
+ // the click handlers call share() as their very first statement.
  useEffect(() => {
  if (step !== 'preview') return;
  setCachedDataUrl(null);
+ setCachedFile(null);
  let cancelled = false;
- captureInvoice().then(url => { if (!cancelled) setCachedDataUrl(url); });
+ captureInvoice().then(async url => {
+ if (cancelled || !url) return;
+ setCachedDataUrl(url);
+ try {
+ const res = await fetch(url);
+ const blob = await res.blob();
+ if (!cancelled) setCachedFile(new File([blob], `HOA-Invoice-${form.invoiceNo}.png`, { type: 'image/png' }));
+ } catch { /* ignore — click handlers fall back to the slow path */ }
+ });
  return () => { cancelled = true; };
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [step, captureInvoice]);
 
- const handleDownload = async (e: React.MouseEvent) => {
+ const handleDownload = (e: React.MouseEvent) => {
  e.stopPropagation();
- // Use the pre-rendered image if it's ready so navigator.share() fires
- // almost instantly — calling it after the slow html2canvas capture
- // expires the click's "user activation", which makes share() silently
- // fail and fall back to a plain download instead of opening the sheet.
- const dataUrl = cachedDataUrl ?? await captureInvoice();
- if (!dataUrl) return;
  const filename = `HOA-Invoice-${form.invoiceNo}.png`;
 
  // A website has no API to write straight into the OS photo gallery — the
  // closest thing the platform allows is handing the file to the native
  // share sheet, where "Save Image"/"Save to Photos" drops it into the
  // gallery directly instead of the browser's generic Downloads folder.
+ // Calling share() synchronously here (no awaits first) is required for
+ // this to work at all on iOS Safari.
+ if (cachedFile && navigator.canShare && navigator.canShare({ files: [cachedFile] })) {
+ navigator.share({ files: [cachedFile] }).catch(err => {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ if (cachedDataUrl) downloadDataUrl(cachedDataUrl, filename);
+ });
+ return;
+ }
+
+ // Not pre-rendered yet (rare) — fall back to the slower async path.
+ (async () => {
+ const dataUrl = cachedDataUrl ?? await captureInvoice();
+ if (dataUrl) downloadDataUrl(dataUrl, filename);
+ })();
+ };
+
+ const handleShare = (e: React.MouseEvent) => {
+ e.stopPropagation();
+ const filename = `HOA-Invoice-${form.invoiceNo}.png`;
+ const shareText = `*House of Oath - Invoice*\nInvoice No: ${form.invoiceNo}\nBilled To: ${client.name}\nTotal: GHS ${total.toLocaleString()}\n\nThank you for choosing House of Oath.`;
+
+ if (cachedFile && navigator.canShare && navigator.canShare({ files: [cachedFile] })) {
+ navigator.share({ files: [cachedFile], title: `Invoice ${form.invoiceNo} - House of Oath`, text: shareText }).catch(err => {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ if (cachedDataUrl) downloadDataUrl(cachedDataUrl, filename);
+ });
+ return;
+ }
+
+ // Not pre-rendered yet (rare) — fall back to the slower async path.
+ (async () => {
+ const dataUrl = cachedDataUrl ?? await captureInvoice();
+ if (!dataUrl) return;
  try {
  const res = await fetch(dataUrl);
  const blob = await res.blob();
  const file = new File([blob], filename, { type: 'image/png' });
- if (navigator.canShare && navigator.canShare({ files: [file] })) {
- await navigator.share({ files: [file] });
- return;
- }
- } catch (err) {
- if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
- }
-
- const link = document.createElement('a');
- link.download = filename;
- link.href = dataUrl;
- link.click();
- };
-
- const handleShare = async (e: React.MouseEvent) => {
- e.stopPropagation();
- const dataUrl = cachedDataUrl ?? await captureInvoice();
- if (!dataUrl) return;
- const shareText = `*House of Oath - Invoice*\nInvoice No: ${form.invoiceNo}\nBilled To: ${client.name}\nTotal: GHS ${total.toLocaleString()}\n\nThank you for choosing House of Oath.`;
- try {
- const res = await fetch(dataUrl);
- const blob = await res.blob();
- const file = new File([blob], `HOA-Invoice-${form.invoiceNo}.png`, { type: 'image/png' });
  if (navigator.canShare && navigator.canShare({ files: [file] })) {
  await navigator.share({ files: [file], title: `Invoice ${form.invoiceNo} - House of Oath`, text: shareText });
  } else if (navigator.share) {
  await navigator.share({ title: `Invoice ${form.invoiceNo} - House of Oath`, text: shareText });
  } else {
  navigator.clipboard.writeText(shareText);
- const link = document.createElement('a');
- link.download = `HOA-Invoice-${form.invoiceNo}.png`;
- link.href = dataUrl;
- link.click();
+ downloadDataUrl(dataUrl, filename);
  }
  } catch (err) {
- if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet, don't also download
- const link = document.createElement('a');
- link.download = `HOA-Invoice-${form.invoiceNo}.png`;
- link.href = dataUrl;
- link.click();
+ if (err instanceof Error && err.name === 'AbortError') return;
+ downloadDataUrl(dataUrl, filename);
  }
+ })();
  };
 
  // ── Invoice document (shared between normal + zoomed) ──────────────────────

@@ -28,12 +28,20 @@ interface ReceiptPreviewModalProps {
  preserveWatermarkColor?: boolean;
 }
 
+function downloadDataUrl(dataUrl: string, filename: string) {
+ const link = document.createElement('a');
+ link.download = filename;
+ link.href = dataUrl;
+ link.click();
+}
+
 export default function ReceiptPreviewModal({ client, payment, onClose, preserveWatermarkColor = false }: ReceiptPreviewModalProps) {
  const receiptRef = useRef<HTMLDivElement>(null);
  const [isZoomed, setIsZoomed] = useState(false);
  const [mounted, setMounted] = useState(false);
  const [isGenerating, setIsGenerating] = useState(false);
  const [cachedDataUrl, setCachedDataUrl] = useState<string | null>(null);
+ const [cachedFile, setCachedFile] = useState<File | null>(null);
 
  useEffect(() => {
  setMounted(true);
@@ -66,6 +74,8 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  
  const balanceRemaining = Math.max(0, totalCost - totalPaidToDate);
  const isPaidInFull = balanceRemaining === 0;
+ const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
+ const receiptFilename = `HOA-Receipt-${receiptNo}.png`;
 
  const captureReceipt = useCallback(async () => {
  if (!receiptRef.current) return null;
@@ -136,89 +146,92 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  }, []);
 
  // Pre-render the receipt as soon as it's visible, instead of waiting for
- // the user to click Share/Download — keeps the capture off the critical
- // path of the click so the OS share sheet still sees a fresh user gesture.
+ // the user to click Share/Download. iOS Safari requires navigator.share()
+ // to be called synchronously inside the click handler — any await before
+ // it (even a fast one) loses the gesture and share() silently fails. So we
+ // build the File object ahead of time too, not just the data URL, letting
+ // the click handlers call share() as their very first statement.
  useEffect(() => {
  setCachedDataUrl(null);
+ setCachedFile(null);
  let cancelled = false;
- captureReceipt().then(url => { if (!cancelled) setCachedDataUrl(url); });
+ captureReceipt().then(async url => {
+ if (cancelled || !url) return;
+ setCachedDataUrl(url);
+ try {
+ const res = await fetch(url);
+ const blob = await res.blob();
+ if (!cancelled) setCachedFile(new File([blob], receiptFilename, { type: 'image/png' }));
+ } catch { /* ignore — click handlers fall back to the slow path */ }
+ });
  return () => { cancelled = true; };
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [captureReceipt]);
 
- const handleDownload = async (e: React.MouseEvent) => {
+ const handleDownload = (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = cachedDataUrl ?? await captureReceipt();
- if (!dataUrl) return;
- const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
- const filename = `HOA-Receipt-${receiptNo}.png`;
 
  // A website has no API to write straight into the OS photo gallery — the
  // closest thing the platform allows is handing the file to the native
  // share sheet, where "Save Image"/"Save to Photos" drops it into the
  // gallery directly instead of the browser's generic Downloads folder.
- try {
- const res = await fetch(dataUrl);
- const blob = await res.blob();
- const file = new File([blob], filename, { type: 'image/png' });
- if (navigator.canShare && navigator.canShare({ files: [file] })) {
- await navigator.share({ files: [file] });
+ // Calling share() synchronously here (no awaits first) is required for
+ // this to work at all on iOS Safari.
+ if (cachedFile && navigator.canShare && navigator.canShare({ files: [cachedFile] })) {
+ navigator.share({ files: [cachedFile] }).catch(err => {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ if (cachedDataUrl) downloadDataUrl(cachedDataUrl, receiptFilename);
+ });
  return;
  }
- } catch (err) {
- if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
- }
 
- const link = document.createElement('a');
- link.download = filename;
- link.href = dataUrl;
- link.click();
+ // Not pre-rendered yet (rare) — fall back to the slower async path.
+ (async () => {
+ const dataUrl = cachedDataUrl ?? await captureReceipt();
+ if (dataUrl) downloadDataUrl(dataUrl, receiptFilename);
+ })();
  };
 
- const handleShare = async (e: React.MouseEvent) => {
+ const handleShare = (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = cachedDataUrl ?? await captureReceipt();
- if (!dataUrl) return;
-
- const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
  const shareText = `*House of Oath - Official Receipt*
 Receipt No: ${receiptNo}
 Billed To: ${client.name}
 
 Thank you for choosing House of Oath.`;
 
+ if (cachedFile && navigator.canShare && navigator.canShare({ files: [cachedFile] })) {
+ navigator.share({ files: [cachedFile], title: `Receipt ${receiptNo} - House of Oath`, text: shareText }).catch(err => {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ if (cachedDataUrl) downloadDataUrl(cachedDataUrl, receiptFilename);
+ });
+ return;
+ }
+
+ // Not pre-rendered yet (rare) — fall back to the slower async path.
+ (async () => {
+ const dataUrl = cachedDataUrl ?? await captureReceipt();
+ if (!dataUrl) return;
  try {
- // Convert DataURL to Blob
  const res = await fetch(dataUrl);
  const blob = await res.blob();
- const file = new File([blob], `HOA-Receipt-${receiptNo}.png`, { type: 'image/png' });
+ const file = new File([blob], receiptFilename, { type: 'image/png' });
 
  if (navigator.canShare && navigator.canShare({ files: [file] })) {
- await navigator.share({
- files: [file],
- title: `Receipt ${receiptNo} - House of Oath`,
- text: shareText,
- });
+ await navigator.share({ files: [file], title: `Receipt ${receiptNo} - House of Oath`, text: shareText });
  } else if (navigator.share) {
- await navigator.share({
- title: `Receipt ${receiptNo} - House of Oath`,
- text: shareText,
- });
+ await navigator.share({ title: `Receipt ${receiptNo} - House of Oath`, text: shareText });
  } else {
  navigator.clipboard.writeText(shareText);
  alert('Receipt summary copied to clipboard! The image has also been downloaded automatically.');
- const link = document.createElement('a');
- link.download = `HOA-Receipt-${receiptNo}.png`;
- link.href = dataUrl;
- link.click();
+ downloadDataUrl(dataUrl, receiptFilename);
  }
  } catch (error) {
  if (error instanceof Error && error.name === 'AbortError') return; // user dismissed the sheet, don't also download
  console.error('Error sharing', error);
- const link = document.createElement('a');
- link.download = `HOA-Receipt-${receiptNo}.png`;
- link.href = dataUrl;
- link.click();
+ downloadDataUrl(dataUrl, receiptFilename);
  }
+ })();
  };
 
  const modalContent = (
