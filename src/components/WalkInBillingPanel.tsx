@@ -9,6 +9,39 @@ import InvoicePreviewModal from '@/components/tabs/InvoicePreviewModal';
 
 const todayIso = () => new Date().toISOString().split('T')[0];
 
+// Downscale + recompress before embedding as a data URL — a full-resolution phone
+// photo can be several MB, which gives html2canvas too little time to decode it
+// during the fixed capture delay and the capture throws. Capping the longest edge
+// keeps the embedded image small and fast regardless of the source photo's size.
+function resizeImageToDataUrl(file: File, maxDimension = 1200, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width >= height) {
+          height = Math.round((height / width) * maxDimension);
+          width = maxDimension;
+        } else {
+          width = Math.round((width / height) * maxDimension);
+          height = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
+    img.src = objectUrl;
+  });
+}
+
 function buildWalkInClient(fields: {
   name: string;
   phone: string;
@@ -105,9 +138,12 @@ export default function WalkInBillingPanel() {
     setImageError('');
     const err = await validateImageFile(file);
     if (err) { setImageError(err); return; }
-    const reader = new FileReader();
-    reader.onload = ev => setWatermarkImage(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const resized = await resizeImageToDataUrl(file);
+      setWatermarkImage(resized);
+    } catch {
+      setImageError('Could not process that image. Please try a different one.');
+    }
   };
 
   const sharedFields = { name, phone, email, eventName, fabricVendor, notes, watermarkImage };
