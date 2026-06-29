@@ -177,6 +177,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        // Admin name changes have nowhere else to persist — without this,
+        // the name silently reverts to "Admin" on the next session check.
+        if (newProfile.role === 'Admin' && useApi && typeof updates.name === 'string') {
+          fetch('/api/auth/admin-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: updates.name }),
+          }).catch(e => console.warn('API Error:', e));
+        }
+
         // Persist profile without password
         const { password: _pw, ...profileToStore } = newProfile;
         safeSetItem('studio_user', JSON.stringify(profileToStore));

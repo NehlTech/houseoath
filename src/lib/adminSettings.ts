@@ -6,6 +6,7 @@ export interface AdminSettingsDoc {
   _id: string;
   email: string;
   passwordHash: string;
+  name?: string;
   updatedAt: Date;
 }
 

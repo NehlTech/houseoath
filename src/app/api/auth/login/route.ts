@@ -85,14 +85,16 @@ export async function POST(request: NextRequest) {
 
       const cookieStore = await cookies();
       const session = await getIronSession<SessionData>(cookieStore, sessionOpts);
+      const adminName = adminSettings?.name ?? 'Admin';
+
       session.isLoggedIn = true;
       session.userId = 'admin';
       session.email = normalisedEmail;
-      session.name = 'Admin';
+      session.name = adminName;
       session.role = 'Admin';
       await session.save();
 
-      return NextResponse.json({ name: 'Admin', email: normalisedEmail, role: 'Admin' });
+      return NextResponse.json({ name: adminName, email: normalisedEmail, role: 'Admin' });
     }
 
     // ── Worker login ───────────────────────────────────────────────────────
