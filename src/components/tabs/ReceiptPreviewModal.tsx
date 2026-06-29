@@ -33,6 +33,7 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  const [isZoomed, setIsZoomed] = useState(false);
  const [mounted, setMounted] = useState(false);
  const [isGenerating, setIsGenerating] = useState(false);
+ const [cachedDataUrl, setCachedDataUrl] = useState<string | null>(null);
 
  useEffect(() => {
  setMounted(true);
@@ -134,21 +135,48 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  }
  }, []);
 
+ // Pre-render the receipt as soon as it's visible, instead of waiting for
+ // the user to click Share/Download — keeps the capture off the critical
+ // path of the click so the OS share sheet still sees a fresh user gesture.
+ useEffect(() => {
+ setCachedDataUrl(null);
+ let cancelled = false;
+ captureReceipt().then(url => { if (!cancelled) setCachedDataUrl(url); });
+ return () => { cancelled = true; };
+ }, [captureReceipt]);
+
  const handleDownload = async (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = await captureReceipt();
- if (dataUrl) {
+ const dataUrl = cachedDataUrl ?? await captureReceipt();
+ if (!dataUrl) return;
  const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
+ const filename = `HOA-Receipt-${receiptNo}.png`;
+
+ // A website has no API to write straight into the OS photo gallery — the
+ // closest thing the platform allows is handing the file to the native
+ // share sheet, where "Save Image"/"Save to Photos" drops it into the
+ // gallery directly instead of the browser's generic Downloads folder.
+ try {
+ const res = await fetch(dataUrl);
+ const blob = await res.blob();
+ const file = new File([blob], filename, { type: 'image/png' });
+ if (navigator.canShare && navigator.canShare({ files: [file] })) {
+ await navigator.share({ files: [file] });
+ return;
+ }
+ } catch (err) {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ }
+
  const link = document.createElement('a');
- link.download = `HOA-Receipt-${receiptNo}.png`;
+ link.download = filename;
  link.href = dataUrl;
  link.click();
- }
  };
 
  const handleShare = async (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = await captureReceipt();
+ const dataUrl = cachedDataUrl ?? await captureReceipt();
  if (!dataUrl) return;
 
  const receiptNo = payment.receiptNumber || `HOF-${payment.id.replace('pay-', '').substring(0, 8).toUpperCase()}`;
@@ -184,6 +212,7 @@ Thank you for choosing House of Oath.`;
  link.click();
  }
  } catch (error) {
+ if (error instanceof Error && error.name === 'AbortError') return; // user dismissed the sheet, don't also download
  console.error('Error sharing', error);
  const link = document.createElement('a');
  link.download = `HOA-Receipt-${receiptNo}.png`;

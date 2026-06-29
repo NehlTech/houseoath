@@ -52,6 +52,7 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  const [step, setStep] = useState<'form' | 'preview'>('form');
  const [isZoomed, setIsZoomed] = useState(false);
  const [isGenerating, setIsGenerating] = useState(false);
+ const [cachedDataUrl, setCachedDataUrl] = useState<string | null>(null);
 
  const todayIso = new Date().toISOString().split('T')[0];
 
@@ -183,20 +184,52 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  }
  }, []);
 
+ // Pre-render the document as soon as it's visible, instead of waiting for
+ // the user to click Share/Download — keeps the capture off the critical
+ // path of the click so the OS share sheet still sees a fresh user gesture.
+ useEffect(() => {
+ if (step !== 'preview') return;
+ setCachedDataUrl(null);
+ let cancelled = false;
+ captureInvoice().then(url => { if (!cancelled) setCachedDataUrl(url); });
+ return () => { cancelled = true; };
+ }, [step, captureInvoice]);
+
  const handleDownload = async (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = await captureInvoice();
- if (dataUrl) {
+ // Use the pre-rendered image if it's ready so navigator.share() fires
+ // almost instantly — calling it after the slow html2canvas capture
+ // expires the click's "user activation", which makes share() silently
+ // fail and fall back to a plain download instead of opening the sheet.
+ const dataUrl = cachedDataUrl ?? await captureInvoice();
+ if (!dataUrl) return;
+ const filename = `HOA-Invoice-${form.invoiceNo}.png`;
+
+ // A website has no API to write straight into the OS photo gallery — the
+ // closest thing the platform allows is handing the file to the native
+ // share sheet, where "Save Image"/"Save to Photos" drops it into the
+ // gallery directly instead of the browser's generic Downloads folder.
+ try {
+ const res = await fetch(dataUrl);
+ const blob = await res.blob();
+ const file = new File([blob], filename, { type: 'image/png' });
+ if (navigator.canShare && navigator.canShare({ files: [file] })) {
+ await navigator.share({ files: [file] });
+ return;
+ }
+ } catch (err) {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet
+ }
+
  const link = document.createElement('a');
- link.download = `HOA-Invoice-${form.invoiceNo}.png`;
+ link.download = filename;
  link.href = dataUrl;
  link.click();
- }
  };
 
  const handleShare = async (e: React.MouseEvent) => {
  e.stopPropagation();
- const dataUrl = await captureInvoice();
+ const dataUrl = cachedDataUrl ?? await captureInvoice();
  if (!dataUrl) return;
  const shareText = `*House of Oath - Invoice*\nInvoice No: ${form.invoiceNo}\nBilled To: ${client.name}\nTotal: GHS ${total.toLocaleString()}\n\nThank you for choosing House of Oath.`;
  try {
@@ -214,7 +247,8 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  link.href = dataUrl;
  link.click();
  }
- } catch {
+ } catch (err) {
+ if (err instanceof Error && err.name === 'AbortError') return; // user dismissed the sheet, don't also download
  const link = document.createElement('a');
  link.download = `HOA-Invoice-${form.invoiceNo}.png`;
  link.href = dataUrl;

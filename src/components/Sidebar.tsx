@@ -692,6 +692,16 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  </button>
  )}
 
+ {/* Walk-in billing — superuser only, same gating as the desktop three-dots menu */}
+ {userProfile.id === 'admin' && (
+ <button onClick={onOpenWalkInBilling} className="flex flex-col items-center gap-1 p-2 text-muted hover:text-primary flex-1 transition-colors">
+ <div className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-canvas transition-colors">
+ <span className="material-symbols-outlined text-[22px]">receipt_long</span>
+ </div>
+ <span className="text-[10px] font-bold tracking-wider">Billing</span>
+ </button>
+ )}
+
  <button
  onClick={() => setActiveTab('archived')}
  className={`flex flex-col items-center gap-1 p-2 flex-1 transition-colors ${activeTab === 'archived' ? 'text-danger' : 'text-muted hover:text-danger'}`}
