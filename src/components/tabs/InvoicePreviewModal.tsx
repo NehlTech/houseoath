@@ -8,6 +8,10 @@ import { Client } from '@/context/StudioContext';
 interface InvoicePreviewModalProps {
  client: Client;
  onClose: () => void;
+ /** Walk-in invoices are settled immediately and don't carry payment terms — default true for real clients */
+ requireDueDate?: boolean;
+ /** Keep the watermark in its original colors instead of forcing grayscale */
+ preserveWatermarkColor?: boolean;
 }
 
 interface InvoiceLineItem {
@@ -42,7 +46,7 @@ function newItem(): InvoiceLineItem {
  return { id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, description: '', qty: '1', rate: '' };
 }
 
-export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewModalProps) {
+export default function InvoicePreviewModal({ client, onClose, requireDueDate = true, preserveWatermarkColor = false }: InvoicePreviewModalProps) {
  const invoiceRef = useRef<HTMLDivElement>(null);
  const [mounted, setMounted] = useState(false);
  const [step, setStep] = useState<'form' | 'preview'>('form');
@@ -80,7 +84,7 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
  const shippingAmt = form.shippingEnabled ? (parseFloat(form.shipping) || 0) : 0;
  const total = subtotal + salesTaxAmt + shippingAmt;
 
- const canPreview = form.items.length > 0 && form.dueDate.trim() !== '' &&
+ const canPreview = form.items.length > 0 && (!requireDueDate || form.dueDate.trim() !== '') &&
  form.items.some(item => item.description.trim() !== '' && parseFloat(item.rate) > 0);
 
  // ── Item helpers ────────────────────────────────────────────────────────────
@@ -126,8 +130,9 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
  height: element.scrollHeight,
  });
  return canvas.toDataURL('image/png', 1.0);
- } catch {
- alert('Failed to generate invoice image. Please try again.');
+ } catch (err) {
+ console.error('Invoice capture failed:', err);
+ alert(`Failed to generate invoice image: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
  return null;
  } finally {
  setIsGenerating(false);
@@ -183,9 +188,9 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
  {resolvedWatermarkUrl && (
  <img
  src={resolvedWatermarkUrl}
- className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.1] mix-blend-multiply"
+ className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-cover opacity-[0.1] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
  alt=""
- style={{ filter: 'grayscale(100%) contrast(120%) brightness(1.05)' }}
+ style={preserveWatermarkColor ? undefined : { filter: 'grayscale(100%) contrast(120%) brightness(1.05)' }}
  />
  )}
 
@@ -387,12 +392,13 @@ export default function InvoicePreviewModal({ client, onClose }: InvoicePreviewM
  </div>
  <div>
  <label className="text-xs font-bold tracking-wider text-slate-700 block mb-1.5">
- Due Date <span className="text-primary">*</span>
+ Due Date {requireDueDate && <span className="text-primary">*</span>}
  </label>
  <input
  type="date"
  value={form.dueDate}
  onChange={e => setForm(prev => ({ ...prev, dueDate: e.target.value }))}
+ placeholder={requireDueDate ? undefined : 'Optional'}
  className="w-full bg-white border border-border/60 rounded-lg h-10 px-3 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
  />
  </div>

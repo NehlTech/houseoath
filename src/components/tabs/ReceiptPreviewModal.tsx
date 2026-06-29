@@ -17,15 +17,18 @@ interface ReceiptContentProps {
  balanceRemaining: number;
  isPaidInFull: boolean;
  isZoomed: boolean;
+ preserveWatermarkColor: boolean;
 }
 
 interface ReceiptPreviewModalProps {
  client: Client;
  payment: Payment;
  onClose: () => void;
+ /** Keep the watermark in its original colors instead of forcing grayscale */
+ preserveWatermarkColor?: boolean;
 }
 
-export default function ReceiptPreviewModal({ client, payment, onClose }: ReceiptPreviewModalProps) {
+export default function ReceiptPreviewModal({ client, payment, onClose, preserveWatermarkColor = false }: ReceiptPreviewModalProps) {
  const receiptRef = useRef<HTMLDivElement>(null);
  const [isZoomed, setIsZoomed] = useState(false);
  const [mounted, setMounted] = useState(false);
@@ -86,7 +89,7 @@ export default function ReceiptPreviewModal({ client, payment, onClose }: Receip
  return canvas.toDataURL('image/png', 1.0);
  } catch (error) {
  console.error('Error generating receipt image:', error);
- alert('Failed to generate receipt image. Please try again.');
+ alert(`Failed to generate receipt image: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
  return null;
  } finally {
  setIsGenerating(false);
@@ -205,8 +208,9 @@ Thank you for choosing House of Oath.`;
  totalCost={totalCost} 
  totalPaidToDate={totalPaidToDate} 
  balanceRemaining={balanceRemaining} 
- isPaidInFull={isPaidInFull} 
- isZoomed={true} 
+ isPaidInFull={isPaidInFull}
+ isZoomed={true}
+ preserveWatermarkColor={preserveWatermarkColor}
  />
  </div>
  </div>
@@ -266,8 +270,9 @@ Thank you for choosing House of Oath.`;
  totalCost={totalCost} 
  totalPaidToDate={totalPaidToDate} 
  balanceRemaining={balanceRemaining} 
- isPaidInFull={isPaidInFull} 
- isZoomed={false} 
+ isPaidInFull={isPaidInFull}
+ isZoomed={false}
+ preserveWatermarkColor={preserveWatermarkColor}
  />
  </div>
  </div>
@@ -282,7 +287,7 @@ Thank you for choosing House of Oath.`;
 // ─── Sub-component for Receipt Content ───────────────────────────
 function ReceiptContent({
  receiptRef, watermarkUrl, client, payment, approvedIllustration: _approvedIllustration,
- totalCost, totalPaidToDate, balanceRemaining, isPaidInFull, isZoomed
+ totalCost, totalPaidToDate, balanceRemaining, isPaidInFull, isZoomed, preserveWatermarkColor
 }: ReceiptContentProps) {
  return (
  <div 
@@ -296,13 +301,11 @@ function ReceiptContent({
  >
  {/* Watermark Image Layer */}
  {watermarkUrl && (
- <img 
+ <img
  src={watermarkUrl}
- className="absolute inset-0 z-0 pointer-events-none w-full h-full object-cover grayscale opacity-[0.14] mix-blend-multiply"
+ className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-cover opacity-[0.14] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
  alt=""
- style={{ 
- filter: 'grayscale(100%) contrast(120%) brightness(1.05)',
- }}
+ style={preserveWatermarkColor ? undefined : { filter: 'grayscale(100%) contrast(120%) brightness(1.05)' }}
  />
  )}
  

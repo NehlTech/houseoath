@@ -9,6 +9,15 @@ import InvoicePreviewModal from '@/components/tabs/InvoicePreviewModal';
 
 const todayIso = () => new Date().toISOString().split('T')[0];
 
+// Strips everything but digits (keeping a single leading "+" for international
+// numbers) and caps at 15 digits — the ITU E.164 maximum — so the field can't
+// accept an arbitrarily long string of numbers.
+function sanitizePhoneInput(raw: string): string {
+  const hasPlus = raw.trim().startsWith('+');
+  const digits = raw.replace(/\D/g, '').slice(0, 15);
+  return hasPlus && digits ? `+${digits}` : digits;
+}
+
 // Downscale + recompress before embedding as a data URL — a full-resolution phone
 // photo can be several MB, which gives html2canvas too little time to decode it
 // during the fixed capture delay and the capture throws. Capping the longest edge
@@ -227,9 +236,11 @@ export default function WalkInBillingPanel() {
             <input
               id="walkin-phone"
               type="tel"
+              inputMode="numeric"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={e => setPhone(sanitizePhoneInput(e.target.value))}
               placeholder="024 000 0000"
+              maxLength={16}
               className="w-full bg-white shadow-sm border-none text-charcoal rounded-xl h-12 px-4 focus:ring-1 focus:ring-primary transition-all outline-none placeholder-muted"
             />
           </div>
@@ -409,10 +420,20 @@ export default function WalkInBillingPanel() {
       </div>
 
       {docToShow === 'invoice' && stubClient && (
-        <InvoicePreviewModal client={stubClient} onClose={closeDoc} />
+        <InvoicePreviewModal
+          client={stubClient}
+          onClose={closeDoc}
+          requireDueDate={false}
+          preserveWatermarkColor
+        />
       )}
       {docToShow === 'receipt' && stubClient && stubPayment && (
-        <ReceiptPreviewModal client={stubClient} payment={stubPayment} onClose={closeDoc} />
+        <ReceiptPreviewModal
+          client={stubClient}
+          payment={stubPayment}
+          onClose={closeDoc}
+          preserveWatermarkColor
+        />
       )}
     </div>
   );
