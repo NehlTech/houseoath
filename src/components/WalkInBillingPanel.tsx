@@ -205,14 +205,6 @@ export default function WalkInBillingPanel() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h4 className="font-display font-bold text-xl tracking-wide text-charcoal mb-1">Walk-in Billing</h4>
-        <p className="text-sm text-gray font-medium">
-          Generate a receipt or invoice for someone who hasn&apos;t been added as a client yet. The document looks
-          and behaves exactly like the ones generated from a client record.
-        </p>
-      </div>
-
       {/* Shared details */}
       <div className="bg-canvas p-5 md:p-6 rounded-2xl space-y-4">
         <p className="text-xs font-bold tracking-wider text-gray">Client Details</p>

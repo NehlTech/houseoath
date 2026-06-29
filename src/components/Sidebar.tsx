@@ -259,10 +259,11 @@ interface SidebarProps {
  onNewClient: () => void;
  onOpenSettings: () => void;
  onOpenProfile: () => void;
+ onOpenWalkInBilling: () => void;
  onToggleSidebar: () => void;
 }
 
-export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onOpenProfile, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, onOpenProfile, onOpenWalkInBilling, onToggleSidebar }: SidebarProps) {
  const { activeClient, searchQuery, setSearchQuery, updateClient, deleteClient, logout, filteredClients, userProfile, isRetrying, retryLoad } = useStudio();
  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
  const selectionMode = selectedIds.size > 0;
@@ -457,6 +458,18 @@ export default function Sidebar({ onSelectClient, onNewClient, onOpenSettings, o
  <span className="material-symbols-outlined text-[20px]">settings</span>
  <span className="font-semibold text-sm">Settings</span>
  </button>
+ {userProfile.id === 'admin' && (
+ <>
+ <div className="h-px bg-border my-1"></div>
+ <button
+ onClick={() => { setDesktopMenuOpen(false); onOpenWalkInBilling(); }}
+ className="w-full flex items-center gap-4 px-4 py-3 hover:bg-canvas text-charcoal transition-colors"
+ >
+ <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+ <span className="font-semibold text-sm">Walk-in billing</span>
+ </button>
+ </>
+ )}
  <div className="h-px bg-border my-1"></div>
  <button onClick={logout} className="w-full flex items-center gap-4 px-4 py-3 hover:bg-canvas text-danger transition-colors">
  <span className="material-symbols-outlined text-[20px]">logout</span>

@@ -9,6 +9,7 @@ import EmptyState from '@/components/EmptyState';
 import NewClientModal from '@/components/NewClientModal';
 import SettingsModal from '@/components/SettingsModal';
 import ProfileModal from '@/components/ProfileModal';
+import WalkInBillingModal from '@/components/WalkInBillingModal';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
 import OnboardingTour from '@/components/OnboardingTour';
 
@@ -18,6 +19,7 @@ export default function Dashboard() {
  const [showNewClient, setShowNewClient] = useState(false);
  const [showSettings, setShowSettings] = useState(false);
  const [showProfile, setShowProfile] = useState(false);
+ const [showWalkInBilling, setShowWalkInBilling] = useState(false);
  const [mobileShowWorkspace, setMobileShowWorkspace] = useState(false);
  const [sidebarOpen, setSidebarOpen] = useState(true);
  const [inactiveSecsLeft, setInactiveSecsLeft] = useState(0);
@@ -93,6 +95,7 @@ export default function Dashboard() {
  onNewClient={() => setShowNewClient(true)}
  onOpenSettings={() => setShowSettings(true)}
  onOpenProfile={() => setShowProfile(true)}
+ onOpenWalkInBilling={() => setShowWalkInBilling(true)}
  onToggleSidebar={() => setSidebarOpen(false)}
  />
  </aside>
@@ -123,6 +126,7 @@ export default function Dashboard() {
  {showNewClient && <NewClientModal onClose={() => setShowNewClient(false)} />}
  {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
  {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+ {showWalkInBilling && <WalkInBillingModal onClose={() => setShowWalkInBilling(false)} />}
 
  <OnboardingTour userId={userProfile.id ?? userProfile.email} role={userProfile.role} />
 
