@@ -42,6 +42,7 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  const [isGenerating, setIsGenerating] = useState(false);
  const [cachedDataUrl, setCachedDataUrl] = useState<string | null>(null);
  const [cachedFile, setCachedFile] = useState<File | null>(null);
+ const [isPriming, setIsPriming] = useState(true);
 
  useEffect(() => {
  setMounted(true);
@@ -154,15 +155,17 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  useEffect(() => {
  setCachedDataUrl(null);
  setCachedFile(null);
+ setIsPriming(true);
  let cancelled = false;
  captureReceipt().then(async url => {
- if (cancelled || !url) return;
+ if (cancelled || !url) { if (!cancelled) setIsPriming(false); return; }
  setCachedDataUrl(url);
  try {
  const res = await fetch(url);
  const blob = await res.blob();
  if (!cancelled) setCachedFile(new File([blob], receiptFilename, { type: 'image/png' }));
  } catch { /* ignore — click handlers fall back to the slow path */ }
+ if (!cancelled) setIsPriming(false);
  });
  return () => { cancelled = true; };
  // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,10 +188,23 @@ export default function ReceiptPreviewModal({ client, payment, onClose, preserve
  return;
  }
 
- // Not pre-rendered yet (rare) — fall back to the slower async path.
+ // Not pre-rendered yet (rare) — fall back to the slower async path,
+ // still attempting the share sheet before resorting to a plain download.
  (async () => {
  const dataUrl = cachedDataUrl ?? await captureReceipt();
- if (dataUrl) downloadDataUrl(dataUrl, receiptFilename);
+ if (!dataUrl) return;
+ try {
+ const res = await fetch(dataUrl);
+ const blob = await res.blob();
+ const file = new File([blob], receiptFilename, { type: 'image/png' });
+ if (navigator.canShare && navigator.canShare({ files: [file] })) {
+ await navigator.share({ files: [file] });
+ return;
+ }
+ } catch (err) {
+ if (err instanceof Error && err.name === 'AbortError') return;
+ }
+ downloadDataUrl(dataUrl, receiptFilename);
  })();
  };
 
@@ -238,7 +254,7 @@ Thank you for choosing House of Oath.`;
  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000000] bg-opacity-95 p-0 sm:p-8 overflow-y-auto print:p-0 print:bg-transparent print:absolute print:inset-0">
  
  {/* Loading Overlay */}
- {isGenerating && (
+ {(isGenerating || isPriming) && (
  <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
  <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
  <p className="text-sm font-bold tracking-[0.2em] animate-pulse px-6 text-center">Preparing High-Quality Receipt...</p>
@@ -260,14 +276,14 @@ Thank you for choosing House of Oath.`;
  <div className="flex gap-2">
  <button 
  onClick={handleShare}
- disabled={isGenerating}
+ disabled={isGenerating || isPriming}
  className="flex items-center justify-center size-9 rounded-full bg-white/10 border border-white/20 text-white active:scale-95 transition-all disabled:opacity-50"
  >
  <span className="material-symbols-outlined text-[18px]">share</span>
  </button>
  <button 
  onClick={handleDownload}
- disabled={isGenerating}
+ disabled={isGenerating || isPriming}
  className="flex items-center justify-center size-9 rounded-full bg-white text-[#1a0f08] active:scale-95 transition-all disabled:opacity-50"
  >
  <span className="material-symbols-outlined text-[18px]">download</span>
@@ -315,7 +331,7 @@ Thank you for choosing House of Oath.`;
  
  <button 
  onClick={handleShare}
- disabled={isGenerating}
+ disabled={isGenerating || isPriming}
  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-white transition-all backdrop-blur-md shadow-lg shadow-black/20 group cursor-pointer disabled:opacity-50"
  title="Share Receipt Image"
  >
@@ -325,7 +341,7 @@ Thank you for choosing House of Oath.`;
 
  <button 
  onClick={handleDownload}
- disabled={isGenerating}
+ disabled={isGenerating || isPriming}
  className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2 sm:py-2.5 rounded-full bg-white hover:bg-gray-100 text-[#1a0f08] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_25px_rgba(255,255,255,0.25)] group cursor-pointer disabled:opacity-50"
  title="Download Receipt Image"
  >
