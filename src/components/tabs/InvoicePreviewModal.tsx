@@ -435,7 +435,7 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  <p className="font-bold text-[#1a0f08]">Bank Transfer Details</p>
  <p>Account No. 2400261494911</p>
  <p>Fidelity Bank Ghana</p>
- <p>Account Name: House of Oath</p>
+ <p>Account Name: Oath House Fashion</p>
  </div>
  <div className="flex flex-col gap-1.5">
  <p className="font-bold text-[#1a0f08]">Mobile Money</p>
