@@ -303,7 +303,7 @@ export default function InvoicePreviewModal({ client, onClose, requireDueDate = 
  {resolvedWatermarkUrl && (
  <img
  src={resolvedWatermarkUrl}
- className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-contain opacity-[0.28] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
+ className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-cover object-top opacity-[0.28] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
  alt=""
  style={preserveWatermarkColor ? undefined : { filter: 'grayscale(100%) contrast(150%) brightness(0.88)' }}
  />
