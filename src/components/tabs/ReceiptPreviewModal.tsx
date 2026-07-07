@@ -399,9 +399,9 @@ function ReceiptContent({
  {watermarkUrl && (
  <img
  src={watermarkUrl}
- className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-cover opacity-[0.14] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
+ className={`absolute inset-0 z-0 pointer-events-none w-full h-full object-cover opacity-[0.28] mix-blend-multiply ${preserveWatermarkColor ? '' : 'grayscale'}`}
  alt=""
- style={preserveWatermarkColor ? undefined : { filter: 'grayscale(100%) contrast(120%) brightness(1.05)' }}
+ style={preserveWatermarkColor ? undefined : { filter: 'grayscale(100%) contrast(150%) brightness(0.88)' }}
  />
  )}
  
@@ -460,7 +460,7 @@ function ReceiptContent({
  {/* --- INVOICE TABLE --- */}
  <div className="w-full flex-1">
  {/* Table Header */}
- <div className="grid grid-cols-12 gap-4 border-b-[1px] border-[#1a0f08] pb-3 text-[9px] sm:text-[10px] tracking-[0.2em] font-semibold text-[#1a0f08]/60 font-sans">
+ <div className="grid grid-cols-12 gap-4 border-b-[1px] border-[#1a0f08] pb-3 text-[9px] sm:text-[10px] tracking-[0.2em] font-semibold text-[#1a0f08]/80 font-sans">
  <div className="col-span-12 sm:col-span-8">Description of Services</div>
  <div className="hidden sm:block sm:col-span-2 text-center">Qty</div>
  <div className="hidden sm:block sm:col-span-2 text-right">Amount (GHS)</div>
