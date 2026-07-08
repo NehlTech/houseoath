@@ -43,7 +43,23 @@ export default function MeasurementsTab({ client }: MeasurementsTabProps) {
  const [showSaved, setShowSaved] = useState(false);
 
  const handleChange = (key: keyof Measurements, value: string) => {
- setMeasurements(prev => ({ ...prev, [key]: value }));
+ // Only allow digits, decimal points, and slashes
+ const filtered = value.replace(/[^0-9./]/g, '');
+ setMeasurements(prev => ({ ...prev, [key]: filtered }));
+ };
+
+ const handleBlur = (key: keyof Measurements) => {
+ const raw = measurements[key] || '';
+ if (!raw.trim()) return;
+ const formatted = raw
+  .split('/')
+  .map(part => {
+   const t = part.trim();
+   if (!t) return '';
+   return t.includes('.') ? t : `${t}.0`;
+  })
+  .join('/');
+ setMeasurements(prev => ({ ...prev, [key]: formatted }));
  };
 
  const handleSave = () => {
@@ -113,13 +129,12 @@ export default function MeasurementsTab({ client }: MeasurementsTabProps) {
  </label>
  <div className="relative">
  <input
- type="number"
- inputMode="decimal"
- step="0.5"
- min="0"
- placeholder="0.0"
+ type="text"
+ inputMode="text"
+ placeholder="0.0 or 0.0/0.0"
  value={measurements[key] || ''}
  onChange={(e) => handleChange(key, e.target.value)}
+ onBlur={() => handleBlur(key)}
  disabled={!isEditing}
  className={`w-full rounded-lg h-11 px-4 pr-12 text-sm font-medium outline-none transition-all
  border border-border/60
